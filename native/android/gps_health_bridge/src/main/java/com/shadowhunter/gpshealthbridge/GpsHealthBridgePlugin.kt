@@ -66,6 +66,11 @@ class GpsHealthBridgePlugin(godot: Godot) : GodotPlugin(godot) {
 
     override fun getPluginName(): String = "GpsHealthBridge"
 
+    // Checkpoint 2: hello-world round trip, proves the bridge + Gradle/AAR
+    // build before GPS/Health Connect are exercised in checkpoints 3-4.
+    @UsedByGodot
+    fun helloWorld(): String = "Hello from Kotlin!"
+
     override fun getPluginSignals(): MutableSet<SignalInfo> = mutableSetOf(
         SignalInfo("location_permission_result", Boolean::class.javaObjectType),
         SignalInfo(

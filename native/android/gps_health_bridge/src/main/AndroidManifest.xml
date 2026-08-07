@@ -15,4 +15,12 @@
         <package android:name="com.google.android.apps.healthdata" />
     </queries>
 
+    <application>
+        <!-- Registers this plugin with Godot's v2 Android plugin runtime
+             registry. Without this, Engine.has_singleton() never finds it. -->
+        <meta-data
+            android:name="org.godotengine.plugin.v2.GpsHealthBridge"
+            android:value="com.shadowhunter.gpshealthbridge.GpsHealthBridgePlugin" />
+    </application>
+
 </manifest>
