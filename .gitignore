@@ -1,0 +1,26 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+export_presets.cfg
+
+# Mono/.NET (if using C#)
+.mono/
+data_*/
+mono_crash.*.json
+*.csproj.user
+bin/
+obj/
+
+# Import cache
+*.translation
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
