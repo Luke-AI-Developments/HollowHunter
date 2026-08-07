@@ -1,0 +1,2 @@
+rootProject.name = "shadowhunter-native"
+include ':gps_health_bridge'
