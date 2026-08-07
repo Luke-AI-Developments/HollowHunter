@@ -1,7 +1,9 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
-export_presets.cfg
+
+# Build output
+/builds/
 
 # Mono/.NET (if using C#)
 .mono/

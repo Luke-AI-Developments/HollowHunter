@@ -11,8 +11,10 @@ config_version=5
 
 config/name="ShadowHunter"
 config/features=PackedStringArray("4.3", "Mobile")
-run/main_scene=""
+config/icon="res://icon.svg"
+run/main_scene="res://scenes/main.tscn"
 
 [rendering]
 
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
