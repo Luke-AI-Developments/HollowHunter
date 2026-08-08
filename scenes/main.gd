@@ -1,7 +1,8 @@
 extends Node2D
 
-## Phase 1 step 3: real daily EXP from Health Connect -> level up, replacing
-## the native-plugin-spike test harness (checkpoints 2-4) with actual game
+## Phase 1 steps 3-4: real daily EXP from Health Connect -> level up, and a
+## simple map (live GPS position + placeholder gates), replacing the
+## native-plugin-spike test harness (checkpoints 2-4) with actual game
 ## wiring. Subclass is hardcoded to WARRIOR for now -- no picker UI yet
 ## (not part of the minimum lovable loop). Simplification: applies today's
 ## totals every launch with no "already counted today" guard, so relaunching
@@ -15,6 +16,7 @@ var _workouts_json: String = ""
 var _health_applied := false
 
 @onready var label: Label = $Label
+@onready var map_view: Node2D = $MapView
 
 
 func _ready() -> void:
@@ -26,12 +28,26 @@ func _ready() -> void:
 		return
 	bridge = Engine.get_singleton("GpsHealthBridge")
 
+	bridge.location_permission_result.connect(_on_location_permission_result)
+	bridge.location_update.connect(_on_location_update)
 	bridge.health_connect_available.connect(_on_health_connect_available)
 	bridge.health_permission_result.connect(_on_health_permission_result)
 	bridge.steps_result.connect(_on_steps_result)
 	bridge.workouts_result.connect(_on_workouts_result)
 
+	bridge.requestLocationPermission()
 	bridge.checkHealthConnectAvailable()
+
+
+func _on_location_permission_result(granted: bool) -> void:
+	if granted:
+		bridge.startLocationUpdates()
+	else:
+		label.text += "\n\nGPS permission denied"
+
+
+func _on_location_update(lat: float, lon: float, _accuracy: float, _timestamp_ms: int) -> void:
+	map_view.show_position(lat, lon, state.level)
 
 
 func _on_health_connect_available(available: bool) -> void:
