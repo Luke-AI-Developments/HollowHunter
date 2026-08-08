@@ -36,3 +36,33 @@ static func unequip(equipped: Dictionary, slot: String) -> Dictionary:
 	var result := equipped.duplicate()
 	result.erase(slot)
 	return result
+
+
+## Phase 2 patch 1 step 3: sums an equipped loadout's power_bonus and merges
+## its stat_mods (§16 wiring). `equipped`: slot->instance_id, `inventory`:
+## the owner's Array of {instance_id, equipment_def_id, enhancement_level}
+## (hunter and shadows share the one inventory pool), `equipment`: loaded
+## equipment.json. Unknown/missing instance ids are skipped rather than
+## erroring, so a stale equipped slot can't crash power calc. Enhancement
+## isn't factored in yet (step 5) -- always reads the base, unenhanced def.
+static func gear_bonus(equipped: Dictionary, inventory: Array, equipment: Dictionary) -> Dictionary:
+	var power_bonus := 0
+	var stat_mods := {}
+	for instance_id in equipped.values():
+		var item := _item_by_instance(inventory, instance_id)
+		if item.is_empty():
+			continue
+		var def := Content.equipment_by_id(equipment, item.get("equipment_def_id", ""))
+		if def.is_empty():
+			continue
+		power_bonus += def.get("power_bonus", 0)
+		for stat in def.get("stat_mods", {}):
+			stat_mods[stat] = stat_mods.get(stat, 0) + def["stat_mods"][stat]
+	return {"power_bonus": power_bonus, "stat_mods": stat_mods}
+
+
+static func _item_by_instance(inventory: Array, instance_id: String) -> Dictionary:
+	for item: Dictionary in inventory:
+		if item.get("instance_id", "") == instance_id:
+			return item
+	return {}

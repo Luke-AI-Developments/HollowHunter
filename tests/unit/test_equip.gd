@@ -47,3 +47,38 @@ func test_unequip_does_not_mutate_input() -> void:
 	var original := {"WEAPON": "eq_inst_0"}
 	Equip.unequip(original, "WEAPON")
 	assert_true(original.has("WEAPON"))
+
+
+func test_gear_bonus_empty_loadout_is_zero() -> void:
+	var bonus := Equip.gear_bonus({}, [], Content.load_equipment())
+	assert_eq(bonus["power_bonus"], 0)
+	assert_eq(bonus["stat_mods"], {})
+
+
+func test_gear_bonus_sums_power_bonus_across_slots() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_warcleaver", "enhancement_level": 0},
+		{"instance_id": "i1", "equipment_def_id": "eq_ironbrow_helm", "enhancement_level": 0},
+	]
+	var equipped := {"WEAPON": "i0", "HEAD": "i1"}
+	var bonus := Equip.gear_bonus(equipped, inventory, equipment)
+	assert_eq(bonus["power_bonus"], 25 + 60)  # eq_warcleaver + eq_ironbrow_helm power_bonus
+
+
+func test_gear_bonus_merges_stat_mods_across_slots() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_warcleaver", "enhancement_level": 0},
+		{"instance_id": "i1", "equipment_def_id": "eq_trampling_sabatons", "enhancement_level": 0},
+	]
+	var equipped := {"WEAPON": "i0", "FEET": "i1"}
+	var bonus := Equip.gear_bonus(equipped, inventory, equipment)
+	# eq_warcleaver STR+3; eq_trampling_sabatons VIT+8 STR+5 -> STR should merge, not overwrite
+	assert_eq(bonus["stat_mods"]["STR"], 8)
+	assert_eq(bonus["stat_mods"]["VIT"], 8)
+
+
+func test_gear_bonus_skips_unknown_instance_id() -> void:
+	var bonus := Equip.gear_bonus({"WEAPON": "does_not_exist"}, [], Content.load_equipment())
+	assert_eq(bonus["power_bonus"], 0)

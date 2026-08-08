@@ -157,6 +157,20 @@ func stats() -> Dictionary:
 	return GameLogic.stats_from(level, subclass)
 
 
+## Phase 2 patch 1 step 3: personal_power including equipped gear -- merges
+## gear stat_mods into base stats (personal_power sums the whole stats dict,
+## so gear stats have to be folded in BEFORE calling it, not passed
+## separately like shadow_power's scalar gear_stat_bonus) and passes gear's
+## summed power_bonus straight through.
+func personal_power(equipment: Dictionary) -> int:
+	var bonus := Equip.gear_bonus(equipped, inventory, equipment)
+	var combined := stats().duplicate()
+	var stat_mods: Dictionary = bonus["stat_mods"]
+	for stat in stat_mods:
+		combined[stat] = combined.get(stat, 0) + stat_mods[stat]
+	return GameLogic.personal_power(combined, level, bonus["power_bonus"])
+
+
 ## Adds EXP, applies any level-ups (can be more than one), returns how many
 ## levels were gained. Pure -- no signals, no side effects beyond self.
 func add_exp(amount: int) -> int:

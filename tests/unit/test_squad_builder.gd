@@ -72,3 +72,18 @@ func test_auto_fill_squad_with_one_shadow_returns_one() -> void:
 	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
 	assert_eq(squad.size(), 1)
 	assert_eq(squad[0]["monster_id"], "mon_grubmaw")
+
+
+func test_enrich_army_gear_raises_shadow_power() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_warcleaver", "enhancement_level": 0}
+	]
+	var shadow := _shadow("mon_ashen_warden")  # WARRIOR, matches eq_warcleaver's clazz
+	var baseline: int = SquadBuilder.enrich_army([shadow], monsters, 10)[0]["power"]
+
+	shadow["equipped"] = {"WEAPON": "i0"}
+	var geared: int = (
+		SquadBuilder.enrich_army([shadow], monsters, 10, equipment, inventory)[0]["power"]
+	)
+	assert_true(geared > baseline)

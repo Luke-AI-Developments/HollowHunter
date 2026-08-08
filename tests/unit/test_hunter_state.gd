@@ -266,3 +266,30 @@ func test_equipped_round_trips_through_dict() -> void:
 	s.equip_to_hunter(item["instance_id"], equipment)
 	var restored := HunterState.from_dict(s.to_dict())
 	assert_eq(restored.equipped["WEAPON"], item["instance_id"])
+
+
+func test_personal_power_with_no_gear_matches_base_formula() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.level = 10
+	var equipment := Content.load_equipment()
+	assert_eq(s.personal_power(equipment), GameLogic.personal_power(s.stats(), s.level, 0))
+
+
+func test_personal_power_rises_when_gear_is_equipped() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var baseline := s.personal_power(equipment)
+	var item := s.add_to_inventory("eq_warcleaver")  # power_bonus 25, STR+3
+	s.equip_to_hunter(item["instance_id"], equipment)
+	assert_true(s.personal_power(equipment) > baseline)
+
+
+func test_personal_power_matches_hand_computed_gear_bonus() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var item := s.add_to_inventory("eq_warcleaver")  # power_bonus 25, STR+3
+	s.equip_to_hunter(item["instance_id"], equipment)
+	var expected_stats := s.stats().duplicate()
+	expected_stats["STR"] += 3
+	var expected := GameLogic.personal_power(expected_stats, s.level, 25)
+	assert_eq(s.personal_power(equipment), expected)

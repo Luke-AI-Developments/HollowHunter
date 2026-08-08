@@ -157,11 +157,13 @@ func _on_enter_gate_pressed() -> void:
 		return
 	var gate := map_view.get_gate(idx)
 
-	var squad := SquadBuilder.auto_fill_squad(state.army, _monsters, state.level)
+	var squad := SquadBuilder.auto_fill_squad(
+		state.army, _monsters, state.level, _equipment, state.inventory
+	)
 	var squad_power := 0
 	for member: Dictionary in squad:
 		squad_power += member["power"]
-	var personal := GameLogic.personal_power(state.stats(), state.level, 0)
+	var personal := state.personal_power(_equipment)
 	var total_power := GameLogic.gate_power(personal, squad_power)
 
 	var rng := RandomNumberGenerator.new()
@@ -203,8 +205,12 @@ func _refresh_army_label() -> void:
 		army_label.text = "Army: (none yet)"
 		return
 
-	var enriched := SquadBuilder.enrich_army(state.army, _monsters, state.level)
-	var squad := SquadBuilder.auto_fill_squad(state.army, _monsters, state.level)
+	var enriched := SquadBuilder.enrich_army(
+		state.army, _monsters, state.level, _equipment, state.inventory
+	)
+	var squad := SquadBuilder.auto_fill_squad(
+		state.army, _monsters, state.level, _equipment, state.inventory
+	)
 	var squad_ids := {}
 	for member: Dictionary in squad:
 		squad_ids[member["instance_id"]] = true
@@ -254,7 +260,10 @@ func _refresh_inventory_label() -> void:
 func _refresh_label() -> void:
 	var stats := state.stats()
 	label.text = (
-		"Lv %d %s\nEXP: %d / %d\nEssence: %d  Tickets: %d\nSTR %d AGI %d VIT %d END %d SEN %d"
+		(
+			"Lv %d %s\nEXP: %d / %d\nEssence: %d  Tickets: %d\n"
+			+ "STR %d AGI %d VIT %d END %d SEN %d\nPower: %d"
+		)
 		% [
 			state.level,
 			state.subclass,
@@ -267,5 +276,6 @@ func _refresh_label() -> void:
 			stats["VIT"],
 			stats["END"],
 			stats["SEN"],
+			state.personal_power(_equipment),
 		]
 	)
