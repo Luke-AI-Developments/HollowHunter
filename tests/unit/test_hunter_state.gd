@@ -628,3 +628,36 @@ func test_locked_shadow_can_still_be_explicitly_converted() -> void:
 	s.set_shadow_locked(shadow["instance_id"], true)
 	assert_true(s.convert_shadow(shadow["instance_id"]))
 	assert_eq(s.army.size(), 0)
+
+
+func test_new_default_has_cleared_no_nadir_floors() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.nadir_deepest_floor, 0)
+	assert_eq(s.nadir_current_floor(), 1)
+
+
+func test_clear_nadir_floor_advances_deepest_and_current() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.clear_nadir_floor(1)
+	assert_eq(s.nadir_deepest_floor, 1)
+	assert_eq(s.nadir_current_floor(), 2)
+
+
+func test_clear_nadir_floor_never_moves_backward() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.clear_nadir_floor(5)
+	s.clear_nadir_floor(2)  # out of order / re-clear -- must not regress
+	assert_eq(s.nadir_deepest_floor, 5)
+
+
+func test_nadir_deepest_floor_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.clear_nadir_floor(7)
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.nadir_deepest_floor, 7)
+	assert_eq(restored.nadir_current_floor(), 8)
+
+
+func test_from_dict_defaults_nadir_deepest_floor_to_zero() -> void:
+	var restored := HunterState.from_dict({})
+	assert_eq(restored.nadir_deepest_floor, 0)

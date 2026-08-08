@@ -22,6 +22,11 @@ var inventory: Array  ## Array[Dictionary]: {instance_id, equipment_def_id, enha
 ## from equipment_def_id via Content when needed.
 var equipped: Dictionary  ## slot (Equip.SLOTS) -> inventory instance_id. The hunter's own
 ## 7-slot loadout. Each army shadow carries its own equipped dict too (see claim_shadow()).
+var nadir_deepest_floor: int  ## Phase 2/P3 step 1: highest Nadir floor ever cleared (§20) --
+## 0 = none cleared yet. Permanent, one-way (clearing is forever, never decreases). The
+## design bible's "NadirState" is just this field: everything else here already lives flat
+## on HunterState (army/inventory/equipped etc.), so a separate class would break that
+## convention for one int.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -36,6 +41,7 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.last_exp_date = ""
 	s.inventory = []
 	s.equipped = {}
+	s.nadir_deepest_floor = 0
 	return s
 
 
@@ -380,6 +386,20 @@ func add_exp(amount: int) -> int:
 	return levels_gained
 
 
+## Phase 2/P3 step 1: the next Nadir floor to attempt -- one past the
+## deepest ever cleared. Floor numbering starts at 1 (§20's "floor 1
+## trivial").
+func nadir_current_floor() -> int:
+	return nadir_deepest_floor + 1
+
+
+## Records a floor clear. One-way -- `max()` means clearing the current (or
+## any) floor can only advance or hold deepest_floor, never move it
+## backward, so calling this out of order (or twice) is always safe.
+func clear_nadir_floor(floor_n: int) -> void:
+	nadir_deepest_floor = max(nadir_deepest_floor, floor_n)
+
+
 func to_dict() -> Dictionary:
 	return {
 		"level": level,
@@ -392,6 +412,7 @@ func to_dict() -> Dictionary:
 		"last_exp_date": last_exp_date,
 		"inventory": inventory,
 		"equipped": equipped,
+		"nadir_deepest_floor": nadir_deepest_floor,
 	}
 
 
@@ -407,4 +428,5 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.last_exp_date = String(d.get("last_exp_date", ""))
 	s.inventory = d.get("inventory", [])
 	s.equipped = d.get("equipped", {})
+	s.nadir_deepest_floor = int(d.get("nadir_deepest_floor", 0))
 	return s
