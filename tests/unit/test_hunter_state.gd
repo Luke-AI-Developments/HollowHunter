@@ -155,3 +155,114 @@ func test_inventory_round_trips_through_dict() -> void:
 	var restored := HunterState.from_dict(s.to_dict())
 	assert_eq(restored.inventory.size(), 2)
 	assert_eq(restored.inventory[0]["equipment_def_id"], "eq_warcleaver")
+
+
+func test_claim_shadow_starts_with_no_gear() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	assert_eq(shadow["equipped"], {})
+
+
+func test_equip_to_hunter_matching_class_succeeds() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var item := s.add_to_inventory("eq_warcleaver")  # WARRIOR WEAPON
+	var ok := s.equip_to_hunter(item["instance_id"], equipment)
+	assert_true(ok)
+	assert_eq(s.equipped["WEAPON"], item["instance_id"])
+
+
+func test_equip_to_hunter_wrong_class_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var item := s.add_to_inventory("eq_blightwood_wand")  # MAGE WEAPON
+	var ok := s.equip_to_hunter(item["instance_id"], equipment)
+	assert_false(ok)
+	assert_false(s.equipped.has("WEAPON"))
+
+
+func test_equip_to_hunter_unknown_item_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_false(s.equip_to_hunter("eq_inst_does_not_exist", Content.load_equipment()))
+
+
+func test_equip_to_hunter_swaps_out_the_old_item() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var first := s.add_to_inventory("eq_warcleaver")
+	var second := s.add_to_inventory("eq_gravebite_greataxe")  # also WARRIOR WEAPON
+	s.equip_to_hunter(first["instance_id"], equipment)
+	s.equip_to_hunter(second["instance_id"], equipment)
+	assert_eq(s.equipped["WEAPON"], second["instance_id"])
+	assert_false(s.is_instance_equipped(first["instance_id"]))  # freed, not lost
+
+
+func test_unequip_from_hunter_clears_the_slot() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var item := s.add_to_inventory("eq_warcleaver")
+	s.equip_to_hunter(item["instance_id"], equipment)
+	s.unequip_from_hunter("WEAPON")
+	assert_false(s.equipped.has("WEAPON"))
+
+
+func test_equip_to_shadow_matching_class_succeeds() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var monsters := Content.load_monsters()
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")  # WARRIOR
+	var item := s.add_to_inventory("eq_warcleaver")
+	var ok := s.equip_to_shadow(shadow["instance_id"], item["instance_id"], equipment, monsters)
+	assert_true(ok)
+	assert_eq(s.army[0]["equipped"]["WEAPON"], item["instance_id"])
+
+
+func test_equip_to_shadow_wrong_class_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var monsters := Content.load_monsters()
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")  # WARRIOR
+	var item := s.add_to_inventory("eq_blightwood_wand")  # MAGE WEAPON
+	var ok := s.equip_to_shadow(shadow["instance_id"], item["instance_id"], equipment, monsters)
+	assert_false(ok)
+	assert_eq(s.army[0]["equipped"], {})
+
+
+func test_equip_to_shadow_unknown_shadow_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var monsters := Content.load_monsters()
+	var item := s.add_to_inventory("eq_warcleaver")
+	assert_false(s.equip_to_shadow("shadow_none", item["instance_id"], equipment, monsters))
+
+
+func test_same_item_cannot_equip_hunter_and_shadow_at_once() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var monsters := Content.load_monsters()
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")  # WARRIOR
+	var item := s.add_to_inventory("eq_warcleaver")
+	s.equip_to_hunter(item["instance_id"], equipment)
+	var ok := s.equip_to_shadow(shadow["instance_id"], item["instance_id"], equipment, monsters)
+	assert_false(ok)
+	assert_eq(s.army[0]["equipped"], {})
+
+
+func test_unequip_from_shadow_clears_the_slot() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var monsters := Content.load_monsters()
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	var item := s.add_to_inventory("eq_warcleaver")
+	s.equip_to_shadow(shadow["instance_id"], item["instance_id"], equipment, monsters)
+	s.unequip_from_shadow(shadow["instance_id"], "WEAPON")
+	assert_false(s.army[0]["equipped"].has("WEAPON"))
+
+
+func test_equipped_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var item := s.add_to_inventory("eq_warcleaver")
+	s.equip_to_hunter(item["instance_id"], equipment)
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.equipped["WEAPON"], item["instance_id"])

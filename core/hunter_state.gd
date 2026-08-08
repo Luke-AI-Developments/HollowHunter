@@ -20,6 +20,8 @@ var last_exp_date: String  ## "YYYY-MM-DD" (device-local calendar date) of the l
 var inventory: Array  ## Array[Dictionary]: {instance_id, equipment_def_id, enhancement_level}.
 ## Like army, doesn't duplicate content data -- look up name/slot/rarity/stat_mods/power_bonus
 ## from equipment_def_id via Content when needed.
+var equipped: Dictionary  ## slot (Equip.SLOTS) -> inventory instance_id. The hunter's own
+## 7-slot loadout. Each army shadow carries its own equipped dict too (see claim_shadow()).
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -33,6 +35,7 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.army = []
 	s.last_exp_date = ""
 	s.inventory = []
+	s.equipped = {}
 	return s
 
 
@@ -65,9 +68,87 @@ func claim_shadow(monster_id: String, grade: String) -> Dictionary:
 		"monster_id": monster_id,
 		"grade": grade,
 		"level": 1,
+		"equipped": {},
 	}
 	army.append(shadow)
 	return shadow
+
+
+## True if the inventory item is currently equipped on the hunter or any
+## shadow -- an item instance can only be worn by one wearer at a time.
+func is_instance_equipped(instance_id: String) -> bool:
+	if equipped.values().has(instance_id):
+		return true
+	for shadow: Dictionary in army:
+		var shadow_equipped: Dictionary = shadow.get("equipped", {})
+		if shadow_equipped.values().has(instance_id):
+			return true
+	return false
+
+
+## Equips an owned item onto the hunter, in its def's slot, if the hunter's
+## subclass matches the item's class (Equip.can_equip) and the item isn't
+## already worn by the hunter or a shadow. Swaps out whatever was in that
+## slot (it becomes free again, not lost -- still in `inventory`). Returns
+## true on success; false (no change) otherwise -- caller/UI decides how to
+## surface the failure reason.
+func equip_to_hunter(instance_id: String, equipment: Dictionary) -> bool:
+	var item := _inventory_item(instance_id)
+	if item.is_empty() or is_instance_equipped(instance_id):
+		return false
+	var def := Content.equipment_by_id(equipment, item["equipment_def_id"])
+	if def.is_empty() or not Equip.can_equip(def, subclass):
+		return false
+	equipped = Equip.equip(equipped, def, instance_id, subclass)
+	return true
+
+
+func unequip_from_hunter(slot: String) -> void:
+	equipped = Equip.unequip(equipped, slot)
+
+
+## Same as equip_to_hunter but for a shadow in the army. A shadow's class
+## isn't stored on it (see `army` field comment) -- it's looked up from its
+## monster_id via Content.
+func equip_to_shadow(
+	shadow_instance_id: String, item_instance_id: String, equipment: Dictionary, monsters: Array
+) -> bool:
+	var shadow_idx := _army_index(shadow_instance_id)
+	if shadow_idx < 0:
+		return false
+	var item := _inventory_item(item_instance_id)
+	if item.is_empty() or is_instance_equipped(item_instance_id):
+		return false
+	var monster := Content.monster_by_id(monsters, army[shadow_idx]["monster_id"])
+	var shadow_class: String = monster.get("clazz", "")
+	var def := Content.equipment_by_id(equipment, item["equipment_def_id"])
+	if def.is_empty() or not Equip.can_equip(def, shadow_class):
+		return false
+	var shadow_equipped: Dictionary = army[shadow_idx].get("equipped", {})
+	army[shadow_idx]["equipped"] = Equip.equip(shadow_equipped, def, item_instance_id, shadow_class)
+	return true
+
+
+func unequip_from_shadow(shadow_instance_id: String, slot: String) -> void:
+	var shadow_idx := _army_index(shadow_instance_id)
+	if shadow_idx < 0:
+		return
+	var shadow_equipped: Dictionary = army[shadow_idx].get("equipped", {})
+	army[shadow_idx]["equipped"] = Equip.unequip(shadow_equipped, slot)
+
+
+func _inventory_item(instance_id: String) -> Dictionary:
+	for item: Dictionary in inventory:
+		if item.get("instance_id", "") == instance_id:
+			return item
+	return {}
+
+
+func _army_index(shadow_instance_id: String) -> int:
+	for i in army.size():
+		if army[i].get("instance_id", "") == shadow_instance_id:
+			return i
+	return -1
 
 
 ## Stats derived from level x subclass (§16), via GameLogic -- this is the
@@ -102,6 +183,7 @@ func to_dict() -> Dictionary:
 		"army": army,
 		"last_exp_date": last_exp_date,
 		"inventory": inventory,
+		"equipped": equipped,
 	}
 
 
@@ -116,4 +198,5 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.army = d.get("army", [])
 	s.last_exp_date = String(d.get("last_exp_date", ""))
 	s.inventory = d.get("inventory", [])
+	s.equipped = d.get("equipped", {})
 	return s
