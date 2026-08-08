@@ -448,3 +448,145 @@ func test_personal_power_4pc_set_bonus_beats_2pc_alone() -> void:
 	s.equip_to_hunter(s.add_to_inventory("eq_ashen_vanguard_gauntlets")["instance_id"], equipment)
 	s.equip_to_hunter(s.add_to_inventory("eq_ashen_vanguard_sabatons")["instance_id"], equipment)
 	assert_true(s.personal_power(equipment) > at_2pc)  # +4th piece's own power AND the 4pc %
+
+
+func test_level_up_shadow_spends_essence_and_raises_level() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1000
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	var ok := s.level_up_shadow(shadow["instance_id"])
+	assert_true(ok)
+	assert_eq(s.army[0]["level"], 2)
+	assert_eq(s.essence, 1000 - ShadowLeveling.level_up_cost(2))
+
+
+func test_level_up_shadow_insufficient_essence_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 10  # level_up_cost(2) == 400
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	assert_false(s.level_up_shadow(shadow["instance_id"]))
+	assert_eq(s.army[0]["level"], 1)
+	assert_eq(s.essence, 10)
+
+
+func test_level_up_shadow_cannot_exceed_cap() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 10000000
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	for _i in ShadowLeveling.LEVEL_CAP:
+		s.level_up_shadow(shadow["instance_id"])
+	assert_eq(s.army[0]["level"], ShadowLeveling.LEVEL_CAP)
+	assert_false(s.level_up_shadow(shadow["instance_id"]))
+	assert_eq(s.army[0]["level"], ShadowLeveling.LEVEL_CAP)
+
+
+func test_level_up_shadow_unknown_shadow_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1000
+	assert_false(s.level_up_shadow("shadow_none"))
+
+
+func test_level_up_shadow_raises_enriched_power() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1000
+	var monsters := Content.load_monsters()
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	var before: int = SquadBuilder.enrich_army(s.army, monsters, s.level)[0]["power"]
+	s.level_up_shadow(shadow["instance_id"])
+	var after: int = SquadBuilder.enrich_army(s.army, monsters, s.level)[0]["power"]
+	assert_true(after > before)
+
+
+func test_find_duplicate_of_finds_a_matching_monster_id() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_ashen_warden", "C")
+	var b := s.claim_shadow("mon_ashen_warden", "C")
+	assert_eq(s.find_duplicate_of(a["instance_id"]), b["instance_id"])
+
+
+func test_find_duplicate_of_with_none_owned_is_empty() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_ashen_warden", "C")
+	s.claim_shadow("mon_grubmaw", "E")  # different monster
+	assert_eq(s.find_duplicate_of(a["instance_id"]), "")
+
+
+func test_fuse_shadow_consumes_duplicate_and_levels_target() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000
+	var target := s.claim_shadow("mon_ashen_warden", "C")
+	var dup := s.claim_shadow("mon_ashen_warden", "C")
+	var ok := s.fuse_shadow(target["instance_id"], dup["instance_id"])
+	assert_true(ok)
+	assert_eq(s.army.size(), 1)
+	assert_eq(s.army[0]["instance_id"], target["instance_id"])
+	assert_eq(s.army[0]["level"], ShadowLeveling.fuse_result_level(1))
+
+
+func test_fuse_shadow_spends_the_discounted_cost() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000
+	var target := s.claim_shadow("mon_ashen_warden", "C")
+	var dup := s.claim_shadow("mon_ashen_warden", "C")
+	s.fuse_shadow(target["instance_id"], dup["instance_id"])
+	assert_eq(s.essence, 100000 - ShadowLeveling.fuse_cost(1))
+
+
+func test_fuse_shadow_mismatched_monster_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000
+	var target := s.claim_shadow("mon_ashen_warden", "C")
+	var other := s.claim_shadow("mon_grubmaw", "E")
+	var ok := s.fuse_shadow(target["instance_id"], other["instance_id"])
+	assert_false(ok)
+	assert_eq(s.army.size(), 2)
+
+
+func test_fuse_shadow_insufficient_essence_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 10
+	var target := s.claim_shadow("mon_ashen_warden", "C")
+	var dup := s.claim_shadow("mon_ashen_warden", "C")
+	var ok := s.fuse_shadow(target["instance_id"], dup["instance_id"])
+	assert_false(ok)
+	assert_eq(s.army.size(), 2)
+	assert_eq(s.essence, 10)
+
+
+func test_fuse_shadow_with_itself_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000
+	var target := s.claim_shadow("mon_ashen_warden", "C")
+	assert_false(s.fuse_shadow(target["instance_id"], target["instance_id"]))
+
+
+func test_convert_shadow_removes_it_and_grants_essence_by_grade() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "B")
+	var ok := s.convert_shadow(shadow["instance_id"])
+	assert_true(ok)
+	assert_eq(s.army.size(), 0)
+	assert_eq(s.essence, GameLogic.essence_for_converted_shadow("B"))
+
+
+func test_convert_shadow_unknown_shadow_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_false(s.convert_shadow("shadow_none"))
+
+
+func test_mass_convert_sums_essence_across_shadows() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_ashen_warden", "B")  # 8
+	var b := s.claim_shadow("mon_grubmaw", "E")  # 1
+	var gained := s.mass_convert([a["instance_id"], b["instance_id"]])
+	assert_eq(gained, 9)
+	assert_eq(s.army.size(), 0)
+	assert_eq(s.essence, 9)
+
+
+func test_mass_convert_skips_unknown_ids() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_ashen_warden", "E")
+	var gained := s.mass_convert([a["instance_id"], "shadow_does_not_exist"])
+	assert_eq(gained, 1)
+	assert_eq(s.army.size(), 0)

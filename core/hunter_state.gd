@@ -137,6 +137,88 @@ func unequip_from_shadow(shadow_instance_id: String, slot: String) -> void:
 	army[shadow_idx]["equipped"] = Equip.unequip(shadow_equipped, slot)
 
 
+## Phase 2/P2 step 2: levels a shadow up by exactly 1, spending Essence per
+## ShadowLeveling.level_up_cost(). No-op (false, nothing changed) if the
+## shadow's unknown, already at ShadowLeveling.LEVEL_CAP, or Essence is short.
+func level_up_shadow(shadow_instance_id: String) -> bool:
+	var idx := _army_index(shadow_instance_id)
+	if idx < 0:
+		return false
+	var current_level: int = army[idx].get("level", 1)
+	if current_level >= ShadowLeveling.LEVEL_CAP:
+		return false
+	var cost := ShadowLeveling.level_up_cost(current_level + 1)
+	if essence < cost:
+		return false
+	essence -= cost
+	army[idx]["level"] = current_level + 1
+	return true
+
+
+## Phase 2/P2 step 3: finds another owned shadow sharing `shadow_instance_id`'s
+## monster_id (a duplicate to fuse in) -- "" if none owned. First match in
+## army order.
+func find_duplicate_of(shadow_instance_id: String) -> String:
+	var idx := _army_index(shadow_instance_id)
+	if idx < 0:
+		return ""
+	var monster_id: String = army[idx]["monster_id"]
+	for shadow: Dictionary in army:
+		if (
+			shadow["instance_id"] != shadow_instance_id
+			and shadow.get("monster_id", "") == monster_id
+		):
+			return shadow["instance_id"]
+	return ""
+
+
+## Fuses `duplicate_instance_id` into `target_instance_id`: consumes
+## (removes) the duplicate and grants the target ShadowLeveling.
+## FUSE_LEVEL_CHUNK levels (capped at LEVEL_CAP), spending Essence per
+## ShadowLeveling.fuse_cost(). Both must exist, be different shadows, and
+## share a monster_id. No-op (false, nothing changed) otherwise.
+func fuse_shadow(target_instance_id: String, duplicate_instance_id: String) -> bool:
+	if target_instance_id == duplicate_instance_id:
+		return false
+	var target_idx := _army_index(target_instance_id)
+	var dup_idx := _army_index(duplicate_instance_id)
+	if target_idx < 0 or dup_idx < 0:
+		return false
+	if army[target_idx]["monster_id"] != army[dup_idx]["monster_id"]:
+		return false
+	var current_level: int = army[target_idx].get("level", 1)
+	if current_level >= ShadowLeveling.LEVEL_CAP:
+		return false
+	var cost := ShadowLeveling.fuse_cost(current_level)
+	if essence < cost:
+		return false
+	essence -= cost
+	army[target_idx]["level"] = ShadowLeveling.fuse_result_level(current_level)
+	army.remove_at(dup_idx)
+	return true
+
+
+## Phase 2/P2 step 4: removes a shadow from the army, granting Essence per
+## its grade (§26's real per-grade table). False (no-op) if unknown shadow.
+func convert_shadow(shadow_instance_id: String) -> bool:
+	var idx := _army_index(shadow_instance_id)
+	if idx < 0:
+		return false
+	var grade: String = army[idx].get("grade", "")
+	essence += GameLogic.essence_for_converted_shadow(grade)
+	army.remove_at(idx)
+	return true
+
+
+## Converts every given shadow instance_id (skipping any not found).
+## Returns total Essence gained.
+func mass_convert(shadow_instance_ids: Array) -> int:
+	var before := essence
+	for instance_id in shadow_instance_ids:
+		convert_shadow(instance_id)
+	return essence - before
+
+
 ## Phase 2 patch 1 step 4: equips the single best owned item into `slot` for
 ## the hunter, if a strictly better one than what's already there exists.
 ## The slot's current occupant re-competes as its own candidate (excluded

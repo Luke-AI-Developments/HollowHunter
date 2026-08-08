@@ -318,10 +318,22 @@ func _refresh_army_label() -> void:
 	]
 	for e: Dictionary in enriched:
 		var marker := " [S]" if squad_ids.has(e["instance_id"]) else ""
-		lines.append(
-			(
-				" - %s (%s Lv%d %s) pwr:%d%s"
-				% [e["monster_name"], e["grade"], e["level"], e["clazz"], e["power"], marker]
+		(
+			lines
+			. append(
+				(
+					" - %s (%s·%s Lv%d/%d %s) pwr:%d%s"
+					% [
+						e["monster_name"],
+						e["grade_name"],
+						e["grade"],
+						e["level"],
+						ShadowLeveling.LEVEL_CAP,
+						e["clazz"],
+						e["power"],
+						marker,
+					]
+				)
 			)
 		)
 	army_label.text = "\n".join(lines)
@@ -530,11 +542,13 @@ func _refresh_shadow_gear_panel() -> void:
 	var shadow: Dictionary = state.army[_shadow_gear_index]
 	var monster := Content.monster_by_id(_monsters, shadow.get("monster_id", ""))
 	shadow_gear_title.text = (
-		"%s (%s Lv%d %s)  [%d/%d]"
+		"%s (%s·%s Lv%d/%d %s)  [%d/%d]"
 		% [
 			monster.get("name", "?"),
+			GameLogic.grade_name(shadow.get("grade", "")),
 			shadow.get("grade", ""),
 			shadow.get("level", 1),
+			ShadowLeveling.LEVEL_CAP,
 			monster.get("clazz", "?"),
 			_shadow_gear_index + 1,
 			state.army.size(),

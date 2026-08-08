@@ -35,6 +35,19 @@ const RANK_LEVEL := {"D": 5, "C": 12, "B": 20, "A": 30, "S": 40}
 # --- Essence per gate clear (§26): real source numbers, not invented ---
 const ESSENCE_PER_GATE_RANK := {"E": 20, "D": 50, "C": 120, "B": 300, "A": 700, "S": 1500}
 
+# --- Shadow grade ladder (§6): rank -> display name. Static, no promotion. ---
+const GRADE_NAME := {
+	"E": "Wraith",
+	"D": "Soldier",
+	"C": "Knight",
+	"B": "General",
+	"A": "Warlord",
+	"S": "Sovereign",
+}
+
+# --- Essence per mass-converted shadow, by grade (§26/§17): real source numbers ---
+const ESSENCE_PER_CONVERTED_SHADOW := {"E": 1, "D": 2, "C": 4, "B": 8, "A": 15, "S": 30}
+
 
 # --- Progression (§3): linear curve ---
 static func exp_to_next(level: int) -> int:
@@ -197,3 +210,14 @@ static func rank_for_level(level: int) -> String:
 # --- Essence granted on a gate clear (§26) -- unranked/unknown rank yields 0 ---
 static func essence_for_gate(rank: String) -> int:
 	return int(ESSENCE_PER_GATE_RANK.get(rank, 0))
+
+
+# --- Shadow grade ladder name for a rank (§6) -- unranked/unknown rank falls
+# back to the raw rank letter rather than an empty string. ---
+static func grade_name(rank: String) -> String:
+	return String(GRADE_NAME.get(rank, rank))
+
+
+# --- Essence granted converting a shadow to Essence, by grade (§26/§17) ---
+static func essence_for_converted_shadow(grade: String) -> int:
+	return int(ESSENCE_PER_CONVERTED_SHADOW.get(grade, 0))

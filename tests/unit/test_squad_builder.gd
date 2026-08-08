@@ -107,3 +107,40 @@ func test_enrich_army_armor_set_bonus_raises_shadow_power() -> void:
 		SquadBuilder.enrich_army([shadow], monsters, 10, equipment, inventory)[0]["power"]
 	)
 	assert_true(geared > baseline)
+
+
+func test_enrich_army_includes_grade_name() -> void:
+	var shadow := _shadow("mon_ashen_warden")
+	shadow["grade"] = "B"
+	var enriched := SquadBuilder.enrich_army([shadow], monsters, 10)
+	assert_eq(enriched[0]["grade_name"], "General")
+
+
+func test_surplus_shadow_ids_excludes_the_squad() -> void:
+	var army := [
+		_shadow("mon_tuskrend"),  # WARRIOR, base 350 -- class slot
+		_shadow("mon_grubmaw"),  # WARRIOR, base 120 -- weaker leftover, surplus
+		_shadow("mon_carapax"),  # GUARDIAN, base 500 -- class slot
+		_shadow("mon_runtclaw"),  # ASSASSIN, base 200 -- class slot
+		_shadow("mon_cindergnat"),  # MAGE, base 150 -- class slot
+		_shadow("mon_snarlpack"),  # SUPPORT, base 1350 -- class slot
+		_shadow("mon_nipclaw"),  # WARRIOR, base 210 -- stronger leftover, wins flex
+	]
+	var surplus := SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5)
+	assert_eq(surplus, ["mon_grubmaw"])
+
+
+func test_surplus_shadow_ids_sorts_weakest_first_and_respects_count() -> void:
+	var army := [
+		_shadow("mon_tuskrend"),  # WARRIOR 350 -- class slot
+		_shadow("mon_nipclaw"),  # WARRIOR 210 -- wins flex over the two below
+		_shadow("mon_grubmaw"),  # WARRIOR 120 -- surplus
+		_shadow("mon_tarling"),  # WARRIOR 110 -- surplus, weakest of all
+	]
+	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 1), ["mon_tarling"])
+	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5), ["mon_tarling", "mon_grubmaw"])
+
+
+func test_surplus_shadow_ids_with_no_surplus_is_empty() -> void:
+	var army := [_shadow("mon_grubmaw")]
+	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5), [])

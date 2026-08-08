@@ -95,3 +95,31 @@ func test_apply_set_power_pct_zero_is_unchanged():
 func test_apply_set_power_pct_scales_up():
 	assert_eq(GameLogic.apply_set_power_pct(1000, 0.10), 1100)
 	assert_eq(GameLogic.apply_set_power_pct(1000, 0.06), 1060)
+
+
+func test_grade_name_matches_the_ladder():
+	# §6: Wraith (E) - Soldier (D) - Knight (C) - General (B) - Warlord (A) - Sovereign (S)
+	assert_eq(GameLogic.grade_name("E"), "Wraith")
+	assert_eq(GameLogic.grade_name("D"), "Soldier")
+	assert_eq(GameLogic.grade_name("C"), "Knight")
+	assert_eq(GameLogic.grade_name("B"), "General")
+	assert_eq(GameLogic.grade_name("A"), "Warlord")
+	assert_eq(GameLogic.grade_name("S"), "Sovereign")
+
+
+func test_grade_name_unknown_rank_falls_back_to_the_letter():
+	assert_eq(GameLogic.grade_name("Z"), "Z")
+
+
+func test_essence_for_converted_shadow_matches_the_source_table():
+	# §26: Essence per converted shadow ≈ E1 D2 C4 B8 A15 S30
+	assert_eq(GameLogic.essence_for_converted_shadow("E"), 1)
+	assert_eq(GameLogic.essence_for_converted_shadow("D"), 2)
+	assert_eq(GameLogic.essence_for_converted_shadow("C"), 4)
+	assert_eq(GameLogic.essence_for_converted_shadow("B"), 8)
+	assert_eq(GameLogic.essence_for_converted_shadow("A"), 15)
+	assert_eq(GameLogic.essence_for_converted_shadow("S"), 30)
+
+
+func test_essence_for_converted_shadow_unknown_grade_is_zero():
+	assert_eq(GameLogic.essence_for_converted_shadow("Z"), 0)

@@ -50,6 +50,7 @@ static func enrich_army(
 					"monster_id": shadow.get("monster_id", ""),
 					"monster_name": monster.get("name", ""),
 					"grade": shadow.get("grade", ""),
+					"grade_name": GameLogic.grade_name(shadow.get("grade", "")),
 					"level": shadow.get("level", 1),
 					"clazz": monster.get("clazz", ""),
 					"power": power,
@@ -91,3 +92,33 @@ static func auto_fill_squad(
 		squad.append(flex)
 
 	return squad
+
+
+## Phase 2/P2 step 4: the `count` weakest (lowest power) owned shadows that
+## AREN'T in the auto-filled squad -- a "surplus" selection for mass-convert
+## (§17). No formal definition of "surplus" is given in the source;
+## not-in-squad plus lowest-power is the simplest reading. Returns
+## instance_ids only, ascending by power (weakest first).
+static func surplus_shadow_ids(
+	army: Array,
+	monsters: Array,
+	hunter_level: int,
+	count: int,
+	equipment: Dictionary = {},
+	inventory: Array = []
+) -> Array:
+	var enriched := enrich_army(army, monsters, hunter_level, equipment, inventory)
+	var squad := auto_fill_squad(army, monsters, hunter_level, equipment, inventory)
+	var squad_ids := {}
+	for member: Dictionary in squad:
+		squad_ids[member["instance_id"]] = true
+
+	var surplus: Array = enriched.filter(
+		func(e: Dictionary) -> bool: return not squad_ids.has(e["instance_id"])
+	)
+	surplus.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] < b["power"])
+
+	var ids := []
+	for e: Dictionary in surplus.slice(0, count):
+		ids.append(e["instance_id"])
+	return ids
