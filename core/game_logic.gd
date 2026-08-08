@@ -2,7 +2,7 @@ class_name GameLogic
 ## Pure, engine-independent game logic for Shadow Hunter.
 ## Every function is static and side-effect free — unit-testable with GUT,
 ## no scene/device needed. Numbers are v0 from the design bible
-## (§3/§4/§5/§16/§18/§20/§28/§29/§30) — all tunable knobs.
+## (§3/§4/§5/§16/§18/§20/§26/§28/§29/§30) — all tunable knobs.
 
 # --- Core constants (§16) ---
 const STAT_WEIGHT := 5
@@ -31,6 +31,9 @@ const CLASS_PROFILES := {
 
 # --- Hunter rank thresholds: min level for that rank's assessment (§28/§29) ---
 const RANK_LEVEL := {"D": 5, "C": 12, "B": 20, "A": 30, "S": 40}
+
+# --- Essence per gate clear (§26): real source numbers, not invented ---
+const ESSENCE_PER_GATE_RANK := {"E": 20, "D": 50, "C": 120, "B": 300, "A": 700, "S": 1500}
 
 
 # --- Progression (§3): linear curve ---
@@ -179,3 +182,8 @@ static func rank_for_level(level: int) -> String:
 		if level >= int(RANK_LEVEL[r]):
 			rank = r
 	return rank
+
+
+# --- Essence granted on a gate clear (§26) -- unranked/unknown rank yields 0 ---
+static func essence_for_gate(rank: String) -> int:
+	return int(ESSENCE_PER_GATE_RANK.get(rank, 0))

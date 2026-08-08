@@ -102,12 +102,14 @@ func _setup_gear_panels() -> void:
 			var slot: String = row["slot"]
 			row["equip_btn"].pressed.connect(_on_hunter_equip_best_pressed.bind(slot))
 			row["unequip_btn"].pressed.connect(_on_hunter_unequip_pressed.bind(slot))
+			row["enhance_btn"].pressed.connect(_on_hunter_enhance_pressed.bind(slot))
 	if _shadow_gear_rows.is_empty():
 		_shadow_gear_rows = _build_gear_rows($GameUI/ShadowGearPanel/Rows, 180.0)
 		for row: Dictionary in _shadow_gear_rows:
 			var slot: String = row["slot"]
 			row["equip_btn"].pressed.connect(_on_shadow_equip_best_pressed.bind(slot))
 			row["unequip_btn"].pressed.connect(_on_shadow_unequip_pressed.bind(slot))
+			row["enhance_btn"].pressed.connect(_on_shadow_enhance_pressed.bind(slot))
 
 	if not hunter_gear_button.pressed.is_connected(_on_hunter_gear_button_pressed):
 		hunter_gear_button.pressed.connect(_on_hunter_gear_button_pressed)
@@ -120,7 +122,7 @@ func _setup_gear_panels() -> void:
 		$GameUI/ShadowGearPanel/NextButton.pressed.connect(_on_shadow_gear_next_pressed)
 
 
-## Creates one row (slot label + Equip Best + Unequip buttons) per
+## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
 ## Equip.SLOTS under `parent`, stacked from `y_start`. Placeholder art --
 ## plain Label/Button, no icons/paper-doll art yet.
 func _build_gear_rows(parent: Node2D, y_start: float) -> Array:
@@ -145,8 +147,23 @@ func _build_gear_rows(parent: Node2D, y_start: float) -> Array:
 		unequip_btn.text = "Unequip"
 		parent.add_child(unequip_btn)
 
-		rows.append(
-			{"slot": slot, "label": row_label, "equip_btn": equip_btn, "unequip_btn": unequip_btn}
+		var enhance_btn := Button.new()
+		enhance_btn.position = Vector2(960, y)
+		enhance_btn.size = Vector2(160, 40)
+		enhance_btn.text = "Enhance"
+		parent.add_child(enhance_btn)
+
+		(
+			rows
+			. append(
+				{
+					"slot": slot,
+					"label": row_label,
+					"equip_btn": equip_btn,
+					"unequip_btn": unequip_btn,
+					"enhance_btn": enhance_btn,
+				}
+			)
 		)
 		y += 50
 	return rows
@@ -257,6 +274,11 @@ func _on_enter_gate_pressed() -> void:
 		if not drop.is_empty():
 			state.add_to_inventory(drop["id"])
 			msg += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
+		# Essence on every clear regardless of claim (§14b/§26) -- same
+		# trigger as the loot roll above.
+		var essence_gain := GameLogic.essence_for_gate(gate["rank"])
+		state.essence += essence_gain
+		msg += "\nEssence +%d" % essence_gain
 
 	SaveService.save(state)
 	_refresh_label()
@@ -313,16 +335,12 @@ func _refresh_inventory_label() -> void:
 		var def := Content.equipment_by_id(_equipment, item.get("equipment_def_id", ""))
 		if def.is_empty():
 			continue
+		var level: int = item.get("enhancement_level", 0)
+		var effective := Equip.enhanced_def(def, level)
 		lines.append(
 			(
 				" - %s [%s] %s +%d (Lv%d)"
-				% [
-					def["name"],
-					def["slot"],
-					def["rarity"],
-					def["power_bonus"],
-					item.get("enhancement_level", 0)
-				]
+				% [def["name"], def["slot"], def["rarity"], effective["power_bonus"], level]
 			)
 		)
 	inventory_label.text = "\n".join(lines)
@@ -379,6 +397,21 @@ func _on_hunter_unequip_pressed(slot: String) -> void:
 
 func _on_hunter_auto_equip_pressed() -> void:
 	state.auto_equip_hunter(_equipment)
+	SaveService.save(state)
+	_refresh_hunter_gear_panel()
+	_refresh_label()
+	_refresh_inventory_label()
+
+
+## Phase 2 patch 1 step 5: enhances whatever the hunter has equipped in
+## `slot` (no-op if the slot's empty, already maxed, or Essence is short --
+## enhance_item() reports which via its bool, but there's no separate error
+## UI yet, same placeholder-simplicity as the other gear actions).
+func _on_hunter_enhance_pressed(slot: String) -> void:
+	var instance_id: String = state.equipped.get(slot, "")
+	if instance_id == "":
+		return
+	state.enhance_item(instance_id)
 	SaveService.save(state)
 	_refresh_hunter_gear_panel()
 	_refresh_label()
@@ -458,6 +491,30 @@ func _on_shadow_auto_equip_pressed() -> void:
 	_refresh_inventory_label()
 
 
+## Enhances whatever the selected shadow has equipped in `slot`. The item
+## itself (not the wearer) holds enhancement_level, so this is the same
+## HunterState.enhance_item() call as the hunter's -- just reading the
+## instance_id from the shadow's own equipped dict instead.
+func _on_shadow_enhance_pressed(slot: String) -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	var shadow_idx := state.army.find_custom(
+		func(s: Dictionary) -> bool: return s["instance_id"] == shadow_id
+	)
+	if shadow_idx < 0:
+		return
+	var shadow_equipped: Dictionary = state.army[shadow_idx].get("equipped", {})
+	var instance_id: String = shadow_equipped.get(slot, "")
+	if instance_id == "":
+		return
+	state.enhance_item(instance_id)
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+	_refresh_army_label()
+	_refresh_inventory_label()
+
+
 func _refresh_shadow_gear_panel() -> void:
 	if state.army.is_empty():
 		shadow_gear_title.text = "No shadows yet"
@@ -496,8 +553,7 @@ func _equipped_item_display(instance_id: String) -> String:
 		if item.get("instance_id", "") == instance_id:
 			var def := Content.equipment_by_id(_equipment, item.get("equipment_def_id", ""))
 			if not def.is_empty():
-				return (
-					"%s +%d (Lv%d)"
-					% [def["name"], def["power_bonus"], item.get("enhancement_level", 0)]
-				)
+				var level: int = item.get("enhancement_level", 0)
+				var effective := Equip.enhanced_def(def, level)
+				return "%s +%d (Lv%d)" % [def["name"], effective["power_bonus"], level]
 	return "(unknown)"

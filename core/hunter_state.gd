@@ -199,6 +199,27 @@ func _all_shadow_equipped_ids() -> Array:
 	return ids
 
 
+## Phase 2 patch 1 step 5: spends Essence to enhance an owned item by one
+## level (0..Equip.MAX_ENHANCEMENT). Mutates the inventory entry in place
+## (same convention as equip_to_shadow mutating `army` in place). Returns
+## true on success; false (no change) if the item doesn't exist, is already
+## maxed, or Essence is short.
+func enhance_item(instance_id: String) -> bool:
+	var item := _inventory_item(instance_id)
+	if item.is_empty():
+		return false
+	var current_level: int = item.get("enhancement_level", 0)
+	if current_level >= Equip.MAX_ENHANCEMENT:
+		return false
+	var next_level := current_level + 1
+	var cost := Equip.enhancement_cost(next_level)
+	if essence < cost:
+		return false
+	essence -= cost
+	item["enhancement_level"] = next_level
+	return true
+
+
 func _inventory_item(instance_id: String) -> Dictionary:
 	for item: Dictionary in inventory:
 		if item.get("instance_id", "") == instance_id:

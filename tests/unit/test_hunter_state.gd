@@ -366,3 +366,63 @@ func test_hunter_and_shadow_auto_equip_never_double_book_the_same_item() -> void
 	s.auto_equip_shadow(shadow["instance_id"], equipment, monsters)
 	assert_eq(s.equipped.get("WEAPON", ""), only_weapon["instance_id"])
 	assert_false(s.army[0]["equipped"].has("WEAPON"))  # nothing left for the shadow to take
+
+
+func test_enhance_item_spends_essence_and_raises_level() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1000
+	var item := s.add_to_inventory("eq_warcleaver")
+	var ok := s.enhance_item(item["instance_id"])
+	assert_true(ok)
+	assert_eq(item["enhancement_level"], 1)
+	assert_eq(s.essence, 1000 - Equip.enhancement_cost(1))
+
+
+func test_enhance_item_insufficient_essence_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 10  # enhancement_cost(1) == 50
+	var item := s.add_to_inventory("eq_warcleaver")
+	var ok := s.enhance_item(item["instance_id"])
+	assert_false(ok)
+	assert_eq(item["enhancement_level"], 0)
+	assert_eq(s.essence, 10)  # nothing spent
+
+
+func test_enhance_item_unknown_item_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1000
+	assert_false(s.enhance_item("does_not_exist"))
+
+
+func test_enhance_item_cannot_exceed_max() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1000000
+	var item := s.add_to_inventory("eq_warcleaver")
+	for _i in Equip.MAX_ENHANCEMENT:
+		s.enhance_item(item["instance_id"])
+	assert_eq(item["enhancement_level"], Equip.MAX_ENHANCEMENT)
+	assert_false(s.enhance_item(item["instance_id"]))
+	assert_eq(item["enhancement_level"], Equip.MAX_ENHANCEMENT)
+
+
+func test_enhance_item_costs_escalate_between_levels() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1000000
+	var item := s.add_to_inventory("eq_warcleaver")
+	s.enhance_item(item["instance_id"])
+	var after_level_1 := s.essence
+	s.enhance_item(item["instance_id"])
+	var spent_for_level_2 := after_level_1 - s.essence
+	assert_eq(spent_for_level_2, Equip.enhancement_cost(2))
+	assert_true(Equip.enhancement_cost(2) > Equip.enhancement_cost(1))
+
+
+func test_enhance_item_raises_personal_power() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1000000
+	var equipment := Content.load_equipment()
+	var item := s.add_to_inventory("eq_warcleaver")
+	s.equip_to_hunter(item["instance_id"], equipment)
+	var before := s.personal_power(equipment)
+	s.enhance_item(item["instance_id"])
+	assert_true(s.personal_power(equipment) > before)

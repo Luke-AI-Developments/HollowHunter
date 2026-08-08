@@ -115,3 +115,54 @@ func test_best_candidate_skips_wrong_class_and_wrong_slot() -> void:
 
 func test_best_candidate_with_no_matches_returns_empty() -> void:
 	assert_eq(Equip.best_candidate("WEAPON", "WARRIOR", [], Content.load_equipment(), []), "")
+
+
+func test_enhanced_def_at_level_0_is_unchanged() -> void:
+	var equipment := Content.load_equipment()
+	var def := Content.equipment_by_id(equipment, "eq_warcleaver")  # power 25, STR+3
+	var result := Equip.enhanced_def(def, 0)
+	assert_eq(result["power_bonus"], 25)
+	assert_eq(result["stat_mods"]["STR"], 3)
+
+
+func test_enhanced_def_scales_power_and_stats() -> void:
+	var equipment := Content.load_equipment()
+	var def := Content.equipment_by_id(equipment, "eq_warcleaver")  # power 25, STR+3
+	var result := Equip.enhanced_def(def, 10)  # +10 -> 2x (1.0 + 0.10*10)
+	assert_eq(result["power_bonus"], 50)
+	assert_eq(result["stat_mods"]["STR"], 6)
+
+
+func test_enhanced_def_does_not_mutate_input() -> void:
+	var equipment := Content.load_equipment()
+	var def := Content.equipment_by_id(equipment, "eq_warcleaver")
+	Equip.enhanced_def(def, 10)
+	assert_eq(def["power_bonus"], 25)
+
+
+func test_enhancement_cost_escalates() -> void:
+	var cost_1 := Equip.enhancement_cost(1)
+	var cost_10 := Equip.enhancement_cost(10)
+	assert_eq(cost_1, 50)
+	assert_eq(cost_10, 5000)
+	assert_true(cost_10 > cost_1)
+
+
+func test_gear_bonus_applies_enhancement_scaling() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_warcleaver", "enhancement_level": 10}
+	]
+	var bonus := Equip.gear_bonus({"WEAPON": "i0"}, inventory, equipment)
+	assert_eq(bonus["power_bonus"], 50)  # 25 base -> +10 doubles it
+
+
+func test_best_candidate_ranks_by_effective_enhanced_power() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		# base 170, unenhanced
+		{"instance_id": "i0", "equipment_def_id": "eq_gravebite_greataxe", "enhancement_level": 0},
+		# base 25, +10 enhanced -> 50 effective, still loses to 170
+		{"instance_id": "i1", "equipment_def_id": "eq_warcleaver", "enhancement_level": 10},
+	]
+	assert_eq(Equip.best_candidate("WEAPON", "WARRIOR", inventory, equipment, []), "i0")
