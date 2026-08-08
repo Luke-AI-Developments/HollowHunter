@@ -106,6 +106,16 @@ static func shadow_power(
 	return int(round(core * (1.0 + MONARCH_SCALE * hunter_level)))
 
 
+# --- Armor-set power%% bonus (§15 patch 3): applied as a straight multiplier
+# on an already-computed power number. Where in the formula a set's "N%
+# power" applies isn't specified in the source -- multiplying the final
+# result (rather than e.g. only the stat contribution) is the simplest
+# reading, and keeps this a pure post-processing step so it doesn't have to
+# be threaded into personal_power/shadow_power's own math. ---
+static func apply_set_power_pct(power: int, power_pct: float) -> int:
+	return int(round(power * (1.0 + power_pct)))
+
+
 # --- Army power: sum of shadow_power over a list of shadow dicts ---
 # each shadow: {base_power:int, level:int, gear_power_bonus:int, gear_stat_bonus:int}
 static func army_power(shadows: Array, hunter_level: int) -> int:

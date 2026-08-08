@@ -15,8 +15,14 @@ func test_all_61_monsters_load() -> void:
 	assert_eq(monsters.size(), 61)
 
 
-func test_equipment_loads_50_base_15_sets() -> void:
-	assert_eq(equipment["base_equipment"].size(), 50)
+func test_equipment_loads_50_base_60_set_pieces_15_sets() -> void:
+	# 50 non-set base pieces + 60 armor-set pieces (4/slot x 15 sets, §15
+	# patch 3) = 110 base_equipment entries.
+	assert_eq(equipment["base_equipment"].size(), 110)
+	var non_set: Array = equipment["base_equipment"].filter(
+		func(i: Dictionary) -> bool: return i.get("set_id", "") == ""
+	)
+	assert_eq(non_set.size(), 50)
 	assert_eq(equipment["armor_sets"].size(), 15)
 
 

@@ -1,5 +1,5 @@
 {
-  "_comment": "Shadow Hunter equipment DB (v0, design bible §15). 50 base pieces (10/class) + 15 armor sets (3/class, tiered D/B/S). base: id,name,slot,rarity,clazz,stat_mods,power_bonus. sets: 4 armor pieces (head/body/hands/feet) sharing set_id, class-locked, piece_rarity by tier (D=Rare,B=Epic,S=Legendary); bonuses at 2 and 4 pieces. Enhance gear with Essence (§26). sprite_id follows spr_<id>.",
+  "_comment": "Shadow Hunter equipment DB (v0, design bible §15). 50 base pieces (10/class) + 15 armor sets (3/class, tiered D/B/S) x 4 armor pieces (head/body/hands/feet) = 60 set pieces, all living in base_equipment with a set_id back to armor_sets. base: id,name,slot,rarity,clazz,set_id,stat_mods,power_bonus. sets (SetDef): id,name,clazz,tier,piece_rarity,source,bonus_2pc,bonus_4pc -- metadata only, no piece data (that's why the 60 pieces below exist). piece_rarity by tier (D=Rare,B=Epic,S=Legendary); bonuses at 2 and 4 pieces. Enhance gear with Essence (§26). sprite_id follows spr_<id>. NOTE: the 60 set pieces' names/stat_mods/power_bonus (RARE=160,EPIC=410,LEGENDARY=900, split 70/30 across each class's top-2 §16 stats) are invented -- the source gives only set-level tier/bonus text, no per-piece numbers (§15 patch 3).",
   "base_equipment": [
     {"id": "eq_warcleaver", "name": "Warcleaver", "slot": "WEAPON", "rarity": "COMMON", "clazz": "WARRIOR", "stat_mods": {"STR": 3}, "power_bonus": 25},
     {"id": "eq_gravebite_greataxe", "name": "Gravebite Greataxe", "slot": "WEAPON", "rarity": "RARE", "clazz": "WARRIOR", "stat_mods": {"STR": 9, "VIT": 4}, "power_bonus": 170},
@@ -54,7 +54,82 @@
     {"id": "eq_shepherds_treads", "name": "Shepherd's Treads", "slot": "FEET", "rarity": "RARE", "clazz": "SUPPORT", "stat_mods": {"VIT": 7, "SEN": 5}, "power_bonus": 150},
     {"id": "eq_acolyte_sandals", "name": "Acolyte Sandals", "slot": "FEET", "rarity": "UNCOMMON", "clazz": "SUPPORT", "stat_mods": {"SEN": 5}, "power_bonus": 55},
     {"id": "eq_wardsong_charm", "name": "Wardsong Charm", "slot": "ACCESSORY", "rarity": "RARE", "clazz": "SUPPORT", "stat_mods": {"SEN": 11}, "power_bonus": 160},
-    {"id": "eq_aegis_of_the_host", "name": "Aegis of the Host", "slot": "ACCESSORY", "rarity": "EPIC", "clazz": "SUPPORT", "stat_mods": {"SEN": 13, "VIT": 10}, "power_bonus": 400}
+    {"id": "eq_aegis_of_the_host", "name": "Aegis of the Host", "slot": "ACCESSORY", "rarity": "EPIC", "clazz": "SUPPORT", "stat_mods": {"SEN": 13, "VIT": 10}, "power_bonus": 400},
+
+    {"id": "eq_ashen_vanguard_helm", "name": "Ashen Vanguard Helm", "slot": "HEAD", "rarity": "RARE", "clazz": "WARRIOR", "set_id": "set_ashen_vanguard_plate", "stat_mods": {"STR": 7, "VIT": 3}, "power_bonus": 160},
+    {"id": "eq_ashen_vanguard_cuirass", "name": "Ashen Vanguard Cuirass", "slot": "BODY", "rarity": "RARE", "clazz": "WARRIOR", "set_id": "set_ashen_vanguard_plate", "stat_mods": {"STR": 7, "VIT": 3}, "power_bonus": 160},
+    {"id": "eq_ashen_vanguard_gauntlets", "name": "Ashen Vanguard Gauntlets", "slot": "HANDS", "rarity": "RARE", "clazz": "WARRIOR", "set_id": "set_ashen_vanguard_plate", "stat_mods": {"STR": 7, "VIT": 3}, "power_bonus": 160},
+    {"id": "eq_ashen_vanguard_sabatons", "name": "Ashen Vanguard Sabatons", "slot": "FEET", "rarity": "RARE", "clazz": "WARRIOR", "set_id": "set_ashen_vanguard_plate", "stat_mods": {"STR": 7, "VIT": 3}, "power_bonus": 160},
+
+    {"id": "eq_emberforged_helm", "name": "Emberforged Helm", "slot": "HEAD", "rarity": "EPIC", "clazz": "WARRIOR", "set_id": "set_emberforged_regalia", "stat_mods": {"STR": 17, "VIT": 7}, "power_bonus": 410},
+    {"id": "eq_emberforged_cuirass", "name": "Emberforged Cuirass", "slot": "BODY", "rarity": "EPIC", "clazz": "WARRIOR", "set_id": "set_emberforged_regalia", "stat_mods": {"STR": 17, "VIT": 7}, "power_bonus": 410},
+    {"id": "eq_emberforged_gauntlets", "name": "Emberforged Gauntlets", "slot": "HANDS", "rarity": "EPIC", "clazz": "WARRIOR", "set_id": "set_emberforged_regalia", "stat_mods": {"STR": 17, "VIT": 7}, "power_bonus": 410},
+    {"id": "eq_emberforged_greaves", "name": "Emberforged Greaves", "slot": "FEET", "rarity": "EPIC", "clazz": "WARRIOR", "set_id": "set_emberforged_regalia", "stat_mods": {"STR": 17, "VIT": 7}, "power_bonus": 410},
+
+    {"id": "eq_bonemarch_greathelm", "name": "Bonemarch Greathelm", "slot": "HEAD", "rarity": "LEGENDARY", "clazz": "WARRIOR", "set_id": "set_bonemarch_warplate", "stat_mods": {"STR": 35, "VIT": 15}, "power_bonus": 900},
+    {"id": "eq_bonemarch_cuirass", "name": "Bonemarch Cuirass", "slot": "BODY", "rarity": "LEGENDARY", "clazz": "WARRIOR", "set_id": "set_bonemarch_warplate", "stat_mods": {"STR": 35, "VIT": 15}, "power_bonus": 900},
+    {"id": "eq_bonemarch_gauntlets", "name": "Bonemarch Gauntlets", "slot": "HANDS", "rarity": "LEGENDARY", "clazz": "WARRIOR", "set_id": "set_bonemarch_warplate", "stat_mods": {"STR": 35, "VIT": 15}, "power_bonus": 900},
+    {"id": "eq_bonemarch_sabatons", "name": "Bonemarch Sabatons", "slot": "FEET", "rarity": "LEGENDARY", "clazz": "WARRIOR", "set_id": "set_bonemarch_warplate", "stat_mods": {"STR": 35, "VIT": 15}, "power_bonus": 900},
+
+    {"id": "eq_wardens_guard_barbute", "name": "Warden's Guard Barbute", "slot": "HEAD", "rarity": "RARE", "clazz": "GUARDIAN", "set_id": "set_wardens_eternal_guard", "stat_mods": {"VIT": 7, "END": 3}, "power_bonus": 160},
+    {"id": "eq_wardens_guard_cuirass", "name": "Warden's Guard Cuirass", "slot": "BODY", "rarity": "RARE", "clazz": "GUARDIAN", "set_id": "set_wardens_eternal_guard", "stat_mods": {"VIT": 7, "END": 3}, "power_bonus": 160},
+    {"id": "eq_wardens_guard_gauntlets", "name": "Warden's Guard Gauntlets", "slot": "HANDS", "rarity": "RARE", "clazz": "GUARDIAN", "set_id": "set_wardens_eternal_guard", "stat_mods": {"VIT": 7, "END": 3}, "power_bonus": 160},
+    {"id": "eq_wardens_guard_greaves", "name": "Warden's Guard Greaves", "slot": "FEET", "rarity": "RARE", "clazz": "GUARDIAN", "set_id": "set_wardens_eternal_guard", "stat_mods": {"VIT": 7, "END": 3}, "power_bonus": 160},
+
+    {"id": "eq_rimefell_barbute", "name": "Rimefell Barbute", "slot": "HEAD", "rarity": "EPIC", "clazz": "GUARDIAN", "set_id": "set_rimefell_aegis", "stat_mods": {"VIT": 17, "END": 7}, "power_bonus": 410},
+    {"id": "eq_rimefell_cuirass", "name": "Rimefell Cuirass", "slot": "BODY", "rarity": "EPIC", "clazz": "GUARDIAN", "set_id": "set_rimefell_aegis", "stat_mods": {"VIT": 17, "END": 7}, "power_bonus": 410},
+    {"id": "eq_rimefell_gauntlets", "name": "Rimefell Gauntlets", "slot": "HANDS", "rarity": "EPIC", "clazz": "GUARDIAN", "set_id": "set_rimefell_aegis", "stat_mods": {"VIT": 17, "END": 7}, "power_bonus": 410},
+    {"id": "eq_rimefell_sabatons", "name": "Rimefell Sabatons", "slot": "FEET", "rarity": "EPIC", "clazz": "GUARDIAN", "set_id": "set_rimefell_aegis", "stat_mods": {"VIT": 17, "END": 7}, "power_bonus": 410},
+
+    {"id": "eq_obsidian_greathelm", "name": "Obsidian Greathelm", "slot": "HEAD", "rarity": "LEGENDARY", "clazz": "GUARDIAN", "set_id": "set_obsidian_bastion", "stat_mods": {"VIT": 35, "END": 15}, "power_bonus": 900},
+    {"id": "eq_obsidian_plate", "name": "Obsidian Plate", "slot": "BODY", "rarity": "LEGENDARY", "clazz": "GUARDIAN", "set_id": "set_obsidian_bastion", "stat_mods": {"VIT": 35, "END": 15}, "power_bonus": 900},
+    {"id": "eq_obsidian_gauntlets", "name": "Obsidian Gauntlets", "slot": "HANDS", "rarity": "LEGENDARY", "clazz": "GUARDIAN", "set_id": "set_obsidian_bastion", "stat_mods": {"VIT": 35, "END": 15}, "power_bonus": 900},
+    {"id": "eq_obsidian_sabatons", "name": "Obsidian Sabatons", "slot": "FEET", "rarity": "LEGENDARY", "clazz": "GUARDIAN", "set_id": "set_obsidian_bastion", "stat_mods": {"VIT": 35, "END": 15}, "power_bonus": 900},
+
+    {"id": "eq_gloamstalker_hood", "name": "Gloamstalker Hood", "slot": "HEAD", "rarity": "RARE", "clazz": "ASSASSIN", "set_id": "set_gloamstalker_garb", "stat_mods": {"AGI": 7, "STR": 3}, "power_bonus": 160},
+    {"id": "eq_gloamstalker_vest", "name": "Gloamstalker Vest", "slot": "BODY", "rarity": "RARE", "clazz": "ASSASSIN", "set_id": "set_gloamstalker_garb", "stat_mods": {"AGI": 7, "STR": 3}, "power_bonus": 160},
+    {"id": "eq_gloamstalker_grips", "name": "Gloamstalker Grips", "slot": "HANDS", "rarity": "RARE", "clazz": "ASSASSIN", "set_id": "set_gloamstalker_garb", "stat_mods": {"AGI": 7, "STR": 3}, "power_bonus": 160},
+    {"id": "eq_gloamstalker_boots", "name": "Gloamstalker Boots", "slot": "FEET", "rarity": "RARE", "clazz": "ASSASSIN", "set_id": "set_gloamstalker_garb", "stat_mods": {"AGI": 7, "STR": 3}, "power_bonus": 160},
+
+    {"id": "eq_voidcreep_hood", "name": "Voidcreep Hood", "slot": "HEAD", "rarity": "EPIC", "clazz": "ASSASSIN", "set_id": "set_voidcreep_shroud", "stat_mods": {"AGI": 17, "STR": 7}, "power_bonus": 410},
+    {"id": "eq_voidcreep_shroud", "name": "Voidcreep Shroud", "slot": "BODY", "rarity": "EPIC", "clazz": "ASSASSIN", "set_id": "set_voidcreep_shroud", "stat_mods": {"AGI": 17, "STR": 7}, "power_bonus": 410},
+    {"id": "eq_voidcreep_grips", "name": "Voidcreep Grips", "slot": "HANDS", "rarity": "EPIC", "clazz": "ASSASSIN", "set_id": "set_voidcreep_shroud", "stat_mods": {"AGI": 17, "STR": 7}, "power_bonus": 410},
+    {"id": "eq_voidcreep_boots", "name": "Voidcreep Boots", "slot": "FEET", "rarity": "EPIC", "clazz": "ASSASSIN", "set_id": "set_voidcreep_shroud", "stat_mods": {"AGI": 17, "STR": 7}, "power_bonus": 410},
+
+    {"id": "eq_cinderdance_hood", "name": "Cinderdance Hood", "slot": "HEAD", "rarity": "LEGENDARY", "clazz": "ASSASSIN", "set_id": "set_cinderdance_leathers", "stat_mods": {"AGI": 35, "STR": 15}, "power_bonus": 900},
+    {"id": "eq_cinderdance_leathers", "name": "Cinderdance Leathers", "slot": "BODY", "rarity": "LEGENDARY", "clazz": "ASSASSIN", "set_id": "set_cinderdance_leathers", "stat_mods": {"AGI": 35, "STR": 15}, "power_bonus": 900},
+    {"id": "eq_cinderdance_grips", "name": "Cinderdance Grips", "slot": "HANDS", "rarity": "LEGENDARY", "clazz": "ASSASSIN", "set_id": "set_cinderdance_leathers", "stat_mods": {"AGI": 35, "STR": 15}, "power_bonus": 900},
+    {"id": "eq_cinderdance_boots", "name": "Cinderdance Boots", "slot": "FEET", "rarity": "LEGENDARY", "clazz": "ASSASSIN", "set_id": "set_cinderdance_leathers", "stat_mods": {"AGI": 35, "STR": 15}, "power_bonus": 900},
+
+    {"id": "eq_broodcaller_cowl", "name": "Broodcaller Cowl", "slot": "HEAD", "rarity": "RARE", "clazz": "MAGE", "set_id": "set_broodcaller_vestments", "stat_mods": {"SEN": 7, "AGI": 3}, "power_bonus": 160},
+    {"id": "eq_broodcaller_vestments", "name": "Broodcaller Vestments", "slot": "BODY", "rarity": "RARE", "clazz": "MAGE", "set_id": "set_broodcaller_vestments", "stat_mods": {"SEN": 7, "AGI": 3}, "power_bonus": 160},
+    {"id": "eq_broodcaller_gloves", "name": "Broodcaller Gloves", "slot": "HANDS", "rarity": "RARE", "clazz": "MAGE", "set_id": "set_broodcaller_vestments", "stat_mods": {"SEN": 7, "AGI": 3}, "power_bonus": 160},
+    {"id": "eq_broodcaller_slippers", "name": "Broodcaller Slippers", "slot": "FEET", "rarity": "RARE", "clazz": "MAGE", "set_id": "set_broodcaller_vestments", "stat_mods": {"SEN": 7, "AGI": 3}, "power_bonus": 160},
+
+    {"id": "eq_hoarfrost_cowl", "name": "Hoarfrost Cowl", "slot": "HEAD", "rarity": "EPIC", "clazz": "MAGE", "set_id": "set_hoarfrost_weave", "stat_mods": {"SEN": 17, "AGI": 7}, "power_bonus": 410},
+    {"id": "eq_hoarfrost_weave", "name": "Hoarfrost Weave", "slot": "BODY", "rarity": "EPIC", "clazz": "MAGE", "set_id": "set_hoarfrost_weave", "stat_mods": {"SEN": 17, "AGI": 7}, "power_bonus": 410},
+    {"id": "eq_hoarfrost_gloves", "name": "Hoarfrost Gloves", "slot": "HANDS", "rarity": "EPIC", "clazz": "MAGE", "set_id": "set_hoarfrost_weave", "stat_mods": {"SEN": 17, "AGI": 7}, "power_bonus": 410},
+    {"id": "eq_hoarfrost_slippers", "name": "Hoarfrost Slippers", "slot": "FEET", "rarity": "EPIC", "clazz": "MAGE", "set_id": "set_hoarfrost_weave", "stat_mods": {"SEN": 17, "AGI": 7}, "power_bonus": 410},
+
+    {"id": "eq_sovereigns_diadem", "name": "Sovereign's Diadem", "slot": "HEAD", "rarity": "LEGENDARY", "clazz": "MAGE", "set_id": "set_sovereigns_regalia", "stat_mods": {"SEN": 35, "AGI": 15}, "power_bonus": 900},
+    {"id": "eq_sovereigns_vestments", "name": "Sovereign's Vestments", "slot": "BODY", "rarity": "LEGENDARY", "clazz": "MAGE", "set_id": "set_sovereigns_regalia", "stat_mods": {"SEN": 35, "AGI": 15}, "power_bonus": 900},
+    {"id": "eq_sovereigns_gloves", "name": "Sovereign's Gloves", "slot": "HANDS", "rarity": "LEGENDARY", "clazz": "MAGE", "set_id": "set_sovereigns_regalia", "stat_mods": {"SEN": 35, "AGI": 15}, "power_bonus": 900},
+    {"id": "eq_sovereigns_sandals", "name": "Sovereign's Sandals", "slot": "FEET", "rarity": "LEGENDARY", "clazz": "MAGE", "set_id": "set_sovereigns_regalia", "stat_mods": {"SEN": 35, "AGI": 15}, "power_bonus": 900},
+
+    {"id": "eq_sanctified_hood", "name": "Sanctified Hood", "slot": "HEAD", "rarity": "RARE", "clazz": "SUPPORT", "set_id": "set_sanctified_ward", "stat_mods": {"SEN": 7, "VIT": 3}, "power_bonus": 160},
+    {"id": "eq_sanctified_vestments", "name": "Sanctified Vestments", "slot": "BODY", "rarity": "RARE", "clazz": "SUPPORT", "set_id": "set_sanctified_ward", "stat_mods": {"SEN": 7, "VIT": 3}, "power_bonus": 160},
+    {"id": "eq_sanctified_gloves", "name": "Sanctified Gloves", "slot": "HANDS", "rarity": "RARE", "clazz": "SUPPORT", "set_id": "set_sanctified_ward", "stat_mods": {"SEN": 7, "VIT": 3}, "power_bonus": 160},
+    {"id": "eq_sanctified_treads", "name": "Sanctified Treads", "slot": "FEET", "rarity": "RARE", "clazz": "SUPPORT", "set_id": "set_sanctified_ward", "stat_mods": {"SEN": 7, "VIT": 3}, "power_bonus": 160},
+
+    {"id": "eq_warhowls_hood", "name": "Warhowl's Hood", "slot": "HEAD", "rarity": "EPIC", "clazz": "SUPPORT", "set_id": "set_warhowls_standard", "stat_mods": {"SEN": 17, "VIT": 7}, "power_bonus": 410},
+    {"id": "eq_warhowls_robe", "name": "Warhowl's Robe", "slot": "BODY", "rarity": "EPIC", "clazz": "SUPPORT", "set_id": "set_warhowls_standard", "stat_mods": {"SEN": 17, "VIT": 7}, "power_bonus": 410},
+    {"id": "eq_warhowls_gloves", "name": "Warhowl's Gloves", "slot": "HANDS", "rarity": "EPIC", "clazz": "SUPPORT", "set_id": "set_warhowls_standard", "stat_mods": {"SEN": 17, "VIT": 7}, "power_bonus": 410},
+    {"id": "eq_warhowls_treads", "name": "Warhowl's Treads", "slot": "FEET", "rarity": "EPIC", "clazz": "SUPPORT", "set_id": "set_warhowls_standard", "stat_mods": {"SEN": 17, "VIT": 7}, "power_bonus": 410},
+
+    {"id": "eq_hivesovereign_crown", "name": "Hive-Sovereign Crown", "slot": "HEAD", "rarity": "LEGENDARY", "clazz": "SUPPORT", "set_id": "set_hive_sovereign_raiment", "stat_mods": {"SEN": 35, "VIT": 15}, "power_bonus": 900},
+    {"id": "eq_hivesovereign_raiment", "name": "Hive-Sovereign Raiment", "slot": "BODY", "rarity": "LEGENDARY", "clazz": "SUPPORT", "set_id": "set_hive_sovereign_raiment", "stat_mods": {"SEN": 35, "VIT": 15}, "power_bonus": 900},
+    {"id": "eq_hivesovereign_gloves", "name": "Hive-Sovereign Gloves", "slot": "HANDS", "rarity": "LEGENDARY", "clazz": "SUPPORT", "set_id": "set_hive_sovereign_raiment", "stat_mods": {"SEN": 35, "VIT": 15}, "power_bonus": 900},
+    {"id": "eq_hivesovereign_treads", "name": "Hive-Sovereign Treads", "slot": "FEET", "rarity": "LEGENDARY", "clazz": "SUPPORT", "set_id": "set_hive_sovereign_raiment", "stat_mods": {"SEN": 35, "VIT": 15}, "power_bonus": 900}
   ],
   "armor_sets": [
     {"id": "set_ashen_vanguard_plate", "name": "Ashen Vanguard Plate", "clazz": "WARRIOR", "tier": "D", "piece_rarity": "RARE", "source": "Ashen March (D gates)", "bonus_2pc": "VIT+6", "bonus_4pc": "+6% power while frontline"},

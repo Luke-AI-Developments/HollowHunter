@@ -147,6 +147,14 @@ text = "Close"
 
 [node name="Rows" type="Node2D" parent="GameUI/HunterGearPanel"]
 
+[node name="SetsLabel" type="Label" parent="GameUI/HunterGearPanel"]
+offset_left = 40.0
+offset_top = 560.0
+offset_right = 2380.0
+offset_bottom = 900.0
+theme_override_font_sizes/font_size = 18
+text = "Active sets: (none)"
+
 [node name="ShadowGearPanel" type="Node2D" parent="GameUI"]
 visible = false
 
@@ -198,3 +206,11 @@ theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="Rows" type="Node2D" parent="GameUI/ShadowGearPanel"]
+
+[node name="SetsLabel" type="Label" parent="GameUI/ShadowGearPanel"]
+offset_left = 40.0
+offset_top = 560.0
+offset_right = 2380.0
+offset_bottom = 900.0
+theme_override_font_sizes/font_size = 18
+text = "Active sets: (none)"

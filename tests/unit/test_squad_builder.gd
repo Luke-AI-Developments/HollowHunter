@@ -87,3 +87,23 @@ func test_enrich_army_gear_raises_shadow_power() -> void:
 		SquadBuilder.enrich_army([shadow], monsters, 10, equipment, inventory)[0]["power"]
 	)
 	assert_true(geared > baseline)
+
+
+func test_enrich_army_armor_set_bonus_raises_shadow_power() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_ashen_vanguard_helm", "enhancement_level": 0},
+		{
+			"instance_id": "i1",
+			"equipment_def_id": "eq_ashen_vanguard_cuirass",
+			"enhancement_level": 0
+		},
+	]
+	var shadow := _shadow("mon_ashen_warden")  # WARRIOR, matches the set's clazz
+	var baseline: int = SquadBuilder.enrich_army([shadow], monsters, 10)[0]["power"]
+
+	shadow["equipped"] = {"HEAD": "i0", "BODY": "i1"}
+	var geared: int = (
+		SquadBuilder.enrich_army([shadow], monsters, 10, equipment, inventory)[0]["power"]
+	)
+	assert_true(geared > baseline)

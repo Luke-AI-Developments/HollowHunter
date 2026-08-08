@@ -9,10 +9,11 @@ const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
 
 ## Enriches each owned shadow with its content (name, class) and computed
 ## power (GameLogic.shadow_power, including equipped gear -- Phase 2 patch 1
-## step 3), for display and for auto_fill_squad to rank by. Shadows whose
-## monster_id isn't found in content are skipped. `equipment`/`inventory`
-## default to empty so existing callers (and old tests) that don't care
-## about gear keep working with zero gear bonus.
+## step 3 -- and active armor-set bonuses -- patch 3), for display and for
+## auto_fill_squad to rank by. Shadows whose monster_id isn't found in
+## content are skipped. `equipment`/`inventory` default to empty so existing
+## callers (and old tests) that don't care about gear keep working with
+## zero gear/set bonus.
 static func enrich_army(
 	army: Array,
 	monsters: Array,
@@ -25,9 +26,13 @@ static func enrich_army(
 		var monster := Content.monster_by_id(monsters, shadow.get("monster_id", ""))
 		if monster.is_empty():
 			continue
-		var gear := Equip.gear_bonus(shadow.get("equipped", {}), inventory, equipment)
+		var shadow_equipped: Dictionary = shadow.get("equipped", {})
+		var gear := Equip.gear_bonus(shadow_equipped, inventory, equipment)
+		var set_bonus := ArmorSets.total_set_bonus(shadow_equipped, inventory, equipment)
 		var gear_stat_sum := 0
 		for v in gear["stat_mods"].values():
+			gear_stat_sum += v
+		for v in set_bonus["stat_mods"].values():
 			gear_stat_sum += v
 		var power := GameLogic.shadow_power(
 			monster.get("base_power", 0),
@@ -36,6 +41,7 @@ static func enrich_army(
 			gear["power_bonus"],
 			gear_stat_sum
 		)
+		power = GameLogic.apply_set_power_pct(power, set_bonus["power_pct"])
 		(
 			enriched
 			. append(

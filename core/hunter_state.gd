@@ -240,18 +240,22 @@ func stats() -> Dictionary:
 	return GameLogic.stats_from(level, subclass)
 
 
-## Phase 2 patch 1 step 3: personal_power including equipped gear -- merges
-## gear stat_mods into base stats (personal_power sums the whole stats dict,
-## so gear stats have to be folded in BEFORE calling it, not passed
-## separately like shadow_power's scalar gear_stat_bonus) and passes gear's
-## summed power_bonus straight through.
+## personal_power including equipped gear AND active armor-set bonuses
+## (Phase 2 patch 1 step 3 + patch 3). Merges gear + set stat_mods into base
+## stats (personal_power sums the whole stats dict, so these have to be
+## folded in BEFORE calling it, not passed separately like shadow_power's
+## scalar gear_stat_bonus), passes gear's power_bonus straight through, then
+## applies any active set's power%% on top (ArmorSets.apply_set_power_pct).
 func personal_power(equipment: Dictionary) -> int:
 	var bonus := Equip.gear_bonus(equipped, inventory, equipment)
+	var set_bonus := ArmorSets.total_set_bonus(equipped, inventory, equipment)
 	var combined := stats().duplicate()
-	var stat_mods: Dictionary = bonus["stat_mods"]
-	for stat in stat_mods:
-		combined[stat] = combined.get(stat, 0) + stat_mods[stat]
-	return GameLogic.personal_power(combined, level, bonus["power_bonus"])
+	for stat in bonus["stat_mods"]:
+		combined[stat] = combined.get(stat, 0) + bonus["stat_mods"][stat]
+	for stat in set_bonus["stat_mods"]:
+		combined[stat] = combined.get(stat, 0) + set_bonus["stat_mods"][stat]
+	var base := GameLogic.personal_power(combined, level, bonus["power_bonus"])
+	return GameLogic.apply_set_power_pct(base, set_bonus["power_pct"])
 
 
 ## Adds EXP, applies any level-ups (can be more than one), returns how many

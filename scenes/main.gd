@@ -34,6 +34,8 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 @onready var hunter_gear_panel: Node2D = $GameUI/HunterGearPanel
 @onready var shadow_gear_panel: Node2D = $GameUI/ShadowGearPanel
 @onready var shadow_gear_title: Label = $GameUI/ShadowGearPanel/Title
+@onready var hunter_sets_label: Label = $GameUI/HunterGearPanel/SetsLabel
+@onready var shadow_sets_label: Label = $GameUI/ShadowGearPanel/SetsLabel
 
 
 func _ready() -> void:
@@ -423,6 +425,7 @@ func _refresh_hunter_gear_panel() -> void:
 		var slot: String = row["slot"]
 		var instance_id: String = state.equipped.get(slot, "")
 		row["label"].text = "%s: %s" % [slot, _equipped_item_display(instance_id)]
+	hunter_sets_label.text = _active_sets_display(state.equipped)
 
 
 func _on_shadow_gear_button_pressed() -> void:
@@ -520,6 +523,7 @@ func _refresh_shadow_gear_panel() -> void:
 		shadow_gear_title.text = "No shadows yet"
 		for row: Dictionary in _shadow_gear_rows:
 			row["label"].text = "%s: --" % row["slot"]
+		shadow_sets_label.text = "Active sets: (none)"
 		return
 
 	_shadow_gear_index = clampi(_shadow_gear_index, 0, state.army.size() - 1)
@@ -541,6 +545,26 @@ func _refresh_shadow_gear_panel() -> void:
 		var slot: String = row["slot"]
 		var instance_id: String = shadow_equipped.get(slot, "")
 		row["label"].text = "%s: %s" % [slot, _equipped_item_display(instance_id)]
+	shadow_sets_label.text = _active_sets_display(shadow_equipped)
+
+
+## Phase 2 patch 3: renders ArmorSets.active_set_bonuses() for whichever
+## equipped dict (hunter's or the selected shadow's) into display text.
+## bonus_2pc/4pc text is shown verbatim -- see core/armor_sets.gd for which
+## parts of it are actually mechanical (stat text + any "N% power" token)
+## vs pure flavor (everything else in bonus_4pc).
+func _active_sets_display(equipped: Dictionary) -> String:
+	var active := ArmorSets.active_set_bonuses(equipped, state.inventory, _equipment)
+	if active.is_empty():
+		return "Active sets: (none)"
+	var lines := ["Active sets:"]
+	for set_bonus: Dictionary in active:
+		var pieces: int = set_bonus["pieces_equipped"]
+		lines.append(" - %s (%d/4 pieces)" % [set_bonus["name"], pieces])
+		lines.append("     2pc: %s" % set_bonus["bonus_2pc_text"])
+		if set_bonus["active_4pc"]:
+			lines.append("     4pc: %s" % set_bonus["bonus_4pc_text"])
+	return "\n".join(lines)
 
 
 ## Shared by both gear panels: resolves an inventory instance_id to a

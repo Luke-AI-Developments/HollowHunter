@@ -86,3 +86,12 @@ func test_essence_for_gate_matches_the_source_table():
 
 func test_essence_for_gate_unknown_rank_is_zero():
 	assert_eq(GameLogic.essence_for_gate("Z"), 0)
+
+
+func test_apply_set_power_pct_zero_is_unchanged():
+	assert_eq(GameLogic.apply_set_power_pct(1000, 0.0), 1000)
+
+
+func test_apply_set_power_pct_scales_up():
+	assert_eq(GameLogic.apply_set_power_pct(1000, 0.10), 1100)
+	assert_eq(GameLogic.apply_set_power_pct(1000, 0.06), 1060)

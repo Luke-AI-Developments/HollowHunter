@@ -426,3 +426,25 @@ func test_enhance_item_raises_personal_power() -> void:
 	var before := s.personal_power(equipment)
 	s.enhance_item(item["instance_id"])
 	assert_true(s.personal_power(equipment) > before)
+
+
+func test_personal_power_includes_active_armor_set_bonus() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	# set_ashen_vanguard_plate 2pc: VIT+6 -- equipping 2 pieces should raise
+	# power over having zero gear equipped at all.
+	var baseline := s.personal_power(equipment)
+	s.equip_to_hunter(s.add_to_inventory("eq_ashen_vanguard_helm")["instance_id"], equipment)
+	s.equip_to_hunter(s.add_to_inventory("eq_ashen_vanguard_cuirass")["instance_id"], equipment)
+	assert_true(s.personal_power(equipment) > baseline)
+
+
+func test_personal_power_4pc_set_bonus_beats_2pc_alone() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	s.equip_to_hunter(s.add_to_inventory("eq_ashen_vanguard_helm")["instance_id"], equipment)
+	s.equip_to_hunter(s.add_to_inventory("eq_ashen_vanguard_cuirass")["instance_id"], equipment)
+	var at_2pc := s.personal_power(equipment)
+	s.equip_to_hunter(s.add_to_inventory("eq_ashen_vanguard_gauntlets")["instance_id"], equipment)
+	s.equip_to_hunter(s.add_to_inventory("eq_ashen_vanguard_sabatons")["instance_id"], equipment)
+	assert_true(s.personal_power(equipment) > at_2pc)  # +4th piece's own power AND the 4pc %
