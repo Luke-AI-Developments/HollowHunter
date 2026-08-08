@@ -100,3 +100,29 @@ func test_army_round_trips_through_dict() -> void:
 	var restored := HunterState.from_dict(s.to_dict())
 	assert_eq(restored.army.size(), 2)
 	assert_eq(restored.army[0]["monster_id"], "mon_ashen_warden")
+
+
+func test_new_default_has_never_applied_exp() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.last_exp_date, "")
+	assert_false(s.has_applied_exp_today("2026-08-08"))
+
+
+func test_mark_exp_applied_then_has_applied_true_for_same_date() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.mark_exp_applied("2026-08-08")
+	assert_true(s.has_applied_exp_today("2026-08-08"))
+
+
+func test_mark_exp_applied_still_false_for_a_different_date() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.mark_exp_applied("2026-08-08")
+	assert_false(s.has_applied_exp_today("2026-08-09"))
+
+
+func test_last_exp_date_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.mark_exp_applied("2026-08-08")
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.last_exp_date, "2026-08-08")
+	assert_true(restored.has_applied_exp_today("2026-08-08"))

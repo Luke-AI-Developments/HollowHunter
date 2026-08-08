@@ -12,6 +12,11 @@ var gate_tickets: int
 var army: Array  ## Array[Dictionary]: {instance_id, monster_id, grade, level}. Class isn't
 ## stored per-shadow -- look it up from monster_id via Content when needed, same as the
 ## design bible's ShadowInstance (don't duplicate content data into save state).
+var last_exp_date: String  ## "YYYY-MM-DD" (device-local calendar date) of the last daily-EXP
+## grant, "" if never. NOTE: the native plugin's readTodaySteps()/readRecentWorkouts() use a
+## rolling 24h window, not a calendar day -- this guard stops same-day relaunch double-counts,
+## but doesn't perfectly line up with that window (e.g. playing at 11pm then 1am still counts
+## as two different calendar days despite mostly-overlapping step data). Good enough for v0.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -23,7 +28,16 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.essence = 0
 	s.gate_tickets = 0
 	s.army = []
+	s.last_exp_date = ""
 	return s
+
+
+func has_applied_exp_today(today: String) -> bool:
+	return last_exp_date == today
+
+
+func mark_exp_applied(today: String) -> void:
+	last_exp_date = today
 
 
 ## Adds a level-1 shadow of the given monster/grade to the army. Pure --
@@ -70,6 +84,7 @@ func to_dict() -> Dictionary:
 		"essence": essence,
 		"gate_tickets": gate_tickets,
 		"army": army,
+		"last_exp_date": last_exp_date,
 	}
 
 
@@ -82,4 +97,5 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.essence = int(d.get("essence", 0))
 	s.gate_tickets = int(d.get("gate_tickets", 0))
 	s.army = d.get("army", [])
+	s.last_exp_date = String(d.get("last_exp_date", ""))
 	return s

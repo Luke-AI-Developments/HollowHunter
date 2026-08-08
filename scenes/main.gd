@@ -1,15 +1,15 @@
 extends Node2D
 
-## Phase 1 steps 3-6: real daily EXP from Health Connect -> level up, a
-## simple map (live GPS position + placeholder gates), gate encounters
-## (3-round clash -> boss CLAIM -> shadow), and an army list with an
-## auto-filled class-slotted squad -- replacing the native-plugin-spike
-## test harness (checkpoints 2-4) with actual game wiring. Subclass is
-## hardcoded to WARRIOR for now -- no picker UI yet (not part of the
-## minimum lovable loop). Simplification: applies today's totals every
-## launch with no "already counted today" guard, so relaunching same-day
-## double-counts EXP -- fine for this phase, flagged rather than silently
-## shipped.
+## Phase 1 steps 3-6 (+ subclass picker, daily-EXP double-count guard): real
+## daily EXP from Health Connect -> level up, a simple map (live GPS
+## position + placeholder gates), gate encounters (3-round clash -> boss
+## CLAIM -> shadow), and an army list with an auto-filled class-slotted
+## squad -- replacing the native-plugin-spike test harness (checkpoints
+## 2-4) with actual game wiring. GPS/Health Connect permission requests
+## start immediately regardless of the picker, so they're ready by the
+## time a subclass is chosen.
+
+const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
 
 var bridge: Object
 var state: HunterState
@@ -18,18 +18,22 @@ var _steps: int = -1
 var _workouts_json: String = ""
 var _health_applied := false
 
-@onready var label: Label = $Label
-@onready var map_view: MapView = $MapView
-@onready var enter_gate_button: Button = $EnterGateButton
-@onready var army_label: Label = $ArmyLabel
+@onready var subclass_picker: Node2D = $SubclassPicker
+@onready var game_ui: Node2D = $GameUI
+@onready var label: Label = $GameUI/Label
+@onready var map_view: MapView = $GameUI/MapView
+@onready var enter_gate_button: Button = $GameUI/EnterGateButton
+@onready var army_label: Label = $GameUI/ArmyLabel
 
 
 func _ready() -> void:
-	state = SaveService.load_or_create("WARRIOR")
 	_monsters = Content.load_monsters()
-	_refresh_label()
-	_refresh_army_label()
-	enter_gate_button.pressed.connect(_on_enter_gate_pressed)
+
+	if FileAccess.file_exists(SaveService.SAVE_PATH):
+		state = SaveService.load_or_create()
+		_start_game()
+	else:
+		_show_subclass_picker()
 
 	if not Engine.has_singleton("GpsHealthBridge"):
 		label.text += "\n\nGpsHealthBridge singleton not found"
@@ -47,6 +51,30 @@ func _ready() -> void:
 	bridge.checkHealthConnectAvailable()
 
 
+## The subclass is permanent once picked (design bible §21) -- this screen
+## only shows for a genuinely new hunter (no save file yet), never again.
+func _show_subclass_picker() -> void:
+	subclass_picker.visible = true
+	game_ui.visible = false
+	for clazz in CLASSES:
+		var button: Button = subclass_picker.get_node("%sButton" % clazz.capitalize())
+		button.pressed.connect(_on_subclass_chosen.bind(clazz))
+
+
+func _on_subclass_chosen(subclass: String) -> void:
+	state = SaveService.load_or_create(subclass)
+	subclass_picker.visible = false
+	game_ui.visible = true
+	_start_game()
+
+
+func _start_game() -> void:
+	_refresh_label()
+	_refresh_army_label()
+	if not enter_gate_button.pressed.is_connected(_on_enter_gate_pressed):
+		enter_gate_button.pressed.connect(_on_enter_gate_pressed)
+
+
 func _on_location_permission_result(granted: bool) -> void:
 	if granted:
 		bridge.startLocationUpdates()
@@ -55,6 +83,8 @@ func _on_location_permission_result(granted: bool) -> void:
 
 
 func _on_location_update(lat: float, lon: float, _accuracy: float, _timestamp_ms: int) -> void:
+	if state == null:
+		return  # subclass not chosen yet
 	map_view.show_position(lat, lon, state.level)
 
 
@@ -86,14 +116,22 @@ func _on_workouts_result(workouts_json: String) -> void:
 ## Both signals arrive independently and in either order; wait for both
 ## (steps defaults to the never-real -1, workouts_result is always at least
 ## the 2-char "[]" so an empty string means "not arrived yet") before
-## computing EXP once.
+## computing EXP once. Also waits on `state` existing (subclass not chosen
+## yet on a fresh install) and on HunterState's own has_applied_exp_today()
+## guard, so relaunching same calendar day no longer double-counts.
 func _maybe_apply_daily_exp() -> void:
-	if _health_applied or _steps < 0 or _workouts_json.is_empty():
+	if state == null or _health_applied or _steps < 0 or _workouts_json.is_empty():
 		return
 	_health_applied = true
 
+	var today := Time.get_date_string_from_system()
+	if state.has_applied_exp_today(today):
+		print("PHASE1: daily EXP already applied for %s, skipping" % today)
+		return
+
 	var exp := DailyExp.exp_for_today(_steps, _workouts_json, state.subclass)
 	var levels_gained := state.add_exp(exp)
+	state.mark_exp_applied(today)
 	SaveService.save(state)
 	_refresh_label()
 	if levels_gained > 0:
