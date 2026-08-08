@@ -14,6 +14,7 @@ const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
 var bridge: Object
 var state: HunterState
 var _monsters: Array
+var _equipment: Dictionary
 var _steps: int = -1
 var _workouts_json: String = ""
 var _health_applied := false
@@ -24,13 +25,17 @@ var _health_applied := false
 @onready var map_view: MapView = $GameUI/MapView
 @onready var enter_gate_button: Button = $GameUI/EnterGateButton
 @onready var army_label: Label = $GameUI/ArmyLabel
+@onready var inventory_label: Label = $GameUI/InventoryLabel
 
 
 func _ready() -> void:
 	_monsters = Content.load_monsters()
+	_equipment = Content.load_equipment()
 
 	if FileAccess.file_exists(SaveService.SAVE_PATH):
 		state = SaveService.load_or_create()
+		subclass_picker.visible = false
+		game_ui.visible = true
 		_start_game()
 	else:
 		_show_subclass_picker()
@@ -71,6 +76,7 @@ func _on_subclass_chosen(subclass: String) -> void:
 func _start_game() -> void:
 	_refresh_label()
 	_refresh_army_label()
+	_refresh_inventory_label()
 	if not enter_gate_button.pressed.is_connected(_on_enter_gate_pressed):
 		enter_gate_button.pressed.connect(_on_enter_gate_pressed)
 
@@ -173,9 +179,16 @@ func _on_enter_gate_pressed() -> void:
 	elif result["cleared"]:
 		msg += "\nBoss escaped (claim failed)."
 
+	if result["cleared"]:
+		var drop := Loot.roll_drop(gate["rank"], _equipment, rng)
+		if not drop.is_empty():
+			state.add_to_inventory(drop["id"])
+			msg += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
+
 	SaveService.save(state)
 	_refresh_label()
 	_refresh_army_label()
+	_refresh_inventory_label()
 	label.text += msg
 	print(
 		(
@@ -211,6 +224,31 @@ func _refresh_army_label() -> void:
 			)
 		)
 	army_label.text = "\n".join(lines)
+
+
+func _refresh_inventory_label() -> void:
+	if state.inventory.is_empty():
+		inventory_label.text = "Inventory: (none yet)"
+		return
+
+	var lines := ["Inventory (%d):" % state.inventory.size()]
+	for item: Dictionary in state.inventory:
+		var def := Content.equipment_by_id(_equipment, item.get("equipment_def_id", ""))
+		if def.is_empty():
+			continue
+		lines.append(
+			(
+				" - %s [%s] %s +%d (Lv%d)"
+				% [
+					def["name"],
+					def["slot"],
+					def["rarity"],
+					def["power_bonus"],
+					item.get("enhancement_level", 0)
+				]
+			)
+		)
+	inventory_label.text = "\n".join(lines)
 
 
 func _refresh_label() -> void:

@@ -126,3 +126,32 @@ func test_last_exp_date_round_trips_through_dict() -> void:
 	var restored := HunterState.from_dict(s.to_dict())
 	assert_eq(restored.last_exp_date, "2026-08-08")
 	assert_true(restored.has_applied_exp_today("2026-08-08"))
+
+
+func test_new_default_inventory_is_empty() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.inventory, [])
+
+
+func test_add_to_inventory_adds_an_unenhanced_item() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var item := s.add_to_inventory("eq_warcleaver")
+	assert_eq(s.inventory.size(), 1)
+	assert_eq(item["equipment_def_id"], "eq_warcleaver")
+	assert_eq(item["enhancement_level"], 0)
+
+
+func test_add_to_inventory_ids_are_unique() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.add_to_inventory("eq_warcleaver")
+	var b := s.add_to_inventory("eq_warcleaver")
+	assert_ne(a["instance_id"], b["instance_id"])
+
+
+func test_inventory_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.add_to_inventory("eq_warcleaver")
+	s.add_to_inventory("eq_ironbrow_helm")
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.inventory.size(), 2)
+	assert_eq(restored.inventory[0]["equipment_def_id"], "eq_warcleaver")

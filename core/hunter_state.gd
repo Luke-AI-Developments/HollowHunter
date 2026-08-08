@@ -17,6 +17,9 @@ var last_exp_date: String  ## "YYYY-MM-DD" (device-local calendar date) of the l
 ## rolling 24h window, not a calendar day -- this guard stops same-day relaunch double-counts,
 ## but doesn't perfectly line up with that window (e.g. playing at 11pm then 1am still counts
 ## as two different calendar days despite mostly-overlapping step data). Good enough for v0.
+var inventory: Array  ## Array[Dictionary]: {instance_id, equipment_def_id, enhancement_level}.
+## Like army, doesn't duplicate content data -- look up name/slot/rarity/stat_mods/power_bonus
+## from equipment_def_id via Content when needed.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -29,7 +32,20 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.gate_tickets = 0
 	s.army = []
 	s.last_exp_date = ""
+	s.inventory = []
 	return s
+
+
+## Adds an unenhanced instance of the given equipment def to the inventory.
+## Pure -- instance_id is index-based, same convention as claim_shadow().
+func add_to_inventory(equipment_def_id: String) -> Dictionary:
+	var item := {
+		"instance_id": "eq_inst_%d" % inventory.size(),
+		"equipment_def_id": equipment_def_id,
+		"enhancement_level": 0,
+	}
+	inventory.append(item)
+	return item
 
 
 func has_applied_exp_today(today: String) -> bool:
@@ -85,6 +101,7 @@ func to_dict() -> Dictionary:
 		"gate_tickets": gate_tickets,
 		"army": army,
 		"last_exp_date": last_exp_date,
+		"inventory": inventory,
 	}
 
 
@@ -98,4 +115,5 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.gate_tickets = int(d.get("gate_tickets", 0))
 	s.army = d.get("army", [])
 	s.last_exp_date = String(d.get("last_exp_date", ""))
+	s.inventory = d.get("inventory", [])
 	return s

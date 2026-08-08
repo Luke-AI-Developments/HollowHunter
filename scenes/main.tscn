@@ -86,3 +86,11 @@ offset_right = 900.0
 offset_bottom = 1040.0
 theme_override_font_sizes/font_size = 20
 text = "Army: (none yet)"
+
+[node name="InventoryLabel" type="Label" parent="GameUI"]
+offset_left = 950.0
+offset_top = 40.0
+offset_right = 1650.0
+offset_bottom = 1040.0
+theme_override_font_sizes/font_size = 20
+text = "Inventory: (none yet)"
