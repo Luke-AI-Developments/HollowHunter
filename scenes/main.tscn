@@ -95,6 +95,14 @@ offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Shadow Gear"
 
+[node name="MassConvertButton" type="Button" parent="GameUI"]
+offset_left = 400.0
+offset_top = 370.0
+offset_right = 620.0
+offset_bottom = 410.0
+theme_override_font_sizes/font_size = 18
+text = "Mass-Convert Weakest 3"
+
 [node name="ArmyLabel" type="Label" parent="GameUI"]
 offset_left = 40.0
 offset_top = 420.0
@@ -204,6 +212,30 @@ offset_right = 800.0
 offset_bottom = 140.0
 theme_override_font_sizes/font_size = 20
 text = "Close"
+
+[node name="LevelUpButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 820.0
+offset_top = 90.0
+offset_right = 980.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Level Up"
+
+[node name="FuseButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 1000.0
+offset_top = 90.0
+offset_right = 1220.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Fuse Duplicate"
+
+[node name="ConvertButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 1240.0
+offset_top = 90.0
+offset_right = 1450.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Convert to Essence"
 
 [node name="Rows" type="Node2D" parent="GameUI/ShadowGearPanel"]
 

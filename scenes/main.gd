@@ -10,6 +10,7 @@ extends Node2D
 ## time a subclass is chosen.
 
 const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
+const MASS_CONVERT_COUNT := 3  ## §17 "surplus... shadows" -- v0 batch size, not in the source
 
 var bridge: Object
 var state: HunterState
@@ -36,6 +37,10 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 @onready var shadow_gear_title: Label = $GameUI/ShadowGearPanel/Title
 @onready var hunter_sets_label: Label = $GameUI/HunterGearPanel/SetsLabel
 @onready var shadow_sets_label: Label = $GameUI/ShadowGearPanel/SetsLabel
+@onready var mass_convert_button: Button = $GameUI/MassConvertButton
+@onready var shadow_level_up_button: Button = $GameUI/ShadowGearPanel/LevelUpButton
+@onready var shadow_fuse_button: Button = $GameUI/ShadowGearPanel/FuseButton
+@onready var shadow_convert_button: Button = $GameUI/ShadowGearPanel/ConvertButton
 
 
 func _ready() -> void:
@@ -122,6 +127,10 @@ func _setup_gear_panels() -> void:
 		$GameUI/ShadowGearPanel/CloseButton.pressed.connect(_on_shadow_gear_close_pressed)
 		$GameUI/ShadowGearPanel/PrevButton.pressed.connect(_on_shadow_gear_prev_pressed)
 		$GameUI/ShadowGearPanel/NextButton.pressed.connect(_on_shadow_gear_next_pressed)
+		shadow_level_up_button.pressed.connect(_on_shadow_level_up_pressed)
+		shadow_fuse_button.pressed.connect(_on_shadow_fuse_pressed)
+		shadow_convert_button.pressed.connect(_on_shadow_convert_pressed)
+		mass_convert_button.pressed.connect(_on_mass_convert_pressed)
 
 
 ## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
@@ -504,6 +513,68 @@ func _on_shadow_auto_equip_pressed() -> void:
 	_refresh_shadow_gear_panel()
 	_refresh_army_label()
 	_refresh_inventory_label()
+
+
+## Phase 2/P2 step 5: spends Essence to level the currently-viewed shadow
+## up by 1. No-op (no error UI yet, same placeholder-simplicity as the gear
+## buttons) if there's no shadow, it's capped, or Essence is short.
+func _on_shadow_level_up_pressed() -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	state.level_up_shadow(shadow_id)
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+	_refresh_army_label()
+	_refresh_label()
+
+
+## Fuses the first owned duplicate of the currently-viewed shadow into it
+## (HunterState.find_duplicate_of picks which one -- no picker UI to choose
+## a specific duplicate when more than one is owned). No-op if there's no
+## shadow, no duplicate owned, it's capped, or Essence is short.
+func _on_shadow_fuse_pressed() -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	var duplicate_id := state.find_duplicate_of(shadow_id)
+	if duplicate_id == "":
+		return
+	state.fuse_shadow(shadow_id, duplicate_id)
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+	_refresh_army_label()
+	_refresh_label()
+
+
+## Converts the currently-viewed shadow straight to Essence and removes it
+## from the army. Immediate, no confirmation prompt (placeholder UI).
+func _on_shadow_convert_pressed() -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	state.convert_shadow(shadow_id)
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+	_refresh_army_label()
+	_refresh_label()
+
+
+## Phase 2/P2 step 4: mass-converts the MASS_CONVERT_COUNT weakest shadows
+## outside the auto-filled squad (SquadBuilder.surplus_shadow_ids) straight
+## to Essence. Immediate, no confirmation/lock-favorite protection yet
+## (§17's lock/favorite QoL bullet is out of scope for this patch).
+func _on_mass_convert_pressed() -> void:
+	var surplus := SquadBuilder.surplus_shadow_ids(
+		state.army, _monsters, state.level, MASS_CONVERT_COUNT, _equipment, state.inventory
+	)
+	if surplus.is_empty():
+		return
+	var gained := state.mass_convert(surplus)
+	SaveService.save(state)
+	_refresh_army_label()
+	_refresh_label()
+	label.text += "\n\nMass-converted %d shadow(s) -> +%d Essence" % [surplus.size(), gained]
 
 
 ## Enhances whatever the selected shadow has equipped in `slot`. The item
