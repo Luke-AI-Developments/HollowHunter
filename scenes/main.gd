@@ -1,13 +1,15 @@
 extends Node2D
 
-## Phase 1 steps 3-4: real daily EXP from Health Connect -> level up, and a
-## simple map (live GPS position + placeholder gates), replacing the
-## native-plugin-spike test harness (checkpoints 2-4) with actual game
-## wiring. Subclass is hardcoded to WARRIOR for now -- no picker UI yet
-## (not part of the minimum lovable loop). Simplification: applies today's
-## totals every launch with no "already counted today" guard, so relaunching
-## same-day double-counts EXP -- fine for this phase, flagged rather than
-## silently shipped.
+## Phase 1 steps 3-5: real daily EXP from Health Connect -> level up, a
+## simple map (live GPS position + placeholder gates), and gate encounters
+## (3-round clash -> boss CLAIM -> shadow), replacing the native-plugin-spike
+## test harness (checkpoints 2-4) with actual game wiring. Subclass is
+## hardcoded to WARRIOR for now -- no picker UI yet (not part of the
+## minimum lovable loop). Simplification: applies today's totals every
+## launch with no "already counted today" guard, so relaunching same-day
+## double-counts EXP -- fine for this phase, flagged rather than silently
+## shipped. Squad isn't picked yet (step 6), so gate_power's army term is
+## always 0 for now -- gates are a pure test of your level/gear.
 
 var bridge: Object
 var state: HunterState
@@ -16,12 +18,14 @@ var _workouts_json: String = ""
 var _health_applied := false
 
 @onready var label: Label = $Label
-@onready var map_view: Node2D = $MapView
+@onready var map_view: MapView = $MapView
+@onready var enter_gate_button: Button = $EnterGateButton
 
 
 func _ready() -> void:
 	state = SaveService.load_or_create("WARRIOR")
 	_refresh_label()
+	enter_gate_button.pressed.connect(_on_enter_gate_pressed)
 
 	if not Engine.has_singleton("GpsHealthBridge"):
 		label.text += "\n\nGpsHealthBridge singleton not found"
@@ -94,6 +98,41 @@ func _maybe_apply_daily_exp() -> void:
 		(
 			"PHASE1: steps=%d workouts=%s exp=%d levels_gained=%d"
 			% [_steps, _workouts_json, exp, levels_gained]
+		)
+	)
+
+
+func _on_enter_gate_pressed() -> void:
+	var idx := map_view.get_nearest_gate_index()
+	if idx < 0:
+		label.text += "\n\nNo gates nearby"
+		return
+	var gate := map_view.get_gate(idx)
+
+	var personal := GameLogic.personal_power(state.stats(), state.level, 0)
+	var total_power := GameLogic.gate_power(personal, 0)  # no squad yet -- step 6
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var result := GateEncounter.run(total_power, gate, state.level, rng)
+	map_view.remove_gate(idx)
+
+	var msg := (
+		"\n\n%s gate (%s): %s"
+		% [gate["rank"], gate["monster_name"], "CLEARED" if result["cleared"] else "LOST"]
+	)
+	if result["cleared"] and result["claimed"]:
+		state.claim_shadow(gate["monster_id"], gate["rank"])
+		msg += "\nCLAIMED! %s joins your army." % gate["monster_name"]
+	elif result["cleared"]:
+		msg += "\nBoss escaped (claim failed)."
+
+	SaveService.save(state)
+	_refresh_label()
+	label.text += msg
+	print(
+		(
+			"PHASE1_GATE: rank=%s rounds=%s cleared=%s claimed=%s"
+			% [gate["rank"], result["rounds"], result["cleared"], result["claimed"]]
 		)
 	)
 

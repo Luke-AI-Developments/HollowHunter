@@ -1,3 +1,4 @@
+class_name MapView
 extends Node2D
 
 ## Phase 1 step 4: simple placeholder map. Live GPS position (player, drawn
@@ -36,6 +37,35 @@ func show_position(lat: float, lon: float, hunter_level: int) -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
 		_gates = GateSpawner.spawn_gates(lat, lon, hunter_level, Content.load_monsters(), 5, rng)
+	queue_redraw()
+
+
+func get_nearest_gate_index() -> int:
+	if _gates.is_empty():
+		return -1
+	var best_idx := 0
+	var best_dist_sq := INF
+	for i in _gates.size():
+		var g: Dictionary = _gates[i]
+		var dlat: float = g["lat"] - _center_lat
+		var dlon: float = g["lon"] - _center_lon
+		var dist_sq := dlat * dlat + dlon * dlon
+		if dist_sq < best_dist_sq:
+			best_dist_sq = dist_sq
+			best_idx = i
+	return best_idx
+
+
+func get_gate(index: int) -> Dictionary:
+	if index < 0 or index >= _gates.size():
+		return {}
+	return _gates[index]
+
+
+func remove_gate(index: int) -> void:
+	if index < 0 or index >= _gates.size():
+		return
+	_gates.remove_at(index)
 	queue_redraw()
 
 

@@ -41,19 +41,16 @@ static func spawn_gates(
 		if candidates.is_empty():
 			continue
 		var monster: Dictionary = candidates[_rand_index(candidates.size(), rng)]
-		(
-			gates
-			. append(
-				{
-					"rank": rank,
-					"lat": center_lat + _rand_offset(rng),
-					"lon": center_lon + _rand_offset(rng),
-					"monster_id": monster.get("id", ""),
-					"monster_name": monster.get("name", ""),
-					"monster_base_power": monster.get("base_power", 0),
-				}
-			)
-		)
+		var gate := {
+			"rank": rank,
+			"lat": center_lat + _rand_offset(rng),
+			"lon": center_lon + _rand_offset(rng),
+			"monster_id": monster.get("id", ""),
+			"monster_name": monster.get("name", ""),
+			"monster_base_power": monster.get("base_power", 0),
+			"monster_extract_chance": monster.get("extract_chance", 0.0),
+		}
+		gates.append(gate)
 	return gates
 
 

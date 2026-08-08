@@ -9,6 +9,9 @@ var total_exp: int  ## lifetime total, cosmetic/statistic only
 var subclass: String  ## WARRIOR / GUARDIAN / ASSASSIN / MAGE / SUPPORT
 var essence: int
 var gate_tickets: int
+var army: Array  ## Array[Dictionary]: {instance_id, monster_id, grade, level}. Class isn't
+## stored per-shadow -- look it up from monster_id via Content when needed, same as the
+## design bible's ShadowInstance (don't duplicate content data into save state).
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -19,7 +22,22 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.subclass = hunter_subclass
 	s.essence = 0
 	s.gate_tickets = 0
+	s.army = []
 	return s
+
+
+## Adds a level-1 shadow of the given monster/grade to the army. Pure --
+## instance_id is just index-based (no wall-clock/UUID dependency, keeps
+## this deterministic and testable).
+func claim_shadow(monster_id: String, grade: String) -> Dictionary:
+	var shadow := {
+		"instance_id": "shadow_%d" % army.size(),
+		"monster_id": monster_id,
+		"grade": grade,
+		"level": 1,
+	}
+	army.append(shadow)
+	return shadow
 
 
 ## Stats derived from level x subclass (§16), via GameLogic -- this is the
@@ -51,6 +69,7 @@ func to_dict() -> Dictionary:
 		"subclass": subclass,
 		"essence": essence,
 		"gate_tickets": gate_tickets,
+		"army": army,
 	}
 
 
@@ -62,4 +81,5 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.subclass = String(d.get("subclass", "WARRIOR"))
 	s.essence = int(d.get("essence", 0))
 	s.gate_tickets = int(d.get("gate_tickets", 0))
+	s.army = d.get("army", [])
 	return s

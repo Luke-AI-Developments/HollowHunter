@@ -70,3 +70,33 @@ func test_from_dict_defaults_missing_fields() -> void:
 	var restored := HunterState.from_dict({})
 	assert_eq(restored.level, 1)
 	assert_eq(restored.subclass, "WARRIOR")
+
+
+func test_new_default_army_is_empty() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.army, [])
+
+
+func test_claim_shadow_adds_a_level_1_shadow() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	assert_eq(s.army.size(), 1)
+	assert_eq(shadow["monster_id"], "mon_ashen_warden")
+	assert_eq(shadow["grade"], "C")
+	assert_eq(shadow["level"], 1)
+
+
+func test_claim_shadow_ids_are_unique() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_grubmaw", "E")
+	var b := s.claim_shadow("mon_grubmaw", "E")
+	assert_ne(a["instance_id"], b["instance_id"])
+
+
+func test_army_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.claim_shadow("mon_ashen_warden", "C")
+	s.claim_shadow("mon_grubmaw", "E")
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.army.size(), 2)
+	assert_eq(restored.army[0]["monster_id"], "mon_ashen_warden")
