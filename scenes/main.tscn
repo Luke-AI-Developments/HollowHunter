@@ -237,6 +237,22 @@ offset_bottom = 140.0
 theme_override_font_sizes/font_size = 20
 text = "Convert to Essence"
 
+[node name="LockButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 1470.0
+offset_top = 90.0
+offset_right = 1630.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Lock"
+
+[node name="FavoriteButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 1650.0
+offset_top = 90.0
+offset_right = 1850.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Favorite"
+
 [node name="Rows" type="Node2D" parent="GameUI/ShadowGearPanel"]
 
 [node name="SetsLabel" type="Label" parent="GameUI/ShadowGearPanel"]

@@ -144,3 +144,23 @@ func test_surplus_shadow_ids_sorts_weakest_first_and_respects_count() -> void:
 func test_surplus_shadow_ids_with_no_surplus_is_empty() -> void:
 	var army := [_shadow("mon_grubmaw")]
 	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5), [])
+
+
+func test_surplus_shadow_ids_skips_locked_shadows() -> void:
+	var army := [
+		_shadow("mon_tuskrend"),  # WARRIOR 350 -- class slot
+		_shadow("mon_nipclaw"),  # WARRIOR 210 -- wins flex
+		_shadow("mon_grubmaw"),  # WARRIOR 120 -- surplus, but locked
+		_shadow("mon_tarling"),  # WARRIOR 110 -- surplus, weakest, unlocked
+	]
+	army[2]["locked"] = true
+	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5), ["mon_tarling"])
+
+
+func test_enrich_army_includes_locked_and_favorite() -> void:
+	var shadow := _shadow("mon_ashen_warden")
+	shadow["locked"] = true
+	shadow["favorite"] = true
+	var enriched := SquadBuilder.enrich_army([shadow], monsters, 10)
+	assert_true(enriched[0]["locked"])
+	assert_true(enriched[0]["favorite"])

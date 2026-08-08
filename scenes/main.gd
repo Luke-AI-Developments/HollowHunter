@@ -41,6 +41,8 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 @onready var shadow_level_up_button: Button = $GameUI/ShadowGearPanel/LevelUpButton
 @onready var shadow_fuse_button: Button = $GameUI/ShadowGearPanel/FuseButton
 @onready var shadow_convert_button: Button = $GameUI/ShadowGearPanel/ConvertButton
+@onready var shadow_lock_button: Button = $GameUI/ShadowGearPanel/LockButton
+@onready var shadow_favorite_button: Button = $GameUI/ShadowGearPanel/FavoriteButton
 
 
 func _ready() -> void:
@@ -130,6 +132,8 @@ func _setup_gear_panels() -> void:
 		shadow_level_up_button.pressed.connect(_on_shadow_level_up_pressed)
 		shadow_fuse_button.pressed.connect(_on_shadow_fuse_pressed)
 		shadow_convert_button.pressed.connect(_on_shadow_convert_pressed)
+		shadow_lock_button.pressed.connect(_on_shadow_lock_pressed)
+		shadow_favorite_button.pressed.connect(_on_shadow_favorite_pressed)
 		mass_convert_button.pressed.connect(_on_mass_convert_pressed)
 
 
@@ -327,6 +331,10 @@ func _refresh_army_label() -> void:
 	]
 	for e: Dictionary in enriched:
 		var marker := " [S]" if squad_ids.has(e["instance_id"]) else ""
+		if e["locked"]:
+			marker += " [L]"
+		if e["favorite"]:
+			marker += " [F]"
 		(
 			lines
 			. append(
@@ -560,6 +568,36 @@ func _on_shadow_convert_pressed() -> void:
 	_refresh_label()
 
 
+## Phase 2/P2 gap closure: toggles the currently-viewed shadow's locked flag
+## (protects it from Mass-Convert Weakest, §17).
+func _on_shadow_lock_pressed() -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	var idx: int = state.army.find_custom(
+		func(s: Dictionary) -> bool: return s["instance_id"] == shadow_id
+	)
+	if idx < 0:
+		return
+	state.set_shadow_locked(shadow_id, not state.army[idx].get("locked", false))
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+
+
+func _on_shadow_favorite_pressed() -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	var idx: int = state.army.find_custom(
+		func(s: Dictionary) -> bool: return s["instance_id"] == shadow_id
+	)
+	if idx < 0:
+		return
+	state.set_shadow_favorite(shadow_id, not state.army[idx].get("favorite", false))
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+
+
 ## Phase 2/P2 step 4: mass-converts the MASS_CONVERT_COUNT weakest shadows
 ## outside the auto-filled squad (SquadBuilder.surplus_shadow_ids) straight
 ## to Essence. Immediate, no confirmation/lock-favorite protection yet
@@ -612,9 +650,13 @@ func _refresh_shadow_gear_panel() -> void:
 	_shadow_gear_index = clampi(_shadow_gear_index, 0, state.army.size() - 1)
 	var shadow: Dictionary = state.army[_shadow_gear_index]
 	var monster := Content.monster_by_id(_monsters, shadow.get("monster_id", ""))
+	var locked: bool = shadow.get("locked", false)
+	var favorite: bool = shadow.get("favorite", false)
 	shadow_gear_title.text = (
-		"%s (%s·%s Lv%d/%d %s)  [%d/%d]"
+		"%s%s%s (%s·%s Lv%d/%d %s)  [%d/%d]"
 		% [
+			"★" if favorite else "",
+			"🔒" if locked else "",
 			monster.get("name", "?"),
 			GameLogic.grade_name(shadow.get("grade", "")),
 			shadow.get("grade", ""),
@@ -625,6 +667,8 @@ func _refresh_shadow_gear_panel() -> void:
 			state.army.size(),
 		]
 	)
+	shadow_lock_button.text = "Unlock" if locked else "Lock"
+	shadow_favorite_button.text = "Unfavorite" if favorite else "Favorite"
 	var shadow_equipped: Dictionary = shadow.get("equipped", {})
 	for row: Dictionary in _shadow_gear_rows:
 		var slot: String = row["slot"]

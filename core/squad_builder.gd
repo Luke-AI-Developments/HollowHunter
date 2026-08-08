@@ -54,6 +54,8 @@ static func enrich_army(
 					"level": shadow.get("level", 1),
 					"clazz": monster.get("clazz", ""),
 					"power": power,
+					"locked": shadow.get("locked", false),
+					"favorite": shadow.get("favorite", false),
 				}
 			)
 		)
@@ -98,7 +100,9 @@ static func auto_fill_squad(
 ## AREN'T in the auto-filled squad -- a "surplus" selection for mass-convert
 ## (§17). No formal definition of "surplus" is given in the source;
 ## not-in-squad plus lowest-power is the simplest reading. Returns
-## instance_ids only, ascending by power (weakest first).
+## instance_ids only, ascending by power (weakest first). Locked shadows
+## (gap-closure QoL, §17 "Lock... protect key shadows from mass-convert")
+## never appear in this pool, regardless of power or squad status.
 static func surplus_shadow_ids(
 	army: Array,
 	monsters: Array,
@@ -114,7 +118,7 @@ static func surplus_shadow_ids(
 		squad_ids[member["instance_id"]] = true
 
 	var surplus: Array = enriched.filter(
-		func(e: Dictionary) -> bool: return not squad_ids.has(e["instance_id"])
+		func(e: Dictionary) -> bool: return not squad_ids.has(e["instance_id"]) and not e["locked"]
 	)
 	surplus.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] < b["power"])
 

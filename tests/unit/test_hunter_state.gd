@@ -590,3 +590,41 @@ func test_mass_convert_skips_unknown_ids() -> void:
 	var gained := s.mass_convert([a["instance_id"], "shadow_does_not_exist"])
 	assert_eq(gained, 1)
 	assert_eq(s.army.size(), 0)
+
+
+func test_claim_shadow_starts_unlocked_and_unfavorited() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	assert_false(shadow["locked"])
+	assert_false(shadow["favorite"])
+
+
+func test_set_shadow_locked_toggles_the_flag() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	assert_true(s.set_shadow_locked(shadow["instance_id"], true))
+	assert_true(s.army[0]["locked"])
+	assert_true(s.set_shadow_locked(shadow["instance_id"], false))
+	assert_false(s.army[0]["locked"])
+
+
+func test_set_shadow_locked_unknown_shadow_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_false(s.set_shadow_locked("shadow_none", true))
+
+
+func test_set_shadow_favorite_toggles_the_flag() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	assert_true(s.set_shadow_favorite(shadow["instance_id"], true))
+	assert_true(s.army[0]["favorite"])
+
+
+func test_locked_shadow_can_still_be_explicitly_converted() -> void:
+	# Locking protects from mass-convert specifically, not a single
+	# deliberate convert_shadow() call.
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	s.set_shadow_locked(shadow["instance_id"], true)
+	assert_true(s.convert_shadow(shadow["instance_id"]))
+	assert_eq(s.army.size(), 0)

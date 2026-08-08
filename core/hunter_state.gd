@@ -69,9 +69,34 @@ func claim_shadow(monster_id: String, grade: String) -> Dictionary:
 		"grade": grade,
 		"level": 1,
 		"equipped": {},
+		"locked": false,
+		"favorite": false,
 	}
 	army.append(shadow)
 	return shadow
+
+
+## Phase 2/P2 gap closure: "Lock / favorite -- protect key shadows from
+## mass-convert and flag favorites" (§17). Locking blocks that shadow from
+## SquadBuilder.surplus_shadow_ids' mass-convert pool; it does NOT block an
+## explicit single convert_shadow() call on it -- that's a deliberate
+## one-shadow action, not the accidental-sweep scenario locking exists for.
+## Favorite has no mechanical effect (the source only says "flag
+## favorites") -- it's carried through for display/filtering only.
+func set_shadow_locked(shadow_instance_id: String, locked: bool) -> bool:
+	var idx := _army_index(shadow_instance_id)
+	if idx < 0:
+		return false
+	army[idx]["locked"] = locked
+	return true
+
+
+func set_shadow_favorite(shadow_instance_id: String, favorite: bool) -> bool:
+	var idx := _army_index(shadow_instance_id)
+	if idx < 0:
+		return false
+	army[idx]["favorite"] = favorite
+	return true
 
 
 ## True if the inventory item is currently equipped on the hunter or any
