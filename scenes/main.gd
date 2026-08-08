@@ -1,18 +1,19 @@
 extends Node2D
 
-## Phase 1 steps 3-5: real daily EXP from Health Connect -> level up, a
-## simple map (live GPS position + placeholder gates), and gate encounters
-## (3-round clash -> boss CLAIM -> shadow), replacing the native-plugin-spike
+## Phase 1 steps 3-6: real daily EXP from Health Connect -> level up, a
+## simple map (live GPS position + placeholder gates), gate encounters
+## (3-round clash -> boss CLAIM -> shadow), and an army list with an
+## auto-filled class-slotted squad -- replacing the native-plugin-spike
 ## test harness (checkpoints 2-4) with actual game wiring. Subclass is
 ## hardcoded to WARRIOR for now -- no picker UI yet (not part of the
 ## minimum lovable loop). Simplification: applies today's totals every
 ## launch with no "already counted today" guard, so relaunching same-day
 ## double-counts EXP -- fine for this phase, flagged rather than silently
-## shipped. Squad isn't picked yet (step 6), so gate_power's army term is
-## always 0 for now -- gates are a pure test of your level/gear.
+## shipped.
 
 var bridge: Object
 var state: HunterState
+var _monsters: Array
 var _steps: int = -1
 var _workouts_json: String = ""
 var _health_applied := false
@@ -20,11 +21,14 @@ var _health_applied := false
 @onready var label: Label = $Label
 @onready var map_view: MapView = $MapView
 @onready var enter_gate_button: Button = $EnterGateButton
+@onready var army_label: Label = $ArmyLabel
 
 
 func _ready() -> void:
 	state = SaveService.load_or_create("WARRIOR")
+	_monsters = Content.load_monsters()
 	_refresh_label()
+	_refresh_army_label()
 	enter_gate_button.pressed.connect(_on_enter_gate_pressed)
 
 	if not Engine.has_singleton("GpsHealthBridge"):
@@ -109,8 +113,13 @@ func _on_enter_gate_pressed() -> void:
 		return
 	var gate := map_view.get_gate(idx)
 
+	var squad := SquadBuilder.auto_fill_squad(state.army, _monsters, state.level)
+	var squad_power := 0
+	for member: Dictionary in squad:
+		squad_power += member["power"]
 	var personal := GameLogic.personal_power(state.stats(), state.level, 0)
-	var total_power := GameLogic.gate_power(personal, 0)  # no squad yet -- step 6
+	var total_power := GameLogic.gate_power(personal, squad_power)
+
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var result := GateEncounter.run(total_power, gate, state.level, rng)
@@ -128,6 +137,7 @@ func _on_enter_gate_pressed() -> void:
 
 	SaveService.save(state)
 	_refresh_label()
+	_refresh_army_label()
 	label.text += msg
 	print(
 		(
@@ -135,6 +145,34 @@ func _on_enter_gate_pressed() -> void:
 			% [gate["rank"], result["rounds"], result["cleared"], result["claimed"]]
 		)
 	)
+
+
+func _refresh_army_label() -> void:
+	if state.army.is_empty():
+		army_label.text = "Army: (none yet)"
+		return
+
+	var enriched := SquadBuilder.enrich_army(state.army, _monsters, state.level)
+	var squad := SquadBuilder.auto_fill_squad(state.army, _monsters, state.level)
+	var squad_ids := {}
+	for member: Dictionary in squad:
+		squad_ids[member["instance_id"]] = true
+
+	var lines := [
+		(
+			"Army (%d) -- squad marked [S] (%d/%d):"
+			% [enriched.size(), squad.size(), GameLogic.SQUAD_SIZE]
+		)
+	]
+	for e: Dictionary in enriched:
+		var marker := " [S]" if squad_ids.has(e["instance_id"]) else ""
+		lines.append(
+			(
+				" - %s (%s Lv%d %s) pwr:%d%s"
+				% [e["monster_name"], e["grade"], e["level"], e["clazz"], e["power"], marker]
+			)
+		)
+	army_label.text = "\n".join(lines)
 
 
 func _refresh_label() -> void:
