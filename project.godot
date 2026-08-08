@@ -14,6 +14,10 @@ config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://icon.svg"
 run/main_scene="res://scenes/main.tscn"
 
+[autoload]
+
+SaveService="*res://autoload/save_service.gd"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gps_health_bridge/plugin.cfg")
