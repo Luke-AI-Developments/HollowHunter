@@ -137,6 +137,68 @@ func unequip_from_shadow(shadow_instance_id: String, slot: String) -> void:
 	army[shadow_idx]["equipped"] = Equip.unequip(shadow_equipped, slot)
 
 
+## Phase 2 patch 1 step 4: equips the single best owned item into `slot` for
+## the hunter, if a strictly better one than what's already there exists.
+## The slot's current occupant re-competes as its own candidate (excluded
+## from `taken`) rather than being auto-skipped -- so a slot that's already
+## optimal is left alone instead of being swapped for something worse.
+## Returns true if the equipped item changed.
+func equip_best_to_hunter(slot: String, equipment: Dictionary) -> bool:
+	var current_id: String = equipped.get(slot, "")
+	var taken: Array = equipped.values() + _all_shadow_equipped_ids()
+	taken.erase(current_id)
+	var candidate := Equip.best_candidate(slot, subclass, inventory, equipment, taken)
+	if candidate == "":
+		return false
+	return equip_to_hunter(candidate, equipment)
+
+
+## Runs equip_best_to_hunter over all 7 slots. Returns how many changed.
+func auto_equip_hunter(equipment: Dictionary) -> int:
+	var count := 0
+	for slot in Equip.SLOTS:
+		if equip_best_to_hunter(slot, equipment):
+			count += 1
+	return count
+
+
+## Same as equip_best_to_hunter but for a shadow in the army.
+func equip_best_to_shadow(
+	shadow_instance_id: String, slot: String, equipment: Dictionary, monsters: Array
+) -> bool:
+	var shadow_idx := _army_index(shadow_instance_id)
+	if shadow_idx < 0:
+		return false
+	var monster := Content.monster_by_id(monsters, army[shadow_idx]["monster_id"])
+	var shadow_class: String = monster.get("clazz", "")
+	var shadow_equipped: Dictionary = army[shadow_idx].get("equipped", {})
+	var current_id: String = shadow_equipped.get(slot, "")
+	var taken: Array = equipped.values() + _all_shadow_equipped_ids()
+	taken.erase(current_id)
+	var candidate := Equip.best_candidate(slot, shadow_class, inventory, equipment, taken)
+	if candidate == "":
+		return false
+	return equip_to_shadow(shadow_instance_id, candidate, equipment, monsters)
+
+
+## Runs equip_best_to_shadow over all 7 slots for one shadow. Returns how
+## many changed.
+func auto_equip_shadow(shadow_instance_id: String, equipment: Dictionary, monsters: Array) -> int:
+	var count := 0
+	for slot in Equip.SLOTS:
+		if equip_best_to_shadow(shadow_instance_id, slot, equipment, monsters):
+			count += 1
+	return count
+
+
+func _all_shadow_equipped_ids() -> Array:
+	var ids := []
+	for shadow: Dictionary in army:
+		var shadow_equipped: Dictionary = shadow.get("equipped", {})
+		ids.append_array(shadow_equipped.values())
+	return ids
+
+
 func _inventory_item(instance_id: String) -> Dictionary:
 	for item: Dictionary in inventory:
 		if item.get("instance_id", "") == instance_id:

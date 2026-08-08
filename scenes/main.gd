@@ -18,6 +18,9 @@ var _equipment: Dictionary
 var _steps: int = -1
 var _workouts_json: String = ""
 var _health_applied := false
+var _hunter_gear_rows: Array = []  ## Array[Dictionary]: {slot, label, equip_btn, unequip_btn}
+var _shadow_gear_rows: Array = []  ## same shape, for whichever shadow is selected
+var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear panel
 
 @onready var subclass_picker: Node2D = $SubclassPicker
 @onready var game_ui: Node2D = $GameUI
@@ -26,6 +29,11 @@ var _health_applied := false
 @onready var enter_gate_button: Button = $GameUI/EnterGateButton
 @onready var army_label: Label = $GameUI/ArmyLabel
 @onready var inventory_label: Label = $GameUI/InventoryLabel
+@onready var hunter_gear_button: Button = $GameUI/HunterGearButton
+@onready var shadow_gear_button: Button = $GameUI/ShadowGearButton
+@onready var hunter_gear_panel: Node2D = $GameUI/HunterGearPanel
+@onready var shadow_gear_panel: Node2D = $GameUI/ShadowGearPanel
+@onready var shadow_gear_title: Label = $GameUI/ShadowGearPanel/Title
 
 
 func _ready() -> void:
@@ -79,6 +87,69 @@ func _start_game() -> void:
 	_refresh_inventory_label()
 	if not enter_gate_button.pressed.is_connected(_on_enter_gate_pressed):
 		enter_gate_button.pressed.connect(_on_enter_gate_pressed)
+	_setup_gear_panels()
+
+
+## Phase 2 patch 1 step 4: builds the 7 slot rows for both gear panels at
+## runtime (rather than hand-authoring 7x3 nodes per panel in the .tscn) and
+## wires every button once. Idempotency guards mirror the enter_gate_button
+## pattern above -- _start_game() can run again (e.g. after picking a
+## subclass) without double-connecting.
+func _setup_gear_panels() -> void:
+	if _hunter_gear_rows.is_empty():
+		_hunter_gear_rows = _build_gear_rows($GameUI/HunterGearPanel/Rows, 180.0)
+		for row: Dictionary in _hunter_gear_rows:
+			var slot: String = row["slot"]
+			row["equip_btn"].pressed.connect(_on_hunter_equip_best_pressed.bind(slot))
+			row["unequip_btn"].pressed.connect(_on_hunter_unequip_pressed.bind(slot))
+	if _shadow_gear_rows.is_empty():
+		_shadow_gear_rows = _build_gear_rows($GameUI/ShadowGearPanel/Rows, 180.0)
+		for row: Dictionary in _shadow_gear_rows:
+			var slot: String = row["slot"]
+			row["equip_btn"].pressed.connect(_on_shadow_equip_best_pressed.bind(slot))
+			row["unequip_btn"].pressed.connect(_on_shadow_unequip_pressed.bind(slot))
+
+	if not hunter_gear_button.pressed.is_connected(_on_hunter_gear_button_pressed):
+		hunter_gear_button.pressed.connect(_on_hunter_gear_button_pressed)
+		$GameUI/HunterGearPanel/AutoEquipButton.pressed.connect(_on_hunter_auto_equip_pressed)
+		$GameUI/HunterGearPanel/CloseButton.pressed.connect(_on_hunter_gear_close_pressed)
+		shadow_gear_button.pressed.connect(_on_shadow_gear_button_pressed)
+		$GameUI/ShadowGearPanel/AutoEquipButton.pressed.connect(_on_shadow_auto_equip_pressed)
+		$GameUI/ShadowGearPanel/CloseButton.pressed.connect(_on_shadow_gear_close_pressed)
+		$GameUI/ShadowGearPanel/PrevButton.pressed.connect(_on_shadow_gear_prev_pressed)
+		$GameUI/ShadowGearPanel/NextButton.pressed.connect(_on_shadow_gear_next_pressed)
+
+
+## Creates one row (slot label + Equip Best + Unequip buttons) per
+## Equip.SLOTS under `parent`, stacked from `y_start`. Placeholder art --
+## plain Label/Button, no icons/paper-doll art yet.
+func _build_gear_rows(parent: Node2D, y_start: float) -> Array:
+	var rows := []
+	var y := y_start
+	for slot in Equip.SLOTS:
+		var row_label := Label.new()
+		row_label.position = Vector2(40, y)
+		row_label.size = Vector2(600, 40)
+		row_label.add_theme_font_size_override("font_size", 20)
+		parent.add_child(row_label)
+
+		var equip_btn := Button.new()
+		equip_btn.position = Vector2(660, y)
+		equip_btn.size = Vector2(150, 40)
+		equip_btn.text = "Equip Best"
+		parent.add_child(equip_btn)
+
+		var unequip_btn := Button.new()
+		unequip_btn.position = Vector2(820, y)
+		unequip_btn.size = Vector2(130, 40)
+		unequip_btn.text = "Unequip"
+		parent.add_child(unequip_btn)
+
+		rows.append(
+			{"slot": slot, "label": row_label, "equip_btn": equip_btn, "unequip_btn": unequip_btn}
+		)
+		y += 50
+	return rows
 
 
 func _on_location_permission_result(granted: bool) -> void:
@@ -279,3 +350,154 @@ func _refresh_label() -> void:
 			state.personal_power(_equipment),
 		]
 	)
+
+
+func _on_hunter_gear_button_pressed() -> void:
+	hunter_gear_panel.visible = true
+	_refresh_hunter_gear_panel()
+
+
+func _on_hunter_gear_close_pressed() -> void:
+	hunter_gear_panel.visible = false
+
+
+func _on_hunter_equip_best_pressed(slot: String) -> void:
+	state.equip_best_to_hunter(slot, _equipment)
+	SaveService.save(state)
+	_refresh_hunter_gear_panel()
+	_refresh_label()
+	_refresh_inventory_label()
+
+
+func _on_hunter_unequip_pressed(slot: String) -> void:
+	state.unequip_from_hunter(slot)
+	SaveService.save(state)
+	_refresh_hunter_gear_panel()
+	_refresh_label()
+	_refresh_inventory_label()
+
+
+func _on_hunter_auto_equip_pressed() -> void:
+	state.auto_equip_hunter(_equipment)
+	SaveService.save(state)
+	_refresh_hunter_gear_panel()
+	_refresh_label()
+	_refresh_inventory_label()
+
+
+func _refresh_hunter_gear_panel() -> void:
+	for row: Dictionary in _hunter_gear_rows:
+		var slot: String = row["slot"]
+		var instance_id: String = state.equipped.get(slot, "")
+		row["label"].text = "%s: %s" % [slot, _equipped_item_display(instance_id)]
+
+
+func _on_shadow_gear_button_pressed() -> void:
+	if state.army.is_empty():
+		label.text += "\n\nNo shadows yet"
+		return
+	_shadow_gear_index = clampi(_shadow_gear_index, 0, state.army.size() - 1)
+	shadow_gear_panel.visible = true
+	_refresh_shadow_gear_panel()
+
+
+func _on_shadow_gear_close_pressed() -> void:
+	shadow_gear_panel.visible = false
+
+
+func _on_shadow_gear_prev_pressed() -> void:
+	if state.army.is_empty():
+		return
+	_shadow_gear_index = (_shadow_gear_index - 1 + state.army.size()) % state.army.size()
+	_refresh_shadow_gear_panel()
+
+
+func _on_shadow_gear_next_pressed() -> void:
+	if state.army.is_empty():
+		return
+	_shadow_gear_index = (_shadow_gear_index + 1) % state.army.size()
+	_refresh_shadow_gear_panel()
+
+
+func _current_shadow_instance_id() -> String:
+	if state.army.is_empty() or _shadow_gear_index >= state.army.size():
+		return ""
+	return state.army[_shadow_gear_index]["instance_id"]
+
+
+func _on_shadow_equip_best_pressed(slot: String) -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	state.equip_best_to_shadow(shadow_id, slot, _equipment, _monsters)
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+	_refresh_army_label()
+	_refresh_inventory_label()
+
+
+func _on_shadow_unequip_pressed(slot: String) -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	state.unequip_from_shadow(shadow_id, slot)
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+	_refresh_army_label()
+	_refresh_inventory_label()
+
+
+func _on_shadow_auto_equip_pressed() -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	state.auto_equip_shadow(shadow_id, _equipment, _monsters)
+	SaveService.save(state)
+	_refresh_shadow_gear_panel()
+	_refresh_army_label()
+	_refresh_inventory_label()
+
+
+func _refresh_shadow_gear_panel() -> void:
+	if state.army.is_empty():
+		shadow_gear_title.text = "No shadows yet"
+		for row: Dictionary in _shadow_gear_rows:
+			row["label"].text = "%s: --" % row["slot"]
+		return
+
+	_shadow_gear_index = clampi(_shadow_gear_index, 0, state.army.size() - 1)
+	var shadow: Dictionary = state.army[_shadow_gear_index]
+	var monster := Content.monster_by_id(_monsters, shadow.get("monster_id", ""))
+	shadow_gear_title.text = (
+		"%s (%s Lv%d %s)  [%d/%d]"
+		% [
+			monster.get("name", "?"),
+			shadow.get("grade", ""),
+			shadow.get("level", 1),
+			monster.get("clazz", "?"),
+			_shadow_gear_index + 1,
+			state.army.size(),
+		]
+	)
+	var shadow_equipped: Dictionary = shadow.get("equipped", {})
+	for row: Dictionary in _shadow_gear_rows:
+		var slot: String = row["slot"]
+		var instance_id: String = shadow_equipped.get(slot, "")
+		row["label"].text = "%s: %s" % [slot, _equipped_item_display(instance_id)]
+
+
+## Shared by both gear panels: resolves an inventory instance_id to a
+## display string via state.inventory + _equipment, same lookup pattern as
+## _refresh_inventory_label().
+func _equipped_item_display(instance_id: String) -> String:
+	if instance_id == "":
+		return "(empty)"
+	for item: Dictionary in state.inventory:
+		if item.get("instance_id", "") == instance_id:
+			var def := Content.equipment_by_id(_equipment, item.get("equipment_def_id", ""))
+			if not def.is_empty():
+				return (
+					"%s +%d (Lv%d)"
+					% [def["name"], def["power_bonus"], item.get("enhancement_level", 0)]
+				)
+	return "(unknown)"

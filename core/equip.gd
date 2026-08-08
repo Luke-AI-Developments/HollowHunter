@@ -66,3 +66,27 @@ static func _item_by_instance(inventory: Array, instance_id: String) -> Dictiona
 		if item.get("instance_id", "") == instance_id:
 			return item
 	return {}
+
+
+## Phase 2 patch 1 step 4: the highest power_bonus owned item for `slot`
+## that `wearer_class` can equip and whose instance_id isn't in
+## `taken_ids` -- "" if nothing qualifies. Pure; used for both a single-slot
+## "Equip Best" action and auto-equip-all. Ties keep the first one found
+## (inventory order) -- no tiebreak rule is given in the source.
+static func best_candidate(
+	slot: String, wearer_class: String, inventory: Array, equipment: Dictionary, taken_ids: Array
+) -> String:
+	var best_id := ""
+	var best_power := -1
+	for item: Dictionary in inventory:
+		var instance_id: String = item.get("instance_id", "")
+		if taken_ids.has(instance_id):
+			continue
+		var def := Content.equipment_by_id(equipment, item.get("equipment_def_id", ""))
+		if def.is_empty() or def.get("slot", "") != slot or not can_equip(def, wearer_class):
+			continue
+		var power: int = def.get("power_bonus", 0)
+		if power > best_power:
+			best_power = power
+			best_id = instance_id
+	return best_id

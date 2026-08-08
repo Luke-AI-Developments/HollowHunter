@@ -293,3 +293,76 @@ func test_personal_power_matches_hand_computed_gear_bonus() -> void:
 	expected_stats["STR"] += 3
 	var expected := GameLogic.personal_power(expected_stats, s.level, 25)
 	assert_eq(s.personal_power(equipment), expected)
+
+
+func test_equip_best_to_hunter_picks_the_strongest_owned_match() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var weak := s.add_to_inventory("eq_warcleaver")  # 25
+	var strong := s.add_to_inventory("eq_gravebite_greataxe")  # 170
+	var changed := s.equip_best_to_hunter("WEAPON", equipment)
+	assert_true(changed)
+	assert_eq(s.equipped["WEAPON"], strong["instance_id"])
+	assert_false(s.is_instance_equipped(weak["instance_id"]))
+
+
+func test_equip_best_to_hunter_does_not_downgrade() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var strong := s.add_to_inventory("eq_gravebite_greataxe")  # 170
+	s.add_to_inventory("eq_warcleaver")  # 25, weaker, unequipped
+	s.equip_to_hunter(strong["instance_id"], equipment)
+	var changed := s.equip_best_to_hunter("WEAPON", equipment)
+	assert_false(changed)
+	assert_eq(s.equipped["WEAPON"], strong["instance_id"])
+
+
+func test_equip_best_to_hunter_no_owned_match_is_a_no_op() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_false(s.equip_best_to_hunter("WEAPON", Content.load_equipment()))
+
+
+func test_auto_equip_hunter_fills_every_matching_slot() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	s.add_to_inventory("eq_warcleaver")  # WEAPON
+	s.add_to_inventory("eq_ironbrow_helm")  # HEAD
+	var changed := s.auto_equip_hunter(equipment)
+	assert_eq(changed, 2)
+	assert_true(s.equipped.has("WEAPON"))
+	assert_true(s.equipped.has("HEAD"))
+
+
+func test_equip_best_to_shadow_picks_the_strongest_owned_match() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var monsters := Content.load_monsters()
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")  # WARRIOR
+	s.add_to_inventory("eq_warcleaver")  # 25
+	var strong := s.add_to_inventory("eq_gravebite_greataxe")  # 170
+	var changed := s.equip_best_to_shadow(shadow["instance_id"], "WEAPON", equipment, monsters)
+	assert_true(changed)
+	assert_eq(s.army[0]["equipped"]["WEAPON"], strong["instance_id"])
+
+
+func test_auto_equip_shadow_fills_every_matching_slot() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var monsters := Content.load_monsters()
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")  # WARRIOR
+	s.add_to_inventory("eq_warcleaver")  # WEAPON
+	s.add_to_inventory("eq_ironbrow_helm")  # HEAD
+	var changed := s.auto_equip_shadow(shadow["instance_id"], equipment, monsters)
+	assert_eq(changed, 2)
+
+
+func test_hunter_and_shadow_auto_equip_never_double_book_the_same_item() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var monsters := Content.load_monsters()
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")  # WARRIOR, same class as hunter
+	var only_weapon := s.add_to_inventory("eq_warcleaver")  # single WARRIOR WEAPON owned
+	s.auto_equip_hunter(equipment)
+	s.auto_equip_shadow(shadow["instance_id"], equipment, monsters)
+	assert_eq(s.equipped.get("WEAPON", ""), only_weapon["instance_id"])
+	assert_false(s.army[0]["equipped"].has("WEAPON"))  # nothing left for the shadow to take

@@ -82,3 +82,36 @@ func test_gear_bonus_merges_stat_mods_across_slots() -> void:
 func test_gear_bonus_skips_unknown_instance_id() -> void:
 	var bonus := Equip.gear_bonus({"WEAPON": "does_not_exist"}, [], Content.load_equipment())
 	assert_eq(bonus["power_bonus"], 0)
+
+
+func test_best_candidate_picks_highest_power_bonus() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_warcleaver", "enhancement_level": 0},  # 25
+		{"instance_id": "i1", "equipment_def_id": "eq_gravebite_greataxe", "enhancement_level": 0},  # 170
+	]
+	var best := Equip.best_candidate("WEAPON", "WARRIOR", inventory, equipment, [])
+	assert_eq(best, "i1")
+
+
+func test_best_candidate_skips_taken_ids() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_warcleaver", "enhancement_level": 0},
+		{"instance_id": "i1", "equipment_def_id": "eq_gravebite_greataxe", "enhancement_level": 0},
+	]
+	var best := Equip.best_candidate("WEAPON", "WARRIOR", inventory, equipment, ["i1"])
+	assert_eq(best, "i0")
+
+
+func test_best_candidate_skips_wrong_class_and_wrong_slot() -> void:
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_blightwood_wand", "enhancement_level": 0},  # MAGE
+		{"instance_id": "i1", "equipment_def_id": "eq_ironbrow_helm", "enhancement_level": 0},  # HEAD
+	]
+	assert_eq(Equip.best_candidate("WEAPON", "WARRIOR", inventory, equipment, []), "")
+
+
+func test_best_candidate_with_no_matches_returns_empty() -> void:
+	assert_eq(Equip.best_candidate("WEAPON", "WARRIOR", [], Content.load_equipment(), []), "")

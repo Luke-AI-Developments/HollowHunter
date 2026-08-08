@@ -79,6 +79,22 @@ offset_bottom = 360.0
 theme_override_font_sizes/font_size = 24
 text = "Enter Nearest Gate"
 
+[node name="HunterGearButton" type="Button" parent="GameUI"]
+offset_left = 40.0
+offset_top = 370.0
+offset_right = 200.0
+offset_bottom = 410.0
+theme_override_font_sizes/font_size = 18
+text = "Hunter Gear"
+
+[node name="ShadowGearButton" type="Button" parent="GameUI"]
+offset_left = 220.0
+offset_top = 370.0
+offset_right = 380.0
+offset_bottom = 410.0
+theme_override_font_sizes/font_size = 18
+text = "Shadow Gear"
+
 [node name="ArmyLabel" type="Label" parent="GameUI"]
 offset_left = 40.0
 offset_top = 420.0
@@ -94,3 +110,91 @@ offset_right = 1650.0
 offset_bottom = 1040.0
 theme_override_font_sizes/font_size = 20
 text = "Inventory: (none yet)"
+
+[node name="HunterGearPanel" type="Node2D" parent="GameUI"]
+visible = false
+
+[node name="Bg" type="ColorRect" parent="GameUI/HunterGearPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.05, 0.05, 0.05, 0.95)
+
+[node name="Title" type="Label" parent="GameUI/HunterGearPanel"]
+offset_left = 40.0
+offset_top = 30.0
+offset_right = 900.0
+offset_bottom = 80.0
+theme_override_font_sizes/font_size = 28
+text = "Hunter Gear"
+
+[node name="AutoEquipButton" type="Button" parent="GameUI/HunterGearPanel"]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 400.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Auto-Equip Best Gear"
+
+[node name="CloseButton" type="Button" parent="GameUI/HunterGearPanel"]
+offset_left = 420.0
+offset_top = 90.0
+offset_right = 560.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Close"
+
+[node name="Rows" type="Node2D" parent="GameUI/HunterGearPanel"]
+
+[node name="ShadowGearPanel" type="Node2D" parent="GameUI"]
+visible = false
+
+[node name="Bg" type="ColorRect" parent="GameUI/ShadowGearPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.05, 0.05, 0.05, 0.95)
+
+[node name="Title" type="Label" parent="GameUI/ShadowGearPanel"]
+offset_left = 40.0
+offset_top = 30.0
+offset_right = 1200.0
+offset_bottom = 80.0
+theme_override_font_sizes/font_size = 28
+text = "Shadow Gear"
+
+[node name="PrevButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 140.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "< Prev"
+
+[node name="NextButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 160.0
+offset_top = 90.0
+offset_right = 260.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Next >"
+
+[node name="AutoEquipButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 280.0
+offset_top = 90.0
+offset_right = 640.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Auto-Equip Best Gear"
+
+[node name="CloseButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 660.0
+offset_top = 90.0
+offset_right = 800.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Close"
+
+[node name="Rows" type="Node2D" parent="GameUI/ShadowGearPanel"]
