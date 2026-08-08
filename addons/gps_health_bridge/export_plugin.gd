@@ -67,5 +67,23 @@ class AndroidExportPlugin extends EditorExportPlugin:
 	# project coordinate) does NOT get its own manifest merged by AGP -- so
 	# the plugin-registration meta-data has to be injected into the app's
 	# manifest directly here instead of relying on the AAR's manifest.
+	#
+	# The activity-alias below is a hard Health Connect runtime requirement,
+	# not just a store-submission nicety: without an activity handling
+	# VIEW_PERMISSION_USAGE/HEALTH_PERMISSIONS, readRecords() throws
+	# IllegalStateException even when the permission itself is granted.
+	# Points at Godot's own activity as a placeholder -- swap for a real
+	# rationale screen before shipping.
 	func _get_android_manifest_application_element_contents(platform: EditorExportPlatform, debug: bool) -> String:
-		return '<meta-data android:name="org.godotengine.plugin.v2.GpsHealthBridge" android:value="com.shadowhunter.gpshealthbridge.GpsHealthBridgePlugin" />'
+		return """
+<meta-data android:name="org.godotengine.plugin.v2.GpsHealthBridge" android:value="com.shadowhunter.gpshealthbridge.GpsHealthBridgePlugin" />
+<activity-alias
+	android:name=".HealthConnectPermissionsRationaleActivity"
+	android:exported="true"
+	android:targetActivity="com.godot.game.GodotApp">
+	<intent-filter>
+		<action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+		<category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+	</intent-filter>
+</activity-alias>
+"""
