@@ -1,0 +1,80 @@
+{
+  "_comment": "Shadow Hunter equipment DB (v0, design bible §15). 50 base pieces (10/class) + 15 armor sets (3/class, tiered D/B/S). base: id,name,slot,rarity,clazz,stat_mods,power_bonus. sets: 4 armor pieces (head/body/hands/feet) sharing set_id, class-locked, piece_rarity by tier (D=Rare,B=Epic,S=Legendary); bonuses at 2 and 4 pieces. Enhance gear with Essence (§26). sprite_id follows spr_<id>.",
+  "base_equipment": [
+    {"id": "eq_warcleaver", "name": "Warcleaver", "slot": "WEAPON", "rarity": "COMMON", "clazz": "WARRIOR", "stat_mods": {"STR": 3}, "power_bonus": 25},
+    {"id": "eq_gravebite_greataxe", "name": "Gravebite Greataxe", "slot": "WEAPON", "rarity": "RARE", "clazz": "WARRIOR", "stat_mods": {"STR": 9, "VIT": 4}, "power_bonus": 170},
+    {"id": "eq_ironbrow_helm", "name": "Ironbrow Helm", "slot": "HEAD", "rarity": "UNCOMMON", "clazz": "WARRIOR", "stat_mods": {"VIT": 5}, "power_bonus": 60},
+    {"id": "eq_ashplate_cuirass", "name": "Ashplate Cuirass", "slot": "BODY", "rarity": "UNCOMMON", "clazz": "WARRIOR", "stat_mods": {"VIT": 7}, "power_bonus": 70},
+    {"id": "eq_juggernaut_plate", "name": "Juggernaut Plate", "slot": "BODY", "rarity": "EPIC", "clazz": "WARRIOR", "stat_mods": {"STR": 10, "VIT": 14}, "power_bonus": 420},
+    {"id": "eq_bruiser_gauntlets", "name": "Bruiser's Gauntlets", "slot": "HANDS", "rarity": "COMMON", "clazz": "WARRIOR", "stat_mods": {"STR": 2}, "power_bonus": 22},
+    {"id": "eq_trampling_sabatons", "name": "Trampling Sabatons", "slot": "FEET", "rarity": "RARE", "clazz": "WARRIOR", "stat_mods": {"VIT": 8, "STR": 5}, "power_bonus": 150},
+    {"id": "eq_marching_greaves", "name": "Marching Greaves", "slot": "FEET", "rarity": "UNCOMMON", "clazz": "WARRIOR", "stat_mods": {"END": 5}, "power_bonus": 55},
+    {"id": "eq_berserker_signet", "name": "Berserker's Signet", "slot": "ACCESSORY", "rarity": "RARE", "clazz": "WARRIOR", "stat_mods": {"STR": 11}, "power_bonus": 160},
+    {"id": "eq_warlord_torc", "name": "Warlord's Torc", "slot": "ACCESSORY", "rarity": "EPIC", "clazz": "WARRIOR", "stat_mods": {"STR": 14, "VIT": 10}, "power_bonus": 400},
+
+    {"id": "eq_bulwark_shield", "name": "Bulwark Shield", "slot": "WEAPON", "rarity": "COMMON", "clazz": "GUARDIAN", "stat_mods": {"VIT": 3}, "power_bonus": 25},
+    {"id": "eq_aegis_wall", "name": "Aegis Wall", "slot": "WEAPON", "rarity": "RARE", "clazz": "GUARDIAN", "stat_mods": {"VIT": 10, "END": 6}, "power_bonus": 180},
+    {"id": "eq_wardens_barbute", "name": "Warden's Barbute", "slot": "HEAD", "rarity": "UNCOMMON", "clazz": "GUARDIAN", "stat_mods": {"END": 6}, "power_bonus": 60},
+    {"id": "eq_sentinel_cuirass", "name": "Sentinel Cuirass", "slot": "BODY", "rarity": "UNCOMMON", "clazz": "GUARDIAN", "stat_mods": {"VIT": 8}, "power_bonus": 70},
+    {"id": "eq_immovable_plate", "name": "Immovable Plate", "slot": "BODY", "rarity": "EPIC", "clazz": "GUARDIAN", "stat_mods": {"VIT": 18, "END": 10}, "power_bonus": 450},
+    {"id": "eq_ramguard_gauntlets", "name": "Ramguard Gauntlets", "slot": "HANDS", "rarity": "COMMON", "clazz": "GUARDIAN", "stat_mods": {"VIT": 3}, "power_bonus": 24},
+    {"id": "eq_rootstep_greaves", "name": "Rootstep Greaves", "slot": "FEET", "rarity": "RARE", "clazz": "GUARDIAN", "stat_mods": {"END": 9, "VIT": 6}, "power_bonus": 150},
+    {"id": "eq_anchor_sabatons", "name": "Anchor Sabatons", "slot": "FEET", "rarity": "UNCOMMON", "clazz": "GUARDIAN", "stat_mods": {"END": 6}, "power_bonus": 58},
+    {"id": "eq_stoneheart_charm", "name": "Stoneheart Charm", "slot": "ACCESSORY", "rarity": "RARE", "clazz": "GUARDIAN", "stat_mods": {"VIT": 12}, "power_bonus": 160},
+    {"id": "eq_bastion_sigil", "name": "Bastion Sigil", "slot": "ACCESSORY", "rarity": "EPIC", "clazz": "GUARDIAN", "stat_mods": {"VIT": 15, "END": 12}, "power_bonus": 410},
+
+    {"id": "eq_shadowfang_dagger", "name": "Shadowfang Dagger", "slot": "WEAPON", "rarity": "COMMON", "clazz": "ASSASSIN", "stat_mods": {"AGI": 3}, "power_bonus": 25},
+    {"id": "eq_twin_fangs", "name": "Twin Fangs", "slot": "WEAPON", "rarity": "RARE", "clazz": "ASSASSIN", "stat_mods": {"AGI": 9, "STR": 5}, "power_bonus": 170},
+    {"id": "eq_gloamhood", "name": "Gloamhood", "slot": "HEAD", "rarity": "UNCOMMON", "clazz": "ASSASSIN", "stat_mods": {"AGI": 5}, "power_bonus": 60},
+    {"id": "eq_nightweave_vest", "name": "Nightweave Vest", "slot": "BODY", "rarity": "UNCOMMON", "clazz": "ASSASSIN", "stat_mods": {"AGI": 6}, "power_bonus": 65},
+    {"id": "eq_phantom_leathers", "name": "Phantom Leathers", "slot": "BODY", "rarity": "EPIC", "clazz": "ASSASSIN", "stat_mods": {"AGI": 14, "STR": 8}, "power_bonus": 400},
+    {"id": "eq_silent_grips", "name": "Silent Grips", "slot": "HANDS", "rarity": "COMMON", "clazz": "ASSASSIN", "stat_mods": {"AGI": 2}, "power_bonus": 22},
+    {"id": "eq_gloamstep_boots", "name": "Gloamstep Boots", "slot": "FEET", "rarity": "RARE", "clazz": "ASSASSIN", "stat_mods": {"AGI": 10}, "power_bonus": 150},
+    {"id": "eq_fleetfoot_shoes", "name": "Fleetfoot Shoes", "slot": "FEET", "rarity": "UNCOMMON", "clazz": "ASSASSIN", "stat_mods": {"AGI": 5}, "power_bonus": 55},
+    {"id": "eq_killers_band", "name": "Killer's Band", "slot": "ACCESSORY", "rarity": "RARE", "clazz": "ASSASSIN", "stat_mods": {"AGI": 11}, "power_bonus": 160},
+    {"id": "eq_umbral_pendant", "name": "Umbral Pendant", "slot": "ACCESSORY", "rarity": "EPIC", "clazz": "ASSASSIN", "stat_mods": {"AGI": 13, "STR": 9}, "power_bonus": 400},
+
+    {"id": "eq_blightwood_wand", "name": "Blightwood Wand", "slot": "WEAPON", "rarity": "COMMON", "clazz": "MAGE", "stat_mods": {"SEN": 3}, "power_bonus": 25},
+    {"id": "eq_cindercore_staff", "name": "Cindercore Staff", "slot": "WEAPON", "rarity": "RARE", "clazz": "MAGE", "stat_mods": {"SEN": 12}, "power_bonus": 180},
+    {"id": "eq_seers_cowl", "name": "Seer's Cowl", "slot": "HEAD", "rarity": "UNCOMMON", "clazz": "MAGE", "stat_mods": {"SEN": 6}, "power_bonus": 60},
+    {"id": "eq_runespun_robe", "name": "Runespun Robe", "slot": "BODY", "rarity": "UNCOMMON", "clazz": "MAGE", "stat_mods": {"SEN": 7}, "power_bonus": 70},
+    {"id": "eq_archon_vestments", "name": "Archon Vestments", "slot": "BODY", "rarity": "EPIC", "clazz": "MAGE", "stat_mods": {"SEN": 20}, "power_bonus": 430},
+    {"id": "eq_channelers_gloves", "name": "Channeler's Gloves", "slot": "HANDS", "rarity": "COMMON", "clazz": "MAGE", "stat_mods": {"SEN": 3}, "power_bonus": 22},
+    {"id": "eq_wraithsilk_slippers", "name": "Wraithsilk Slippers", "slot": "FEET", "rarity": "RARE", "clazz": "MAGE", "stat_mods": {"SEN": 9, "AGI": 4}, "power_bonus": 150},
+    {"id": "eq_wanderers_sandals", "name": "Wanderer's Sandals", "slot": "FEET", "rarity": "UNCOMMON", "clazz": "MAGE", "stat_mods": {"SEN": 5}, "power_bonus": 55},
+    {"id": "eq_mana_sigil", "name": "Mana Sigil", "slot": "ACCESSORY", "rarity": "RARE", "clazz": "MAGE", "stat_mods": {"SEN": 12}, "power_bonus": 160},
+    {"id": "eq_oracles_eye", "name": "Oracle's Eye", "slot": "ACCESSORY", "rarity": "EPIC", "clazz": "MAGE", "stat_mods": {"SEN": 16}, "power_bonus": 400},
+
+    {"id": "eq_rally_totem", "name": "Rally Totem", "slot": "WEAPON", "rarity": "COMMON", "clazz": "SUPPORT", "stat_mods": {"SEN": 3}, "power_bonus": 25},
+    {"id": "eq_bonemarch_banner", "name": "Bonemarch Banner", "slot": "WEAPON", "rarity": "RARE", "clazz": "SUPPORT", "stat_mods": {"SEN": 9, "VIT": 4}, "power_bonus": 170},
+    {"id": "eq_chaplains_hood", "name": "Chaplain's Hood", "slot": "HEAD", "rarity": "UNCOMMON", "clazz": "SUPPORT", "stat_mods": {"SEN": 5, "VIT": 3}, "power_bonus": 60},
+    {"id": "eq_wardenpriest_robe", "name": "Warden-Priest Robe", "slot": "BODY", "rarity": "UNCOMMON", "clazz": "SUPPORT", "stat_mods": {"VIT": 6, "SEN": 4}, "power_bonus": 70},
+    {"id": "eq_hierophant_vestments", "name": "Hierophant Vestments", "slot": "BODY", "rarity": "EPIC", "clazz": "SUPPORT", "stat_mods": {"SEN": 14, "VIT": 12}, "power_bonus": 420},
+    {"id": "eq_blessing_gloves", "name": "Blessing Gloves", "slot": "HANDS", "rarity": "COMMON", "clazz": "SUPPORT", "stat_mods": {"SEN": 2}, "power_bonus": 22},
+    {"id": "eq_shepherds_treads", "name": "Shepherd's Treads", "slot": "FEET", "rarity": "RARE", "clazz": "SUPPORT", "stat_mods": {"VIT": 7, "SEN": 5}, "power_bonus": 150},
+    {"id": "eq_acolyte_sandals", "name": "Acolyte Sandals", "slot": "FEET", "rarity": "UNCOMMON", "clazz": "SUPPORT", "stat_mods": {"SEN": 5}, "power_bonus": 55},
+    {"id": "eq_wardsong_charm", "name": "Wardsong Charm", "slot": "ACCESSORY", "rarity": "RARE", "clazz": "SUPPORT", "stat_mods": {"SEN": 11}, "power_bonus": 160},
+    {"id": "eq_aegis_of_the_host", "name": "Aegis of the Host", "slot": "ACCESSORY", "rarity": "EPIC", "clazz": "SUPPORT", "stat_mods": {"SEN": 13, "VIT": 10}, "power_bonus": 400}
+  ],
+  "armor_sets": [
+    {"id": "set_ashen_vanguard_plate", "name": "Ashen Vanguard Plate", "clazz": "WARRIOR", "tier": "D", "piece_rarity": "RARE", "source": "Ashen March (D gates)", "bonus_2pc": "VIT+6", "bonus_4pc": "+6% power while frontline"},
+    {"id": "set_emberforged_regalia", "name": "Emberforged Regalia", "clazz": "WARRIOR", "tier": "B", "piece_rarity": "EPIC", "source": "Ember Reaches (B gates)", "bonus_2pc": "STR+12", "bonus_4pc": "attacks add ember damage; +10% power"},
+    {"id": "set_bonemarch_warplate", "name": "Bonemarch Warplate", "clazz": "WARRIOR", "tier": "S", "piece_rarity": "LEGENDARY", "source": "Ur-Grakh raid (S)", "bonus_2pc": "STR+22, VIT+12", "bonus_4pc": "+15% melee power; rage stacks through the fight"},
+
+    {"id": "set_wardens_eternal_guard", "name": "Warden's Eternal Guard", "clazz": "GUARDIAN", "tier": "D", "piece_rarity": "RARE", "source": "Ashen March (D gates)", "bonus_2pc": "VIT+7", "bonus_4pc": "block chance up; shadows behind take less damage"},
+    {"id": "set_rimefell_aegis", "name": "Rimefell Aegis", "clazz": "GUARDIAN", "tier": "B", "piece_rarity": "EPIC", "source": "Rimefell (B gates)", "bonus_2pc": "END+12", "bonus_4pc": "frost shield absorbs one hit each turn; +8% power"},
+    {"id": "set_obsidian_bastion", "name": "Obsidian Bastion", "clazz": "GUARDIAN", "tier": "S", "piece_rarity": "LEGENDARY", "source": "Nadir raid (S)", "bonus_2pc": "VIT+26, END+14", "bonus_4pc": "+20% max HP; taunt pulls enemy focus off allies"},
+
+    {"id": "set_gloamstalker_garb", "name": "Gloamstalker Garb", "clazz": "ASSASSIN", "tier": "D", "piece_rarity": "RARE", "source": "Gloamwing dens (D gates)", "bonus_2pc": "AGI+7", "bonus_4pc": "+10% crit"},
+    {"id": "set_voidcreep_shroud", "name": "Voidcreep Shroud", "clazz": "ASSASSIN", "tier": "B", "piece_rarity": "EPIC", "source": "Abyss Gates (B)", "bonus_2pc": "AGI+12, STR+5", "bonus_4pc": "attacks apply stacking bleed; +10% power"},
+    {"id": "set_cinderdance_leathers", "name": "Cinderdance Leathers", "clazz": "ASSASSIN", "tier": "S", "piece_rarity": "LEGENDARY", "source": "Vharun raid (S)", "bonus_2pc": "AGI+24", "bonus_4pc": "first strike is a guaranteed crit; dodge grants a speed burst"},
+
+    {"id": "set_broodcaller_vestments", "name": "Broodcaller Vestments", "clazz": "MAGE", "tier": "D", "piece_rarity": "RARE", "source": "Broodlands (D gates)", "bonus_2pc": "SEN+7", "bonus_4pc": "summon a weak spore-ally in raids"},
+    {"id": "set_hoarfrost_weave", "name": "Hoarfrost Weave", "clazz": "MAGE", "tier": "B", "piece_rarity": "EPIC", "source": "Rimefell (B gates)", "bonus_2pc": "SEN+12", "bonus_4pc": "spells slow on hit; +10% power"},
+    {"id": "set_sovereigns_regalia", "name": "Sovereign's Regalia", "clazz": "MAGE", "tier": "S", "piece_rarity": "LEGENDARY", "source": "Nadir / Pale Sovereign (S)", "bonus_2pc": "SEN+26", "bonus_4pc": "+20% spell power; spells chain to a second target"},
+
+    {"id": "set_sanctified_ward", "name": "Sanctified Ward", "clazz": "SUPPORT", "tier": "D", "piece_rarity": "RARE", "source": "Ashen March (D gates)", "bonus_2pc": "VIT+6, SEN+4", "bonus_4pc": "small heal to your shadows each turn"},
+    {"id": "set_warhowls_standard", "name": "Warhowl's Standard", "clazz": "SUPPORT", "tier": "B", "piece_rarity": "EPIC", "source": "Gravekin warbands / Warhowl (B)", "bonus_2pc": "SEN+12", "bonus_4pc": "allied-shadow attack buff; +8% power"},
+    {"id": "set_hive_sovereign_raiment", "name": "Hive-Sovereign Raiment", "clazz": "SUPPORT", "tier": "S", "piece_rarity": "LEGENDARY", "source": "Xir'Vok raid (S)", "bonus_2pc": "SEN+22, VIT+12", "bonus_4pc": "your smaller shadows gain big HP + attack"}
+  ]
+}
