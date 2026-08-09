@@ -27,6 +27,22 @@ var nadir_deepest_floor: int  ## Phase 2/P3 step 1: highest Nadir floor ever cle
 ## design bible's "NadirState" is just this field: everything else here already lives flat
 ## on HunterState (army/inventory/equipped etc.), so a separate class would break that
 ## convention for one int.
+var stronghold_level: int  ## Phase 2/P4 step 1: Stronghold upgrade level (§22) -- raises
+## army roster capacity (Stronghold.army_capacity()). NOTE: capacity is computed/displayed
+## but NOT enforced against claim_shadow() in this patch -- claim_shadow is called from
+## several places (gate clears, Nadir boss claims) and is already covered by 40+ existing
+## tests; retrofitting a hard block felt like scope creep onto an unrelated, heavily-used
+## method for what the source treats as a soft progression number. Flagged as a real gap.
+var stronghold_facilities: Dictionary  ## facility_id (Stronghold.FACILITY_IDS) -> {level:
+## int, assigned: Array[String] (shadow instance_ids)}. A shadow can only be assigned to one
+## facility at a time (Stronghold.is_shadow_assigned() enforces it), but assignment does NOT
+## exclude a shadow from the auto-filled gate squad (SquadBuilder) in this patch -- the
+## source's "assigned shadows are busy" would mean threading Stronghold state through
+## SquadBuilder's signature for a fifth time this project; deferred, flagged as a real gap.
+var stronghold_last_collected: int  ## Unix seconds of the last Stronghold collection, 0 =
+## never (set for real by the scene layer on first game start -- new_default() can't call
+## Time.get_unix_time_from_system(), core stays engine-free). Idle production between this
+## and "now" (also supplied by the caller) is what Stronghold.accrued() computes.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -42,6 +58,9 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.inventory = []
 	s.equipped = {}
 	s.nadir_deepest_floor = 0
+	s.stronghold_level = 1
+	s.stronghold_facilities = _default_facilities()
+	s.stronghold_last_collected = 0
 	return s
 
 
@@ -250,6 +269,43 @@ func mass_convert(shadow_instance_ids: Array) -> int:
 	return essence - before
 
 
+## Phase 2/P4 step 1: true if `shadow_instance_id` is currently assigned to
+## any Stronghold facility ("busy" per §22).
+func is_shadow_assigned(shadow_instance_id: String) -> bool:
+	for facility_id in stronghold_facilities:
+		var assigned: Array = stronghold_facilities[facility_id]["assigned"]
+		if assigned.has(shadow_instance_id):
+			return true
+	return false
+
+
+## Assigns an owned, unassigned shadow to `facility_id`, if the facility
+## has a free slot (Stronghold.slots_for_level). False (no-op) if the
+## shadow's unknown, already assigned somewhere, the facility id is
+## invalid, or the facility is full.
+func assign_shadow_to_facility(facility_id: String, shadow_instance_id: String) -> bool:
+	if _army_index(shadow_instance_id) < 0:
+		return false
+	if is_shadow_assigned(shadow_instance_id):
+		return false
+	if not stronghold_facilities.has(facility_id):
+		return false
+	var facility: Dictionary = stronghold_facilities[facility_id]
+	var assigned: Array = facility["assigned"]
+	if assigned.size() >= Stronghold.slots_for_level(facility["level"]):
+		return false
+	assigned.append(shadow_instance_id)
+	return true
+
+
+## Unassigns a shadow from whichever facility it's in (no-op if it isn't
+## assigned anywhere).
+func unassign_shadow(shadow_instance_id: String) -> void:
+	for facility_id in stronghold_facilities:
+		var assigned: Array = stronghold_facilities[facility_id]["assigned"]
+		assigned.erase(shadow_instance_id)
+
+
 ## Phase 2 patch 1 step 4: equips the single best owned item into `slot` for
 ## the hunter, if a strictly better one than what's already there exists.
 ## The slot's current occupant re-competes as its own candidate (excluded
@@ -413,6 +469,9 @@ func to_dict() -> Dictionary:
 		"inventory": inventory,
 		"equipped": equipped,
 		"nadir_deepest_floor": nadir_deepest_floor,
+		"stronghold_level": stronghold_level,
+		"stronghold_facilities": stronghold_facilities,
+		"stronghold_last_collected": stronghold_last_collected,
 	}
 
 
@@ -429,4 +488,15 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.inventory = d.get("inventory", [])
 	s.equipped = d.get("equipped", {})
 	s.nadir_deepest_floor = int(d.get("nadir_deepest_floor", 0))
+	s.stronghold_level = int(d.get("stronghold_level", 1))
+	s.stronghold_facilities = d.get("stronghold_facilities", _default_facilities())
+	s.stronghold_last_collected = int(d.get("stronghold_last_collected", 0))
 	return s
+
+
+static func _default_facilities() -> Dictionary:
+	return {
+		"RELIQUARY": {"level": 1, "assigned": []},
+		"TRAINING_YARD": {"level": 1, "assigned": []},
+		"GATE_WATCH": {"level": 1, "assigned": []},
+	}

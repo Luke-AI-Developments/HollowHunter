@@ -661,3 +661,81 @@ func test_nadir_deepest_floor_round_trips_through_dict() -> void:
 func test_from_dict_defaults_nadir_deepest_floor_to_zero() -> void:
 	var restored := HunterState.from_dict({})
 	assert_eq(restored.nadir_deepest_floor, 0)
+
+
+func test_new_default_has_all_three_facilities_at_level_1_empty() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.stronghold_level, 1)
+	for facility_id in Stronghold.FACILITY_IDS:
+		assert_true(s.stronghold_facilities.has(facility_id))
+		assert_eq(s.stronghold_facilities[facility_id]["level"], 1)
+		assert_eq(s.stronghold_facilities[facility_id]["assigned"], [])
+
+
+func test_assign_shadow_to_facility_succeeds_when_slot_free() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	var ok := s.assign_shadow_to_facility(Stronghold.RELIQUARY, shadow["instance_id"])
+	assert_true(ok)
+	assert_true(s.is_shadow_assigned(shadow["instance_id"]))
+	assert_eq(s.stronghold_facilities[Stronghold.RELIQUARY]["assigned"], [shadow["instance_id"]])
+
+
+func test_assign_shadow_to_facility_fails_when_already_assigned() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	s.assign_shadow_to_facility(Stronghold.RELIQUARY, shadow["instance_id"])
+	var ok := s.assign_shadow_to_facility(Stronghold.GATE_WATCH, shadow["instance_id"])
+	assert_false(ok)
+	assert_eq(s.stronghold_facilities[Stronghold.GATE_WATCH]["assigned"], [])
+
+
+func test_assign_shadow_to_facility_fails_when_full() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_ashen_warden", "E")
+	var b := s.claim_shadow("mon_grubmaw", "E")
+	s.assign_shadow_to_facility(Stronghold.RELIQUARY, a["instance_id"])  # fills the 1 slot at lvl 1
+	var ok := s.assign_shadow_to_facility(Stronghold.RELIQUARY, b["instance_id"])
+	assert_false(ok)
+
+
+func test_assign_shadow_to_facility_fails_for_unknown_shadow_or_facility() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	assert_false(s.assign_shadow_to_facility(Stronghold.RELIQUARY, "shadow_none"))
+	assert_false(s.assign_shadow_to_facility("NOT_A_FACILITY", shadow["instance_id"]))
+
+
+func test_unassign_shadow_frees_it() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	s.assign_shadow_to_facility(Stronghold.RELIQUARY, shadow["instance_id"])
+	s.unassign_shadow(shadow["instance_id"])
+	assert_false(s.is_shadow_assigned(shadow["instance_id"]))
+	assert_eq(s.stronghold_facilities[Stronghold.RELIQUARY]["assigned"], [])
+
+
+func test_unassign_shadow_not_assigned_is_a_no_op() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	s.unassign_shadow(shadow["instance_id"])  # never assigned -- should not error
+	assert_false(s.is_shadow_assigned(shadow["instance_id"]))
+
+
+func test_stronghold_state_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	s.assign_shadow_to_facility(Stronghold.RELIQUARY, shadow["instance_id"])
+	s.stronghold_level = 3
+	s.stronghold_last_collected = 12345
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.stronghold_level, 3)
+	assert_eq(restored.stronghold_last_collected, 12345)
+	assert_true(restored.is_shadow_assigned(shadow["instance_id"]))
+
+
+func test_from_dict_defaults_stronghold_fields_for_old_saves() -> void:
+	var restored := HunterState.from_dict({})
+	assert_eq(restored.stronghold_level, 1)
+	assert_eq(restored.stronghold_last_collected, 0)
+	assert_eq(restored.stronghold_facilities[Stronghold.RELIQUARY]["level"], 1)
