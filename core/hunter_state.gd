@@ -96,6 +96,7 @@ func claim_shadow(monster_id: String, grade: String) -> Dictionary:
 		"equipped": {},
 		"locked": false,
 		"favorite": false,
+		"idle_progress": 0.0,
 	}
 	army.append(shadow)
 	return shadow
@@ -304,6 +305,95 @@ func unassign_shadow(shadow_instance_id: String) -> void:
 	for facility_id in stronghold_facilities:
 		var assigned: Array = stronghold_facilities[facility_id]["assigned"]
 		assigned.erase(shadow_instance_id)
+
+
+## Phase 2/P4 step 4: banks idle production accrued since
+## stronghold_last_collected (elapsed = `now_unix_seconds` - that, capped
+## at Stronghold.OFFLINE_CAP_HOURS by Stronghold.accrued itself). Reliquary
+## -> Essence, Gate Watch -> gate_tickets (both straight int adds); Training
+## Yard -> Stronghold.apply_idle_xp() per assigned shadow, updating its
+## level/idle_progress and possibly leveling it up for free. Always resets
+## stronghold_last_collected to `now_unix_seconds`, even with nothing
+## assigned anywhere (0 elapsed accrual either way) -- so idle time never
+## silently piles up past the offline cap while nothing's assigned. Returns
+## a summary: {essence_gained, tickets_gained, shadow_levels_gained: {
+## instance_id: levels}}.
+func collect_stronghold(now_unix_seconds: int) -> Dictionary:
+	var elapsed := float(max(0, now_unix_seconds - stronghold_last_collected))
+	var essence_gained := 0
+	var tickets_gained := 0
+	var shadow_levels_gained := {}
+
+	for facility_id in stronghold_facilities:
+		var facility: Dictionary = stronghold_facilities[facility_id]
+		var level: int = facility["level"]
+		var assigned: Array = facility["assigned"]
+		if assigned.is_empty():
+			continue
+		match facility_id:
+			Stronghold.RELIQUARY:
+				var gained := Stronghold.accrued(facility_id, elapsed, level, assigned.size())
+				essence_gained += int(round(gained))
+			Stronghold.GATE_WATCH:
+				var gained := Stronghold.accrued(facility_id, elapsed, level, assigned.size())
+				tickets_gained += int(round(gained))
+			Stronghold.TRAINING_YARD:
+				# Each assigned shadow independently earns the per-shadow rate
+				# (assigned.size() isn't a divisor -- more shadows working the
+				# yard means more TOTAL leveling, same as the other facilities).
+				var idle_xp := Stronghold.accrued(facility_id, elapsed, level, 1)
+				for shadow_id in assigned:
+					var idx := _army_index(shadow_id)
+					if idx < 0:
+						continue
+					var current_level: int = army[idx].get("level", 1)
+					var current_progress: float = army[idx].get("idle_progress", 0.0)
+					var result := Stronghold.apply_idle_xp(current_level, current_progress, idle_xp)
+					army[idx]["level"] = result["level"]
+					army[idx]["idle_progress"] = result["progress"]
+					if result["levels_gained"] > 0:
+						shadow_levels_gained[shadow_id] = result["levels_gained"]
+
+	essence += essence_gained
+	gate_tickets += tickets_gained
+	stronghold_last_collected = now_unix_seconds
+	return {
+		"essence_gained": essence_gained,
+		"tickets_gained": tickets_gained,
+		"shadow_levels_gained": shadow_levels_gained,
+	}
+
+
+## Spends Essence to raise one facility's level by 1 (capped at
+## Stronghold.FACILITY_LEVEL_CAP). False (no-op) if the facility id is
+## unknown, already capped, or Essence is short.
+func upgrade_facility(facility_id: String) -> bool:
+	if not stronghold_facilities.has(facility_id):
+		return false
+	var facility: Dictionary = stronghold_facilities[facility_id]
+	var current_level: int = facility["level"]
+	if current_level >= Stronghold.FACILITY_LEVEL_CAP:
+		return false
+	var cost := Stronghold.facility_upgrade_cost(current_level + 1)
+	if essence < cost:
+		return false
+	essence -= cost
+	facility["level"] = current_level + 1
+	return true
+
+
+## Spends Essence to raise the Stronghold's own level by 1 (capped at
+## Stronghold.STRONGHOLD_LEVEL_CAP), raising army_capacity(). False (no-op)
+## if already capped or Essence is short.
+func upgrade_stronghold() -> bool:
+	if stronghold_level >= Stronghold.STRONGHOLD_LEVEL_CAP:
+		return false
+	var cost := Stronghold.stronghold_upgrade_cost(stronghold_level + 1)
+	if essence < cost:
+		return false
+	essence -= cost
+	stronghold_level += 1
+	return true
 
 
 ## Phase 2 patch 1 step 4: equips the single best owned item into `slot` for

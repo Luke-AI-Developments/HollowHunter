@@ -739,3 +739,108 @@ func test_from_dict_defaults_stronghold_fields_for_old_saves() -> void:
 	assert_eq(restored.stronghold_level, 1)
 	assert_eq(restored.stronghold_last_collected, 0)
 	assert_eq(restored.stronghold_facilities[Stronghold.RELIQUARY]["level"], 1)
+
+
+func test_collect_stronghold_with_nothing_assigned_gains_nothing() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var result := s.collect_stronghold(3600)
+	assert_eq(result["essence_gained"], 0)
+	assert_eq(result["tickets_gained"], 0)
+	assert_eq(result["shadow_levels_gained"], {})
+	assert_eq(s.stronghold_last_collected, 3600)
+
+
+func test_collect_stronghold_grants_essence_from_reliquary() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	s.assign_shadow_to_facility(Stronghold.RELIQUARY, shadow["instance_id"])
+	var result := s.collect_stronghold(3600)  # 1 hour
+	var expected := int(round(Stronghold.accrued(Stronghold.RELIQUARY, 3600.0, 1, 1)))
+	assert_eq(result["essence_gained"], expected)
+	assert_eq(s.essence, expected)
+
+
+func test_collect_stronghold_grants_tickets_from_gate_watch() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	s.assign_shadow_to_facility(Stronghold.GATE_WATCH, shadow["instance_id"])
+	var result := s.collect_stronghold(3600)
+	var expected := int(round(Stronghold.accrued(Stronghold.GATE_WATCH, 3600.0, 1, 1)))
+	assert_eq(result["tickets_gained"], expected)
+	assert_eq(s.gate_tickets, expected)
+
+
+func test_collect_stronghold_levels_up_training_yard_shadows() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "E")
+	s.assign_shadow_to_facility(Stronghold.TRAINING_YARD, shadow["instance_id"])
+	# Each collection is capped at OFFLINE_CAP_HOURS -- repeat enough
+	# collections (as if returning once a day) to cross 1.0 progress.
+	var now := 0
+	var any_level_gain := false
+	for _i in 12:
+		now += int(Stronghold.OFFLINE_CAP_HOURS * 3600.0)
+		var result := s.collect_stronghold(now)
+		if result["shadow_levels_gained"].has(shadow["instance_id"]):
+			any_level_gain = true
+	assert_true(s.army[0]["level"] > 1)
+	assert_true(any_level_gain)
+
+
+func test_collect_stronghold_caps_elapsed_time_never_negative() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.stronghold_last_collected = 1000
+	var result := s.collect_stronghold(500)  # "now" before last_collected -- clock weirdness
+	assert_eq(result["essence_gained"], 0)
+	assert_eq(s.stronghold_last_collected, 500)
+
+
+func test_upgrade_facility_spends_essence_and_raises_level() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000
+	var ok := s.upgrade_facility(Stronghold.RELIQUARY)
+	assert_true(ok)
+	assert_eq(s.stronghold_facilities[Stronghold.RELIQUARY]["level"], 2)
+	assert_eq(s.essence, 100000 - Stronghold.facility_upgrade_cost(2))
+
+
+func test_upgrade_facility_insufficient_essence_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 1
+	assert_false(s.upgrade_facility(Stronghold.RELIQUARY))
+	assert_eq(s.stronghold_facilities[Stronghold.RELIQUARY]["level"], 1)
+
+
+func test_upgrade_facility_unknown_id_fails() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000
+	assert_false(s.upgrade_facility("NOT_A_FACILITY"))
+
+
+func test_upgrade_facility_cannot_exceed_cap() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000000
+	for _i in Stronghold.FACILITY_LEVEL_CAP:
+		s.upgrade_facility(Stronghold.RELIQUARY)
+	assert_eq(s.stronghold_facilities[Stronghold.RELIQUARY]["level"], Stronghold.FACILITY_LEVEL_CAP)
+	assert_false(s.upgrade_facility(Stronghold.RELIQUARY))
+
+
+func test_upgrade_stronghold_spends_essence_and_raises_level_and_capacity() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000
+	var before_capacity := Stronghold.army_capacity(s.stronghold_level)
+	var ok := s.upgrade_stronghold()
+	assert_true(ok)
+	assert_eq(s.stronghold_level, 2)
+	assert_eq(s.essence, 100000 - Stronghold.stronghold_upgrade_cost(2))
+	assert_true(Stronghold.army_capacity(s.stronghold_level) > before_capacity)
+
+
+func test_upgrade_stronghold_cannot_exceed_cap() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.essence = 100000000
+	for _i in Stronghold.STRONGHOLD_LEVEL_CAP:
+		s.upgrade_stronghold()
+	assert_eq(s.stronghold_level, Stronghold.STRONGHOLD_LEVEL_CAP)
+	assert_false(s.upgrade_stronghold())
