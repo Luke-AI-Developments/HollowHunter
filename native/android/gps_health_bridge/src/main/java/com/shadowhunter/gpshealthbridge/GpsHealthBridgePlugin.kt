@@ -2,6 +2,7 @@ package com.shadowhunter.gpshealthbridge
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -215,15 +216,24 @@ class GpsHealthBridgePlugin(godot: Godot) : GodotPlugin(godot) {
             return
         }
         scope.launch {
-            val startOfDay = Instant.now().minusSeconds(24 * 60 * 60)
-            val response = client.readRecords(
-                ReadRecordsRequest(
-                    StepsRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(startOfDay, Instant.now())
+            try {
+                val startOfDay = Instant.now().minusSeconds(24 * 60 * 60)
+                val response = client.readRecords(
+                    ReadRecordsRequest(
+                        StepsRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(startOfDay, Instant.now())
+                    )
                 )
-            )
-            val total = response.records.sumOf { it.count }
-            emitSignal("steps_result", total.toInt())
+                val total = response.records.sumOf { it.count }
+                emitSignal("steps_result", total.toInt())
+            } catch (e: Exception) {
+                // Health Connect can hand back a malformed record (e.g. a
+                // 0-count StepsRecord, which the SDK's own constructor
+                // rejects) and throw mid-read instead of just skipping it.
+                // Degrade to 0 steps rather than crashing the app.
+                Log.w(TAG, "readTodaySteps failed, reporting 0", e)
+                emitSignal("steps_result", 0)
+            }
         }
     }
 
@@ -234,29 +244,36 @@ class GpsHealthBridgePlugin(godot: Godot) : GodotPlugin(godot) {
             return
         }
         scope.launch {
-            val start = Instant.now().minusSeconds(hours.toLong() * 60 * 60)
-            val response = client.readRecords(
-                ReadRecordsRequest(
-                    ExerciseSessionRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(start, Instant.now())
+            try {
+                val start = Instant.now().minusSeconds(hours.toLong() * 60 * 60)
+                val response = client.readRecords(
+                    ReadRecordsRequest(
+                        ExerciseSessionRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(start, Instant.now())
+                    )
                 )
-            )
-            val json = JSONArray()
-            response.records.forEach { record ->
-                json.put(
-                    JSONObject().apply {
-                        put("title", record.title ?: "")
-                        put("exercise_type", record.exerciseType)
-                        put("start_time", record.startTime.toString())
-                        put("end_time", record.endTime.toString())
-                    }
-                )
+                val json = JSONArray()
+                response.records.forEach { record ->
+                    json.put(
+                        JSONObject().apply {
+                            put("title", record.title ?: "")
+                            put("exercise_type", record.exerciseType)
+                            put("start_time", record.startTime.toString())
+                            put("end_time", record.endTime.toString())
+                        }
+                    )
+                }
+                emitSignal("workouts_result", json.toString())
+            } catch (e: Exception) {
+                // Same malformed-record defense as readTodaySteps().
+                Log.w(TAG, "readRecentWorkouts failed, reporting none", e)
+                emitSignal("workouts_result", "[]")
             }
-            emitSignal("workouts_result", json.toString())
         }
     }
 
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 4128
+        private const val TAG = "GpsHealthBridge"
     }
 }

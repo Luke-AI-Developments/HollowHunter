@@ -103,6 +103,14 @@ offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Mass-Convert Weakest 3"
 
+[node name="NadirButton" type="Button" parent="GameUI"]
+offset_left = 640.0
+offset_top = 370.0
+offset_right = 780.0
+offset_bottom = 410.0
+theme_override_font_sizes/font_size = 18
+text = "The Nadir"
+
 [node name="ArmyLabel" type="Label" parent="GameUI"]
 offset_left = 40.0
 offset_top = 420.0
@@ -262,3 +270,45 @@ offset_right = 2380.0
 offset_bottom = 900.0
 theme_override_font_sizes/font_size = 18
 text = "Active sets: (none)"
+
+[node name="NadirPanel" type="Node2D" parent="GameUI"]
+visible = false
+
+[node name="Bg" type="ColorRect" parent="GameUI/NadirPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.05, 0.05, 0.05, 0.95)
+
+[node name="Title" type="Label" parent="GameUI/NadirPanel"]
+offset_left = 40.0
+offset_top = 30.0
+offset_right = 1800.0
+offset_bottom = 80.0
+theme_override_font_sizes/font_size = 28
+text = "The Nadir"
+
+[node name="CloseButton" type="Button" parent="GameUI/NadirPanel"]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 180.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Close"
+
+[node name="InfoLabel" type="Label" parent="GameUI/NadirPanel"]
+offset_left = 40.0
+offset_top = 170.0
+offset_right = 1400.0
+offset_bottom = 400.0
+theme_override_font_sizes/font_size = 22
+text = "Floor 1"
+
+[node name="TakeOnButton" type="Button" parent="GameUI/NadirPanel"]
+offset_left = 40.0
+offset_top = 420.0
+offset_right = 400.0
+offset_bottom = 480.0
+theme_override_font_sizes/font_size = 22
+text = "Take on Floor 1"

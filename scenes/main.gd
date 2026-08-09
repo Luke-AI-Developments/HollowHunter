@@ -43,6 +43,10 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 @onready var shadow_convert_button: Button = $GameUI/ShadowGearPanel/ConvertButton
 @onready var shadow_lock_button: Button = $GameUI/ShadowGearPanel/LockButton
 @onready var shadow_favorite_button: Button = $GameUI/ShadowGearPanel/FavoriteButton
+@onready var nadir_button: Button = $GameUI/NadirButton
+@onready var nadir_panel: Node2D = $GameUI/NadirPanel
+@onready var nadir_info_label: Label = $GameUI/NadirPanel/InfoLabel
+@onready var nadir_take_on_button: Button = $GameUI/NadirPanel/TakeOnButton
 
 
 func _ready() -> void:
@@ -135,6 +139,9 @@ func _setup_gear_panels() -> void:
 		shadow_lock_button.pressed.connect(_on_shadow_lock_pressed)
 		shadow_favorite_button.pressed.connect(_on_shadow_favorite_pressed)
 		mass_convert_button.pressed.connect(_on_mass_convert_pressed)
+		nadir_button.pressed.connect(_on_nadir_button_pressed)
+		$GameUI/NadirPanel/CloseButton.pressed.connect(_on_nadir_close_pressed)
+		nadir_take_on_button.pressed.connect(_on_nadir_take_on_pressed)
 
 
 ## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
@@ -613,6 +620,93 @@ func _on_mass_convert_pressed() -> void:
 	_refresh_army_label()
 	_refresh_label()
 	label.text += "\n\nMass-converted %d shadow(s) -> +%d Essence" % [surplus.size(), gained]
+
+
+## Phase 2/P3 step 5: RAID_POWER (§16) -- personal power + the WHOLE army's
+## power (not just the squad, unlike gates -- "raids ignore the squad, they
+## auto-field your whole army", §17), via GameLogic.raid_power's
+## RAID_ARMY_WEIGHT (1.0). Reuses SquadBuilder.enrich_army's already-tested
+## per-shadow power (gear + armor sets included) rather than duplicating
+## that math through GameLogic.army_power's separate raw-field shape.
+func _current_raid_power() -> int:
+	var enriched := SquadBuilder.enrich_army(
+		state.army, _monsters, state.level, _equipment, state.inventory
+	)
+	var army_power_total := 0
+	for e: Dictionary in enriched:
+		army_power_total += e["power"]
+	return GameLogic.raid_power(state.personal_power(_equipment), army_power_total)
+
+
+func _on_nadir_button_pressed() -> void:
+	nadir_panel.visible = true
+	_refresh_nadir_panel()
+
+
+func _on_nadir_close_pressed() -> void:
+	nadir_panel.visible = false
+
+
+func _refresh_nadir_panel() -> void:
+	var floor_n := state.nadir_current_floor()
+	var target := GameLogic.floor_power(floor_n)
+	var raid_power := _current_raid_power()
+	var boss_tag := "  [BOSS FLOOR]" if Nadir.is_boss_floor(floor_n) else ""
+	nadir_info_label.text = (
+		(
+			"Deepest cleared: %d\n\nFloor %d%s\nTarget power: %d\nYour RAID_POWER: %d"
+			+ "\nEstimated Essence reward: %d\nGear rarity: %s"
+		)
+		% [
+			state.nadir_deepest_floor,
+			floor_n,
+			boss_tag,
+			target,
+			raid_power,
+			Nadir.essence_for_floor(floor_n),
+			Nadir.rank_for_floor(floor_n),
+		]
+	)
+	nadir_take_on_button.text = "Take on Floor %d" % floor_n
+
+
+## Phase 2/P3 step 5: resolves the current Nadir floor for real -- single
+## clear-check, permanent progress on a win, Essence + gear (+ boss CLAIM
+## on boss floors) rewards, nothing changes on a loss (§20's "floor stays;
+## come back stronger").
+func _on_nadir_take_on_pressed() -> void:
+	var floor_n := state.nadir_current_floor()
+	var raid_power := _current_raid_power()
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var result := Nadir.attempt_floor(raid_power, floor_n, state.level, _monsters, rng)
+
+	var msg := "\n\nNadir Floor %d: %s" % [floor_n, "CLEARED" if result["cleared"] else "LOST"]
+	if result["cleared"]:
+		state.clear_nadir_floor(floor_n)
+		var essence_gain := Nadir.essence_for_floor(floor_n)
+		state.essence += essence_gain
+		msg += "\nEssence +%d" % essence_gain
+
+		var drop := Loot.roll_drop(Nadir.rank_for_floor(floor_n), _equipment, rng)
+		if not drop.is_empty():
+			state.add_to_inventory(drop["id"])
+			msg += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
+
+		if result["is_boss"]:
+			if result["claimed"]:
+				state.claim_shadow(result["boss_monster_id"], Nadir.rank_for_floor(floor_n))
+				var boss_monster := Content.monster_by_id(_monsters, result["boss_monster_id"])
+				msg += "\nBOSS CLAIMED! %s joins your army." % boss_monster.get("name", "")
+			else:
+				msg += "\nBoss floor -- boss escaped (claim failed)."
+
+	SaveService.save(state)
+	_refresh_nadir_panel()
+	_refresh_army_label()
+	_refresh_inventory_label()
+	_refresh_label()
+	label.text += msg
 
 
 ## Enhances whatever the selected shadow has equipped in `slot`. The item
