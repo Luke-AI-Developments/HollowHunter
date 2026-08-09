@@ -17,15 +17,64 @@ class_name Nadir
 ## formula given beyond "scaling with depth" -- invented v0, flagged: half
 ## of that floor's own power requirement, so the reward scales exactly with
 ## how hard the floor was to reach.
+##
+## Boss floors: "at milestones" with no interval given -- BOSS_FLOOR_INTERVAL
+## (10) is invented, chosen to land exactly where rank_for_floor's own tier
+## boundaries do, so a boss floor is always where the loot pool steps up a
+## rank too ("reward spike" lining up with "harder tier"). The source names
+## no boss monster for the Nadir at all (unlike gates, which roll a real
+## monster per encounter) -- boss_monster_id() stands in with the strongest
+## owned-rank monster from content, and its CLAIM roll reuses that
+## monster's own real extract_chance rather than inventing a separate
+## Nadir-boss number.
 const NADIR_ESSENCE_FRACTION := 0.5
+const BOSS_FLOOR_INTERVAL := 10
 
 
+static func is_boss_floor(floor_n: int) -> bool:
+	return floor_n > 0 and floor_n % BOSS_FLOOR_INTERVAL == 0
+
+
+## The strongest (highest base_power) monster of `floor_n`'s rank tier --
+## "" if content has no monster of that rank at all.
+static func boss_monster_id(floor_n: int, monsters: Array) -> String:
+	var candidates := Content.monsters_by_rank(monsters, rank_for_floor(floor_n))
+	var best_id := ""
+	var best_power := -1
+	for m: Dictionary in candidates:
+		var power: int = m.get("base_power", 0)
+		if power > best_power:
+			best_power = power
+			best_id = m.get("id", "")
+	return best_id
+
+
+## Resolves a floor attempt: the clear-check, plus (only if cleared and
+## it's a boss floor) a CLAIM attempt on that floor's stand-in boss.
 static func attempt_floor(
-	raid_power: float, floor_n: int, rng: RandomNumberGenerator = null
+	raid_power: float,
+	floor_n: int,
+	hunter_level: int,
+	monsters: Array,
+	rng: RandomNumberGenerator = null
 ) -> Dictionary:
 	var target := GameLogic.floor_power(floor_n)
 	var cleared := GameLogic.resolve_clear(raid_power, float(target), rng)
-	return {"cleared": cleared, "target_power": target}
+	var is_boss := is_boss_floor(floor_n)
+	var claimed := false
+	var boss_id := ""
+	if cleared and is_boss:
+		boss_id = boss_monster_id(floor_n, monsters)
+		if boss_id != "":
+			var monster := Content.monster_by_id(monsters, boss_id)
+			claimed = GameLogic.attempt_claim(monster.get("extract_chance", 0.0), hunter_level, rng)
+	return {
+		"cleared": cleared,
+		"target_power": target,
+		"is_boss": is_boss,
+		"claimed": claimed,
+		"boss_monster_id": boss_id,
+	}
 
 
 static func essence_for_floor(floor_n: int) -> int:
