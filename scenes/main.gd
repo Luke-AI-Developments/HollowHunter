@@ -264,11 +264,18 @@ func _on_health_permission_result(granted: bool) -> void:
 func _on_steps_result(count: int) -> void:
 	_steps = count
 	_maybe_apply_daily_exp()
+	# Code-review fix: the Character panel only rendered once, on open --
+	# if it's already open when this (async, permission-gated) signal
+	# lands, it'd be stuck showing stale/placeholder data all session.
+	if character_panel.visible:
+		_refresh_character_panel()
 
 
 func _on_workouts_result(workouts_json: String) -> void:
 	_workouts_json = workouts_json
 	_maybe_apply_daily_exp()
+	if character_panel.visible:
+		_refresh_character_panel()
 
 
 ## Both signals arrive independently and in either order; wait for both
@@ -289,8 +296,18 @@ func _maybe_apply_daily_exp() -> void:
 
 	var exp := DailyExp.exp_for_today(_steps, _workouts_json, state.subclass)
 	var levels_gained := state.add_exp(exp)
-	# Compute the new streak BEFORE mark_exp_applied() overwrites last_exp_date.
-	state.current_streak = DailyExp.next_streak(today, state.last_exp_date, state.current_streak)
+	# Code-review fix: next_streak() is a pure "is this the next calendar
+	# day" check -- it doesn't know about exp, so a 0-steps/0-workouts day
+	# (exp == 0) would still extend the streak. A streak is supposed to
+	# track real engagement (§21's "motivating core"), so a zero-activity
+	# day breaks it here at the call site instead, before
+	# mark_exp_applied() overwrites last_exp_date.
+	if exp > 0:
+		state.current_streak = DailyExp.next_streak(
+			today, state.last_exp_date, state.current_streak
+		)
+	else:
+		state.current_streak = 0
 	state.mark_exp_applied(today)
 	SaveService.save(state)
 	_refresh_label()
@@ -905,13 +922,17 @@ func _refresh_character_panel() -> void:
 		]
 	)
 
+	# Code-review fix: compute workout_minutes/matched once here and reuse
+	# them for today_exp via GameLogic.daily_exp() directly, instead of
+	# calling DailyExp.exp_for_today() (which would re-parse _workouts_json
+	# from scratch).
 	var workouts := DailyExp.parse_workouts(_workouts_json)
 	var workout_minutes := DailyExp.total_workout_minutes(workouts)
 	var matched := DailyExp.matches_signature_training(workouts, state.subclass)
 	var steps_display := "%d" % _steps if _steps >= 0 else "Fetching..."
 	var today_exp := 0
 	if _steps >= 0 and not _workouts_json.is_empty():
-		today_exp = DailyExp.exp_for_today(_steps, _workouts_json, state.subclass)
+		today_exp = GameLogic.daily_exp(_steps, 0, workout_minutes, matched)
 
 	character_fitness_label.text = (
 		"Today: %s steps, %d workout min%s\nEXP earned today: %d\nStreak: %d day(s)"
