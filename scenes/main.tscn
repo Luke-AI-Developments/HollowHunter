@@ -524,3 +524,12 @@ offset_right = 1400.0
 offset_bottom = 900.0
 theme_override_font_sizes/font_size = 20
 text = "Health connection"
+
+[node name="TrialButton" type="Button" parent="GameUI/CharacterPanel"]
+offset_left = 40.0
+offset_top = 920.0
+offset_right = 400.0
+offset_bottom = 980.0
+theme_override_font_sizes/font_size = 22
+text = "Attempt Trial"
+disabled = true

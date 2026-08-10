@@ -32,6 +32,9 @@ const CLASS_PROFILES := {
 # --- Hunter rank thresholds: min level for that rank's assessment (§28/§29) ---
 const RANK_LEVEL := {"D": 5, "C": 12, "B": 20, "A": 30, "S": 40}
 
+# --- Canonical rank ladder, low to high (§28) ---
+const RANK_ORDER := ["E", "D", "C", "B", "A", "S"]
+
 # --- Essence per gate clear (§26): real source numbers, not invented ---
 const ESSENCE_PER_GATE_RANK := {"E": 20, "D": 50, "C": 120, "B": 300, "A": 700, "S": 1500}
 
@@ -198,7 +201,11 @@ static func floor_power(n: int) -> int:
 	return int(round(300.0 * pow(1.12, n)))
 
 
-# --- Hunter rank from level: highest threshold reached (§28) ---
+# --- Highest rank Assessment a hunter's LEVEL has unlocked (§28) -- NOT
+# their earned rank. §28 is explicit that rank is "earned, not
+# auto-granted": clearing that rank's Trial (RankAssessment.attempt) is
+# what actually promotes HunterState.hunter_rank. This just answers "which
+# Trial can I currently attempt". ---
 static func rank_for_level(level: int) -> String:
 	var rank := "E"
 	for r in ["D", "C", "B", "A", "S"]:

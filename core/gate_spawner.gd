@@ -1,12 +1,18 @@
 class_name GateSpawner
 ## Placeholder gate spawning for the Phase 1 map: picks ranks near the
-## hunter's current power and scatters them at small lat/lon offsets from a
+## hunter's EARNED rank and scatters them at small lat/lon offsets from a
 ## center point. Pure -- takes content + an (optional, for deterministic
 ## tests) RNG in, returns plain gate dicts out. No map/rendering here.
 ##
-## Rank weighting is deliberately simple (current rank + one tier down) --
-## the design bible discusses spawn weighting narratively but game_logic.gd
-## (the source of truth) has no formula for it, so this doesn't invent one.
+## Phase 2/P6 correction: was originally keyed off the hunter's LEVEL
+## (current rank-for-level + one tier down); §28 is explicit that "the map
+## shows gates within ±1 of your rank... rank, not raw level, sets what
+## content appears" -- rank here means the EARNED rank (HunterState.
+## hunter_rank), not GameLogic.rank_for_level(level)'s assessment-eligible
+## threshold. Now takes the earned rank directly and spans ±1 tier (both
+## up AND down, per that exact wording, not just one tier down as before).
+## Exact spawn WEIGHTING across that ±1 pool still isn't given anywhere,
+## so it stays a flat/uniform pick, same as before this fix.
 
 const RANKS := ["E", "D", "C", "B", "A", "S"]
 
@@ -16,24 +22,27 @@ const RANKS := ["E", "D", "C", "B", "A", "S"]
 const MAX_OFFSET_DEGREES := 0.003
 
 
-static func rank_pool_for_level(level: int) -> Array:
-	var current := GameLogic.rank_for_level(level)
-	var idx := RANKS.find(current)
-	var pool := [current]
+static func rank_pool_for_rank(earned_rank: String) -> Array:
+	var idx := RANKS.find(earned_rank)
+	if idx < 0:
+		idx = 0
+	var pool := [RANKS[idx]]
 	if idx > 0:
 		pool.append(RANKS[idx - 1])
+	if idx < RANKS.size() - 1:
+		pool.append(RANKS[idx + 1])
 	return pool
 
 
 static func spawn_gates(
 	center_lat: float,
 	center_lon: float,
-	hunter_level: int,
+	hunter_rank: String,
 	monsters: Array,
 	count: int = 5,
 	rng: RandomNumberGenerator = null
 ) -> Array:
-	var pool := rank_pool_for_level(hunter_level)
+	var pool := rank_pool_for_rank(hunter_rank)
 	var gates := []
 	for i in count:
 		var rank: String = pool[_rand_index(pool.size(), rng)]

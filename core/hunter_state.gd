@@ -46,6 +46,14 @@ var stronghold_last_collected: int  ## Unix seconds of the last Stronghold colle
 var current_streak: int  ## Phase 2/P5 step 1: consecutive days with daily EXP applied (§21).
 ## Updated via DailyExp.next_streak() using the OLD last_exp_date, right before
 ## mark_exp_applied(today) overwrites it -- see scenes/main.gd's daily-EXP flow.
+var hunter_rank: String  ## Phase 2/P6 step 1: EARNED rank (E-S, §28) -- starts "E", only
+## advances by clearing that rank's Trial (RankAssessment). Deliberately separate from
+## GameLogic.rank_for_level(level), which is just the highest rank whose LEVEL threshold has
+## been reached -- §28 is explicit that rank is "earned, not auto-granted". Everywhere that
+## used to call rank_for_level(level) to mean "the hunter's rank" (gate spawning, the
+## Character screen) was wrong per this section and got fixed to read hunter_rank instead;
+## rank_for_level() is still correct and used, just for its real meaning: which Trial is
+## currently unlocked for attempt.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -65,6 +73,7 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.stronghold_facilities = _default_facilities()
 	s.stronghold_last_collected = 0
 	s.current_streak = 0
+	s.hunter_rank = "E"
 	return s
 
 
@@ -550,6 +559,20 @@ func clear_nadir_floor(floor_n: int) -> void:
 	nadir_deepest_floor = max(nadir_deepest_floor, floor_n)
 
 
+## Phase 2/P6 step 1: records passing `target_rank`'s Assessment --
+## permanent, one-way (same shape as clear_nadir_floor). No-op (false) if
+## `target_rank` isn't actually the very next rank above the current one --
+## defensive; callers should already gate the attempt via
+## RankAssessment.next_assessment_rank().
+func pass_assessment(target_rank: String) -> bool:
+	var current_idx := GameLogic.RANK_ORDER.find(hunter_rank)
+	var target_idx := GameLogic.RANK_ORDER.find(target_rank)
+	if current_idx < 0 or target_idx != current_idx + 1:
+		return false
+	hunter_rank = target_rank
+	return true
+
+
 func to_dict() -> Dictionary:
 	return {
 		"level": level,
@@ -567,6 +590,7 @@ func to_dict() -> Dictionary:
 		"stronghold_facilities": stronghold_facilities,
 		"stronghold_last_collected": stronghold_last_collected,
 		"current_streak": current_streak,
+		"hunter_rank": hunter_rank,
 	}
 
 
@@ -587,6 +611,7 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.stronghold_facilities = d.get("stronghold_facilities", _default_facilities())
 	s.stronghold_last_collected = int(d.get("stronghold_last_collected", 0))
 	s.current_streak = int(d.get("current_streak", 0))
+	s.hunter_rank = String(d.get("hunter_rank", "E"))
 	return s
 
 

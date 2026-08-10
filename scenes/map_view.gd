@@ -29,14 +29,14 @@ var _gates: Array = []
 ## Gates are rolled once, from the first fix -- moving around doesn't
 ## reroll them (that would just be jittery placeholder noise, not a
 ## feature). Re-call from a "new gates" action once that exists.
-func show_position(lat: float, lon: float, hunter_level: int) -> void:
+func show_position(lat: float, lon: float, hunter_rank: String) -> void:
 	if not _has_fix:
 		_center_lat = lat
 		_center_lon = lon
 		_has_fix = true
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
-		_gates = GateSpawner.spawn_gates(lat, lon, hunter_level, Content.load_monsters(), 5, rng)
+		_gates = GateSpawner.spawn_gates(lat, lon, hunter_rank, Content.load_monsters(), 5, rng)
 	queue_redraw()
 
 

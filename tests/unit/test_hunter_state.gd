@@ -861,3 +861,42 @@ func test_current_streak_round_trips_through_dict() -> void:
 func test_from_dict_defaults_current_streak_to_zero() -> void:
 	var restored := HunterState.from_dict({})
 	assert_eq(restored.current_streak, 0)
+
+
+func test_new_default_starts_at_rank_e() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.hunter_rank, "E")
+
+
+func test_pass_assessment_promotes_to_the_next_rank() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var ok := s.pass_assessment("D")
+	assert_true(ok)
+	assert_eq(s.hunter_rank, "D")
+
+
+func test_pass_assessment_rejects_a_skipped_rank() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var ok := s.pass_assessment("C")  # skips D -- must fail
+	assert_false(ok)
+	assert_eq(s.hunter_rank, "E")
+
+
+func test_pass_assessment_rejects_a_lower_or_equal_rank() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.pass_assessment("D")
+	assert_false(s.pass_assessment("D"))
+	assert_false(s.pass_assessment("E"))
+	assert_eq(s.hunter_rank, "D")
+
+
+func test_hunter_rank_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.pass_assessment("D")
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.hunter_rank, "D")
+
+
+func test_from_dict_defaults_hunter_rank_to_e() -> void:
+	var restored := HunterState.from_dict({})
+	assert_eq(restored.hunter_rank, "E")

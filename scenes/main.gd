@@ -62,6 +62,7 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 @onready var character_info_label: Label = $GameUI/CharacterPanel/InfoLabel
 @onready var character_fitness_label: Label = $GameUI/CharacterPanel/FitnessLabel
 @onready var character_health_label: Label = $GameUI/CharacterPanel/HealthStatusLabel
+@onready var character_trial_button: Button = $GameUI/CharacterPanel/TrialButton
 
 
 func _ready() -> void:
@@ -178,6 +179,7 @@ func _setup_gear_panels() -> void:
 			)
 		character_button.pressed.connect(_on_character_button_pressed)
 		$GameUI/CharacterPanel/CloseButton.pressed.connect(_on_character_close_pressed)
+		character_trial_button.pressed.connect(_on_character_trial_pressed)
 
 
 ## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
@@ -239,7 +241,7 @@ func _on_location_permission_result(granted: bool) -> void:
 func _on_location_update(lat: float, lon: float, _accuracy: float, _timestamp_ms: int) -> void:
 	if state == null:
 		return  # subclass not chosen yet
-	map_view.show_position(lat, lon, state.level)
+	map_view.show_position(lat, lon, state.hunter_rank)
 
 
 func _on_health_connect_available(available: bool) -> void:
@@ -321,13 +323,11 @@ func _maybe_apply_daily_exp() -> void:
 	)
 
 
-func _on_enter_gate_pressed() -> void:
-	var idx := map_view.get_nearest_gate_index()
-	if idx < 0:
-		label.text += "\n\nNo gates nearby"
-		return
-	var gate := map_view.get_gate(idx)
-
+## GATE_POWER (§16): personal power + the auto-filled SQUAD's power (not the
+## whole army, unlike raids -- gates weight the squad at GATE_ARMY_WEIGHT).
+## Shared by gates and Rank-Up Assessment Trials, which the source says
+## also "uses GATE_POWER (you + squad)" (§28).
+func _current_gate_power() -> int:
 	var squad := SquadBuilder.auto_fill_squad(
 		state.army, _monsters, state.level, _equipment, state.inventory
 	)
@@ -335,7 +335,17 @@ func _on_enter_gate_pressed() -> void:
 	for member: Dictionary in squad:
 		squad_power += member["power"]
 	var personal := state.personal_power(_equipment)
-	var total_power := GameLogic.gate_power(personal, squad_power)
+	return GameLogic.gate_power(personal, squad_power)
+
+
+func _on_enter_gate_pressed() -> void:
+	var idx := map_view.get_nearest_gate_index()
+	if idx < 0:
+		label.text += "\n\nNo gates nearby"
+		return
+	var gate := map_view.get_gate(idx)
+
+	var total_power := _current_gate_power()
 
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -893,7 +903,6 @@ func _on_character_close_pressed() -> void:
 ## project's UI.
 func _refresh_character_panel() -> void:
 	var stats := state.stats()
-	var rank := GameLogic.rank_for_level(state.level)
 	var exp_needed := GameLogic.exp_to_next(state.level)
 	var pct := 0.0
 	if exp_needed > 0:
@@ -901,15 +910,31 @@ func _refresh_character_panel() -> void:
 	var filled := int(round(pct / 10.0))
 	var bar := "[%s%s] %d%%" % ["=".repeat(filled), "-".repeat(10 - filled), int(pct)]
 
+	# §28: Rank is EARNED (state.hunter_rank), not auto-derived from level.
+	var next_rank := RankAssessment.next_assessment_rank(state.level, state.hunter_rank)
+	var assessment_text: String
+	if next_rank != "":
+		assessment_text = "Assessment available: %s Trial!" % next_rank
+		character_trial_button.disabled = false
+	elif state.hunter_rank == GameLogic.RANK_ORDER[GameLogic.RANK_ORDER.size() - 1]:
+		assessment_text = "Rank maxed (Sovereign)"
+		character_trial_button.disabled = true
+	else:
+		var tier_idx := GameLogic.RANK_ORDER.find(state.hunter_rank) + 1
+		var next_tier: String = GameLogic.RANK_ORDER[tier_idx]
+		var need_level: int = GameLogic.RANK_LEVEL.get(next_tier, 0)
+		assessment_text = "Next Trial (%s) unlocks at Level %d" % [next_tier, need_level]
+		character_trial_button.disabled = true
+
 	character_info_label.text = (
 		(
-			"Necromancer -- %s subclass\nLevel %d   Rank %s\nEXP: %d / %d  %s"
-			+ "\n\nSTR %d  AGI %d  VIT %d  END %d  SEN %d\n\nGATE_POWER: %d"
+			"Necromancer -- %s subclass\nLevel %d   Rank %s (earned)\nEXP: %d / %d  %s"
+			+ "\n\nSTR %d  AGI %d  VIT %d  END %d  SEN %d\n\nGATE_POWER: %d\n\n%s"
 		)
 		% [
 			state.subclass,
 			state.level,
-			rank,
+			state.hunter_rank,
 			state.exp_into_level,
 			exp_needed,
 			bar,
@@ -919,6 +944,7 @@ func _refresh_character_panel() -> void:
 			stats["END"],
 			stats["SEN"],
 			state.personal_power(_equipment),
+			assessment_text,
 		]
 	)
 
@@ -946,6 +972,35 @@ func _refresh_character_panel() -> void:
 	)
 
 	character_health_label.text = "GPS: %s\nHealth Connect: %s" % [_gps_status, _health_status]
+
+
+## Phase 2/P6: attempts the currently-unlocked Rank-Up Assessment Trial
+## (§28). No-op if none is available (button is disabled in that state
+## too, but this guards direct calls). Not claimable -- no CLAIM roll on
+## a clear, unlike gates.
+func _on_character_trial_pressed() -> void:
+	var target_rank := RankAssessment.next_assessment_rank(state.level, state.hunter_rank)
+	if target_rank == "":
+		return
+
+	var gate_power := _current_gate_power()
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var result := RankAssessment.attempt(gate_power, target_rank, _monsters, rng)
+
+	var msg := "\n\n%s Rank Trial: %s" % [target_rank, "PASSED" if result["cleared"] else "FAILED"]
+	if result["cleared"]:
+		state.pass_assessment(target_rank)
+		var reward := RankAssessment.essence_reward(target_rank)
+		state.essence += reward
+		msg += "\nPromoted to Rank %s! +%d Essence" % [target_rank, reward]
+	else:
+		msg += "\nFree retry any time -- train up and come back."
+
+	SaveService.save(state)
+	_refresh_character_panel()
+	_refresh_label()
+	label.text += msg
 
 
 ## Enhances whatever the selected shadow has equipped in `slot`. The item
