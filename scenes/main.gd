@@ -19,6 +19,8 @@ var _equipment: Dictionary
 var _steps: int = -1
 var _workouts_json: String = ""
 var _health_applied := false
+var _gps_status := "Requesting..."  ## Phase 2/P5 step 2: §21's "health connection" status line
+var _health_status := "Requesting..."
 var _hunter_gear_rows: Array = []  ## Array[Dictionary]: {slot, label, equip_btn, unequip_btn}
 var _shadow_gear_rows: Array = []  ## same shape, for whichever shadow is selected
 var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear panel
@@ -55,6 +57,11 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 	Stronghold.TRAINING_YARD: $GameUI/StrongholdPanel/TrainingYardLabel,
 	Stronghold.GATE_WATCH: $GameUI/StrongholdPanel/GateWatchLabel,
 }
+@onready var character_button: Button = $GameUI/CharacterButton
+@onready var character_panel: Node2D = $GameUI/CharacterPanel
+@onready var character_info_label: Label = $GameUI/CharacterPanel/InfoLabel
+@onready var character_fitness_label: Label = $GameUI/CharacterPanel/FitnessLabel
+@onready var character_health_label: Label = $GameUI/CharacterPanel/HealthStatusLabel
 
 
 func _ready() -> void:
@@ -70,6 +77,8 @@ func _ready() -> void:
 		_show_subclass_picker()
 
 	if not Engine.has_singleton("GpsHealthBridge"):
+		_gps_status = "Bridge not found"
+		_health_status = "Bridge not found"
 		label.text += "\n\nGpsHealthBridge singleton not found"
 		return
 	bridge = Engine.get_singleton("GpsHealthBridge")
@@ -167,6 +176,8 @@ func _setup_gear_panels() -> void:
 			$GameUI/StrongholdPanel.get_node(node_prefix + "UpgradeButton").pressed.connect(
 				_on_stronghold_facility_upgrade_pressed.bind(facility_id)
 			)
+		character_button.pressed.connect(_on_character_button_pressed)
+		$GameUI/CharacterPanel/CloseButton.pressed.connect(_on_character_close_pressed)
 
 
 ## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
@@ -218,8 +229,10 @@ func _build_gear_rows(parent: Node2D, y_start: float) -> Array:
 
 func _on_location_permission_result(granted: bool) -> void:
 	if granted:
+		_gps_status = "Linked"
 		bridge.startLocationUpdates()
 	else:
+		_gps_status = "Permission denied"
 		label.text += "\n\nGPS permission denied"
 
 
@@ -231,16 +244,20 @@ func _on_location_update(lat: float, lon: float, _accuracy: float, _timestamp_ms
 
 func _on_health_connect_available(available: bool) -> void:
 	if available:
+		_health_status = "Requesting permissions..."
 		bridge.requestHealthPermissions()
 	else:
+		_health_status = "Health Connect not available"
 		label.text += "\n\nHealth Connect not available"
 
 
 func _on_health_permission_result(granted: bool) -> void:
 	if granted:
+		_health_status = "Linked"
 		bridge.readTodaySteps()
 		bridge.readRecentWorkouts(24)
 	else:
+		_health_status = "Permission denied"
 		label.text += "\n\nHealth permission denied"
 
 
@@ -272,6 +289,8 @@ func _maybe_apply_daily_exp() -> void:
 
 	var exp := DailyExp.exp_for_today(_steps, _workouts_json, state.subclass)
 	var levels_gained := state.add_exp(exp)
+	# Compute the new streak BEFORE mark_exp_applied() overwrites last_exp_date.
+	state.current_streak = DailyExp.next_streak(today, state.last_exp_date, state.current_streak)
 	state.mark_exp_applied(today)
 	SaveService.save(state)
 	_refresh_label()
@@ -837,6 +856,75 @@ func _on_stronghold_collect_pressed() -> void:
 	if not shadow_levels_gained.is_empty():
 		msg += "\n%d shadow(s) leveled up from idle training" % shadow_levels_gained.size()
 	label.text += msg
+
+
+func _on_character_button_pressed() -> void:
+	character_panel.visible = true
+	_refresh_character_panel()
+
+
+func _on_character_close_pressed() -> void:
+	character_panel.visible = false
+
+
+## Phase 2/P5 step 2: the Hunter/character screen (§21). Identity/stats/
+## rank/GATE_POWER + today's fitness breakdown (steps/workout minutes/
+## signature match/streak, reusing DailyExp's existing pure functions on
+## the already-fetched _steps/_workouts_json -- no new state needed) +
+## a persistent health-connection status line. No hunter render/rank-glow
+## art -- text only, same placeholder-art convention as the rest of this
+## project's UI.
+func _refresh_character_panel() -> void:
+	var stats := state.stats()
+	var rank := GameLogic.rank_for_level(state.level)
+	var exp_needed := GameLogic.exp_to_next(state.level)
+	var pct := 0.0
+	if exp_needed > 0:
+		pct = float(state.exp_into_level) / float(exp_needed) * 100.0
+	var filled := int(round(pct / 10.0))
+	var bar := "[%s%s] %d%%" % ["=".repeat(filled), "-".repeat(10 - filled), int(pct)]
+
+	character_info_label.text = (
+		(
+			"Necromancer -- %s subclass\nLevel %d   Rank %s\nEXP: %d / %d  %s"
+			+ "\n\nSTR %d  AGI %d  VIT %d  END %d  SEN %d\n\nGATE_POWER: %d"
+		)
+		% [
+			state.subclass,
+			state.level,
+			rank,
+			state.exp_into_level,
+			exp_needed,
+			bar,
+			stats["STR"],
+			stats["AGI"],
+			stats["VIT"],
+			stats["END"],
+			stats["SEN"],
+			state.personal_power(_equipment),
+		]
+	)
+
+	var workouts := DailyExp.parse_workouts(_workouts_json)
+	var workout_minutes := DailyExp.total_workout_minutes(workouts)
+	var matched := DailyExp.matches_signature_training(workouts, state.subclass)
+	var steps_display := "%d" % _steps if _steps >= 0 else "Fetching..."
+	var today_exp := 0
+	if _steps >= 0 and not _workouts_json.is_empty():
+		today_exp = DailyExp.exp_for_today(_steps, _workouts_json, state.subclass)
+
+	character_fitness_label.text = (
+		"Today: %s steps, %d workout min%s\nEXP earned today: %d\nStreak: %d day(s)"
+		% [
+			steps_display,
+			workout_minutes,
+			"  (1.5x signature!)" if matched else "  (1x)",
+			today_exp,
+			state.current_streak,
+		]
+	)
+
+	character_health_label.text = "GPS: %s\nHealth Connect: %s" % [_gps_status, _health_status]
 
 
 ## Enhances whatever the selected shadow has equipped in `slot`. The item

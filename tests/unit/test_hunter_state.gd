@@ -844,3 +844,20 @@ func test_upgrade_stronghold_cannot_exceed_cap() -> void:
 		s.upgrade_stronghold()
 	assert_eq(s.stronghold_level, Stronghold.STRONGHOLD_LEVEL_CAP)
 	assert_false(s.upgrade_stronghold())
+
+
+func test_new_default_starts_with_no_streak() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.current_streak, 0)
+
+
+func test_current_streak_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.current_streak = 7
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.current_streak, 7)
+
+
+func test_from_dict_defaults_current_streak_to_zero() -> void:
+	var restored := HunterState.from_dict({})
+	assert_eq(restored.current_streak, 0)

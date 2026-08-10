@@ -43,6 +43,9 @@ var stronghold_last_collected: int  ## Unix seconds of the last Stronghold colle
 ## never (set for real by the scene layer on first game start -- new_default() can't call
 ## Time.get_unix_time_from_system(), core stays engine-free). Idle production between this
 ## and "now" (also supplied by the caller) is what Stronghold.accrued() computes.
+var current_streak: int  ## Phase 2/P5 step 1: consecutive days with daily EXP applied (§21).
+## Updated via DailyExp.next_streak() using the OLD last_exp_date, right before
+## mark_exp_applied(today) overwrites it -- see scenes/main.gd's daily-EXP flow.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -61,6 +64,7 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.stronghold_level = 1
 	s.stronghold_facilities = _default_facilities()
 	s.stronghold_last_collected = 0
+	s.current_streak = 0
 	return s
 
 
@@ -562,6 +566,7 @@ func to_dict() -> Dictionary:
 		"stronghold_level": stronghold_level,
 		"stronghold_facilities": stronghold_facilities,
 		"stronghold_last_collected": stronghold_last_collected,
+		"current_streak": current_streak,
 	}
 
 
@@ -581,6 +586,7 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.stronghold_level = int(d.get("stronghold_level", 1))
 	s.stronghold_facilities = d.get("stronghold_facilities", _default_facilities())
 	s.stronghold_last_collected = int(d.get("stronghold_last_collected", 0))
+	s.current_streak = int(d.get("current_streak", 0))
 	return s
 
 

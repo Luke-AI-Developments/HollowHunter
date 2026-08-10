@@ -119,6 +119,14 @@ offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Stronghold"
 
+[node name="CharacterButton" type="Button" parent="GameUI"]
+offset_left = 980.0
+offset_top = 370.0
+offset_right = 1140.0
+offset_bottom = 410.0
+theme_override_font_sizes/font_size = 18
+text = "Character"
+
 [node name="ArmyLabel" type="Label" parent="GameUI"]
 offset_left = 40.0
 offset_top = 420.0
@@ -466,3 +474,53 @@ offset_right = 1440.0
 offset_bottom = 480.0
 theme_override_font_sizes/font_size = 18
 text = "Upgrade"
+
+[node name="CharacterPanel" type="Node2D" parent="GameUI"]
+visible = false
+
+[node name="Bg" type="ColorRect" parent="GameUI/CharacterPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.05, 0.05, 0.05, 0.95)
+
+[node name="Title" type="Label" parent="GameUI/CharacterPanel"]
+offset_left = 40.0
+offset_top = 30.0
+offset_right = 1800.0
+offset_bottom = 80.0
+theme_override_font_sizes/font_size = 28
+text = "Hunter"
+
+[node name="CloseButton" type="Button" parent="GameUI/CharacterPanel"]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 180.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Close"
+
+[node name="InfoLabel" type="Label" parent="GameUI/CharacterPanel"]
+offset_left = 40.0
+offset_top = 170.0
+offset_right = 1400.0
+offset_bottom = 520.0
+theme_override_font_sizes/font_size = 22
+text = "Identity"
+
+[node name="FitnessLabel" type="Label" parent="GameUI/CharacterPanel"]
+offset_left = 40.0
+offset_top = 540.0
+offset_right = 1400.0
+offset_bottom = 780.0
+theme_override_font_sizes/font_size = 22
+text = "Today's fitness"
+
+[node name="HealthStatusLabel" type="Label" parent="GameUI/CharacterPanel"]
+offset_left = 40.0
+offset_top = 800.0
+offset_right = 1400.0
+offset_bottom = 900.0
+theme_override_font_sizes/font_size = 20
+text = "Health connection"

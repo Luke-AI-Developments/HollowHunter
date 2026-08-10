@@ -70,3 +70,23 @@ func test_exp_for_today_no_match_uses_1x_multiplier() -> void:
 func test_exp_for_today_with_no_workouts_is_steps_only() -> void:
 	var exp := DailyExp.exp_for_today(8000, "[]", "WARRIOR")
 	assert_eq(exp, GameLogic.daily_exp(8000, 0, 0, false))
+
+
+func test_next_streak_first_day_ever_is_1() -> void:
+	assert_eq(DailyExp.next_streak("2026-08-08", "", 0), 1)
+
+
+func test_next_streak_consecutive_day_increments() -> void:
+	assert_eq(DailyExp.next_streak("2026-08-08", "2026-08-07", 5), 6)
+
+
+func test_next_streak_gap_resets_to_1() -> void:
+	assert_eq(DailyExp.next_streak("2026-08-08", "2026-08-05", 12), 1)
+
+
+func test_next_streak_same_day_is_unchanged() -> void:
+	assert_eq(DailyExp.next_streak("2026-08-08", "2026-08-08", 4), 4)
+
+
+func test_next_streak_crosses_a_month_boundary() -> void:
+	assert_eq(DailyExp.next_streak("2026-09-01", "2026-08-31", 3), 4)

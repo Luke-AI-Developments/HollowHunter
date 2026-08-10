@@ -77,3 +77,25 @@ static func exp_for_today(
 	var workout_minutes := total_workout_minutes(workouts)
 	var matches := matches_signature_training(workouts, subclass)
 	return GameLogic.daily_exp(steps, active_minutes, workout_minutes, matches)
+
+
+## Phase 2/P5 step 1: the hunter screen's "streak" (§21's "the motivating
+## core"). Standard consecutive-day counter, same mechanic as any habit
+## app -- not an invented number so much as an obvious implementation of
+## an unambiguous concept. `today`/`last_exp_date` are "YYYY-MM-DD"
+## device-local dates, same convention as HunterState.last_exp_date;
+## `current_streak` is the value BEFORE today's grant. Call with the OLD
+## last_exp_date, before HunterState.mark_exp_applied(today) overwrites it.
+static func next_streak(today: String, last_exp_date: String, current_streak: int) -> int:
+	if last_exp_date == "":
+		return 1  # first day ever
+	if last_exp_date == today:
+		return current_streak  # already counted today (shouldn't happen given the daily guard)
+	if last_exp_date == _date_minus_one_day(today):
+		return current_streak + 1  # consecutive day
+	return 1  # gap -- streak resets
+
+
+static func _date_minus_one_day(date_str: String) -> String:
+	var unix_time := Time.get_unix_time_from_datetime_string(date_str + " 00:00:00")
+	return Time.get_date_string_from_unix_time(int(unix_time) - 86400)
