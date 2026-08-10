@@ -47,6 +47,14 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 @onready var nadir_panel: Node2D = $GameUI/NadirPanel
 @onready var nadir_info_label: Label = $GameUI/NadirPanel/InfoLabel
 @onready var nadir_take_on_button: Button = $GameUI/NadirPanel/TakeOnButton
+@onready var stronghold_button: Button = $GameUI/StrongholdButton
+@onready var stronghold_panel: Node2D = $GameUI/StrongholdPanel
+@onready var stronghold_info_label: Label = $GameUI/StrongholdPanel/InfoLabel
+@onready var stronghold_facility_labels: Dictionary = {
+	Stronghold.RELIQUARY: $GameUI/StrongholdPanel/ReliquaryLabel,
+	Stronghold.TRAINING_YARD: $GameUI/StrongholdPanel/TrainingYardLabel,
+	Stronghold.GATE_WATCH: $GameUI/StrongholdPanel/GateWatchLabel,
+}
 
 
 func _ready() -> void:
@@ -142,6 +150,23 @@ func _setup_gear_panels() -> void:
 		nadir_button.pressed.connect(_on_nadir_button_pressed)
 		$GameUI/NadirPanel/CloseButton.pressed.connect(_on_nadir_close_pressed)
 		nadir_take_on_button.pressed.connect(_on_nadir_take_on_pressed)
+		stronghold_button.pressed.connect(_on_stronghold_button_pressed)
+		$GameUI/StrongholdPanel/CloseButton.pressed.connect(_on_stronghold_close_pressed)
+		$GameUI/StrongholdPanel/CollectButton.pressed.connect(_on_stronghold_collect_pressed)
+		$GameUI/StrongholdPanel/UpgradeStrongholdButton.pressed.connect(
+			_on_stronghold_upgrade_pressed
+		)
+		for facility_id in Stronghold.FACILITY_IDS:
+			var node_prefix := _stronghold_node_prefix(facility_id)
+			$GameUI/StrongholdPanel.get_node(node_prefix + "AssignButton").pressed.connect(
+				_on_stronghold_assign_pressed.bind(facility_id)
+			)
+			$GameUI/StrongholdPanel.get_node(node_prefix + "UnassignButton").pressed.connect(
+				_on_stronghold_unassign_pressed.bind(facility_id)
+			)
+			$GameUI/StrongholdPanel.get_node(node_prefix + "UpgradeButton").pressed.connect(
+				_on_stronghold_facility_upgrade_pressed.bind(facility_id)
+			)
 
 
 ## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
@@ -706,6 +731,111 @@ func _on_nadir_take_on_pressed() -> void:
 	_refresh_army_label()
 	_refresh_inventory_label()
 	_refresh_label()
+	label.text += msg
+
+
+## Phase 2/P4 step 5: Stronghold panel (§22). Node names for each facility
+## follow "<Prefix><Suffix>Button" (e.g. ReliquaryAssignButton) -- this maps
+## a facility id to its prefix once instead of a lookup table per button.
+func _stronghold_node_prefix(facility_id: String) -> String:
+	match facility_id:
+		Stronghold.RELIQUARY:
+			return "Reliquary"
+		Stronghold.TRAINING_YARD:
+			return "TrainingYard"
+		Stronghold.GATE_WATCH:
+			return "GateWatch"
+	return ""
+
+
+func _on_stronghold_button_pressed() -> void:
+	if state.stronghold_last_collected == 0:
+		state.stronghold_last_collected = Time.get_unix_time_from_system()
+	stronghold_panel.visible = true
+	_refresh_stronghold_panel()
+
+
+func _on_stronghold_close_pressed() -> void:
+	stronghold_panel.visible = false
+
+
+func _refresh_stronghold_panel() -> void:
+	stronghold_info_label.text = (
+		"Stronghold Lv%d/%d -- Army roster: %d/%d"
+		% [
+			state.stronghold_level,
+			Stronghold.STRONGHOLD_LEVEL_CAP,
+			state.army.size(),
+			Stronghold.army_capacity(state.stronghold_level),
+		]
+	)
+	for facility_id in Stronghold.FACILITY_IDS:
+		var facility: Dictionary = state.stronghold_facilities[facility_id]
+		var level: int = facility["level"]
+		var assigned: Array = facility["assigned"]
+		stronghold_facility_labels[facility_id].text = (
+			"%s Lv%d/%d (%d/%d slots)"
+			% [
+				_stronghold_node_prefix(facility_id),
+				level,
+				Stronghold.FACILITY_LEVEL_CAP,
+				assigned.size(),
+				Stronghold.slots_for_level(level),
+			]
+		)
+
+
+## Assigns the first owned shadow not already busy elsewhere. No picker UI
+## for choosing a specific shadow -- same auto-pick convention as
+## Equip Best/Fuse Duplicate elsewhere in this project.
+func _on_stronghold_assign_pressed(facility_id: String) -> void:
+	for shadow: Dictionary in state.army:
+		var shadow_id: String = shadow["instance_id"]
+		if not state.is_shadow_assigned(shadow_id):
+			if state.assign_shadow_to_facility(facility_id, shadow_id):
+				SaveService.save(state)
+				_refresh_stronghold_panel()
+			return
+
+
+func _on_stronghold_unassign_pressed(facility_id: String) -> void:
+	var assigned: Array = state.stronghold_facilities[facility_id]["assigned"].duplicate()
+	for shadow_id in assigned:
+		state.unassign_shadow(shadow_id)
+	SaveService.save(state)
+	_refresh_stronghold_panel()
+
+
+func _on_stronghold_facility_upgrade_pressed(facility_id: String) -> void:
+	state.upgrade_facility(facility_id)
+	SaveService.save(state)
+	_refresh_stronghold_panel()
+	_refresh_label()
+
+
+func _on_stronghold_upgrade_pressed() -> void:
+	state.upgrade_stronghold()
+	SaveService.save(state)
+	_refresh_stronghold_panel()
+	_refresh_label()
+
+
+## Collects everything accrued since the last visit, banking Essence/
+## tickets and applying Training Yard level-ups, then shows a summary.
+func _on_stronghold_collect_pressed() -> void:
+	var result := state.collect_stronghold(Time.get_unix_time_from_system())
+	SaveService.save(state)
+	_refresh_stronghold_panel()
+	_refresh_army_label()
+	_refresh_label()
+
+	var msg := (
+		"\n\nStronghold collected: +%d Essence, +%d Gate Tickets"
+		% [result["essence_gained"], result["tickets_gained"]]
+	)
+	var shadow_levels_gained: Dictionary = result["shadow_levels_gained"]
+	if not shadow_levels_gained.is_empty():
+		msg += "\n%d shadow(s) leveled up from idle training" % shadow_levels_gained.size()
 	label.text += msg
 
 
