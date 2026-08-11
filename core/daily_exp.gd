@@ -69,14 +69,20 @@ static func matches_signature_training(workouts: Array, subclass: String) -> boo
 
 ## The wiring point: real steps + the plugin's raw workouts JSON + subclass
 ## -> GameLogic.daily_exp(). active_minutes defaults to 0 (see limitation
-## above); pass it explicitly once/if a real source exists.
+## above); pass it explicitly once/if a real source exists. `rest_bonus`
+## passes straight through to GameLogic.daily_exp() -- see
+## rest_bonus_applies() below for how a caller decides it.
 static func exp_for_today(
-	steps: int, workouts_json: String, subclass: String, active_minutes: int = 0
+	steps: int,
+	workouts_json: String,
+	subclass: String,
+	active_minutes: int = 0,
+	rest_bonus: bool = false
 ) -> int:
 	var workouts := parse_workouts(workouts_json)
 	var workout_minutes := total_workout_minutes(workouts)
 	var matches := matches_signature_training(workouts, subclass)
-	return GameLogic.daily_exp(steps, active_minutes, workout_minutes, matches)
+	return GameLogic.daily_exp(steps, active_minutes, workout_minutes, matches, rest_bonus)
 
 
 ## Phase 2/P5 step 1: the hunter screen's "streak" (§21's "the motivating
@@ -99,3 +105,20 @@ static func next_streak(today: String, last_exp_date: String, current_streak: in
 static func _date_minus_one_day(date_str: String) -> String:
 	var unix_time := Time.get_unix_time_from_datetime_string(date_str + " 00:00:00")
 	return Time.get_date_string_from_unix_time(int(unix_time) - 86400)
+
+
+## Phase 2/P10: whether today's EXP grant should get the rest-day bonus
+## (§4/§27 "reward recovery") -- true when there's a genuine gap since the
+## last day EXP was banked (not "", not today, not yesterday). Same
+## day-math as next_streak()'s reset case, checked independently since a
+## streak reset and a rest bonus are different concerns that happen to
+## share a condition today. Approximation, flagged: this reads "no EXP
+## banked yesterday" from save data, which conflates "genuinely rested"
+## with "didn't open the app" -- verifying real rest would need querying
+## Health Connect for a specific PAST day, which the native plugin doesn't
+## support (it only reads today's steps + a rolling 24h workout window).
+## Call with the OLD last_exp_date, same convention as next_streak().
+static func rest_bonus_applies(today: String, last_exp_date: String) -> bool:
+	if last_exp_date == "" or last_exp_date == today:
+		return false
+	return last_exp_date != _date_minus_one_day(today)

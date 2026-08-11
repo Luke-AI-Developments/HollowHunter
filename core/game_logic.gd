@@ -20,6 +20,14 @@ const STAT_POINTS_PER_LEVEL := 25
 const CLASS_EXP_MULT := 1.5
 const CLEAR_K := 3  # swinginess of the clear check
 
+# --- §4/§27 wellbeing guardrails: invented v0 numbers -- the source calls
+# for "a daily EXP soft-cap / diminishing returns so marathoners don't
+# break the curve" and a "rest-day bonus" but gives no numbers for
+# either. ---
+const DAILY_EXP_SOFT_CAP := 600  # full rate up to here (~a solid matched workout day)
+const DAILY_EXP_TAPER_RATE := 0.3  # EXP above the cap counts at 30% instead of 100%
+const REST_BONUS_MULT := 1.15  # +15% on a day that follows a genuine gap in banked EXP
+
 # --- Class stat profiles (§16): share of stat points per class ---
 const CLASS_PROFILES := {
 	"WARRIOR": {"STR": 0.40, "AGI": 0.10, "VIT": 0.25, "END": 0.15, "SEN": 0.10},
@@ -57,12 +65,25 @@ static func exp_to_next(level: int) -> int:
 	return 100 * level
 
 
-# --- Workout -> EXP (§4). 1.5x on workout minutes if it matches your subclass ---
+# --- Workout -> EXP (§4). 1.5x on workout minutes if it matches your
+# subclass, a soft cap/taper above DAILY_EXP_SOFT_CAP (§4's "marathoners
+# don't break the curve" guardrail), and an optional rest-day bonus
+# (§4/§27's "reward recovery") applied to the capped total. ---
 static func daily_exp(
-	steps: int, active_minutes: int, workout_minutes: int, workout_matches_class: bool
+	steps: int,
+	active_minutes: int,
+	workout_minutes: int,
+	workout_matches_class: bool,
+	rest_bonus: bool = false
 ) -> int:
 	var mult := CLASS_EXP_MULT if workout_matches_class else 1.0
-	return int(round(steps / 100.0 + active_minutes * 5.0 + workout_minutes * 10.0 * mult))
+	var raw := steps / 100.0 + active_minutes * 5.0 + workout_minutes * 10.0 * mult
+	var capped := raw
+	if raw > DAILY_EXP_SOFT_CAP:
+		capped = DAILY_EXP_SOFT_CAP + (raw - DAILY_EXP_SOFT_CAP) * DAILY_EXP_TAPER_RATE
+	if rest_bonus:
+		capped *= REST_BONUS_MULT
+	return int(round(capped))
 
 
 # --- Stats derived from level x class (§3/§16) ---

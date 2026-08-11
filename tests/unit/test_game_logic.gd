@@ -67,6 +67,34 @@ func test_daily_exp_signature_bonus():
 	assert_true(matched > plain)
 
 
+func test_daily_exp_below_soft_cap_is_unaffected() -> void:
+	# Below GameLogic.DAILY_EXP_SOFT_CAP, the taper never kicks in --
+	# same result as the raw formula.
+	var exp := GameLogic.daily_exp(2000, 0, 20, false)
+	var raw := int(round(2000 / 100.0 + 20 * 10.0))
+	assert_eq(exp, raw)
+
+
+func test_daily_exp_above_soft_cap_is_tapered() -> void:
+	# A big day (way above the cap) should score much less than the raw
+	# linear formula would give, but still more than the cap itself.
+	var raw := 2000 / 100.0 + 300 * 10.0  # a 300-workout-minute day
+	var capped := GameLogic.daily_exp(2000, 0, 300, false)
+	assert_true(capped < raw)
+	assert_true(capped > GameLogic.DAILY_EXP_SOFT_CAP)
+
+
+func test_daily_exp_taper_never_reduces_a_huge_day_below_the_cap() -> void:
+	var exp := GameLogic.daily_exp(100000, 0, 1000, false)
+	assert_true(exp >= GameLogic.DAILY_EXP_SOFT_CAP)
+
+
+func test_daily_exp_rest_bonus_scales_up_the_final_total() -> void:
+	var plain := GameLogic.daily_exp(2000, 0, 20, false, false)
+	var rested := GameLogic.daily_exp(2000, 0, 20, false, true)
+	assert_eq(rested, int(round(plain * GameLogic.REST_BONUS_MULT)))
+
+
 func test_rank_for_level():
 	assert_eq(GameLogic.rank_for_level(1), "E")
 	assert_eq(GameLogic.rank_for_level(5), "D")

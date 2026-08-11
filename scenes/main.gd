@@ -316,7 +316,11 @@ func _maybe_apply_daily_exp() -> void:
 		print("PHASE1: daily EXP already applied for %s, skipping" % today)
 		return
 
-	var exp := DailyExp.exp_for_today(_steps, _workouts_json, state.subclass)
+	# Phase 2/P10: rest-day bonus (§4/§27) -- computed from the OLD
+	# last_exp_date, same "before mark_exp_applied() overwrites it"
+	# requirement as next_streak() below.
+	var rest_bonus := DailyExp.rest_bonus_applies(today, state.last_exp_date)
+	var exp := DailyExp.exp_for_today(_steps, _workouts_json, state.subclass, 0, rest_bonus)
 	var levels_gained := state.add_exp(exp)
 	# Code-review fix: next_streak() is a pure "is this the next calendar
 	# day" check -- it doesn't know about exp, so a 0-steps/0-workouts day
@@ -333,6 +337,10 @@ func _maybe_apply_daily_exp() -> void:
 	state.mark_exp_applied(today)
 	SaveService.save(state)
 	_refresh_label()
+	if rest_bonus:
+		# Positive, non-comparative framing (§27) -- a welcome-back note,
+		# not a "you fell behind" one.
+		label.text += "\n\nWelcome back -- rest bonus applied to today's EXP!"
 	if levels_gained > 0:
 		label.text += "\n\nLEVEL UP! (+%d)" % levels_gained
 	print(

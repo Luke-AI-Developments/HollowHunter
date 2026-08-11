@@ -90,3 +90,25 @@ func test_next_streak_same_day_is_unchanged() -> void:
 
 func test_next_streak_crosses_a_month_boundary() -> void:
 	assert_eq(DailyExp.next_streak("2026-09-01", "2026-08-31", 3), 4)
+
+
+func test_rest_bonus_applies_after_a_genuine_gap() -> void:
+	assert_true(DailyExp.rest_bonus_applies("2026-08-08", "2026-08-05"))
+
+
+func test_rest_bonus_does_not_apply_on_the_first_day_ever() -> void:
+	assert_false(DailyExp.rest_bonus_applies("2026-08-08", ""))
+
+
+func test_rest_bonus_does_not_apply_for_consecutive_days() -> void:
+	assert_false(DailyExp.rest_bonus_applies("2026-08-08", "2026-08-07"))
+
+
+func test_rest_bonus_does_not_apply_for_the_same_day() -> void:
+	assert_false(DailyExp.rest_bonus_applies("2026-08-08", "2026-08-08"))
+
+
+func test_exp_for_today_passes_rest_bonus_through() -> void:
+	var without_bonus := DailyExp.exp_for_today(2000, "[]", "WARRIOR", 0, false)
+	var with_bonus := DailyExp.exp_for_today(2000, "[]", "WARRIOR", 0, true)
+	assert_eq(with_bonus, int(round(without_bonus * GameLogic.REST_BONUS_MULT)))
