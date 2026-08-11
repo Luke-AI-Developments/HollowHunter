@@ -26,3 +26,7 @@ Thumbs.db
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Dev media captures (screenshots/recordings from live device verification) --
+# binary, build-in-public content for the user, not project source. Local only.
+devmedia/
