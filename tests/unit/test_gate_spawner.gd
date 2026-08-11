@@ -63,3 +63,38 @@ func test_spawn_gates_each_has_a_real_monster() -> void:
 	for g: Dictionary in gates:
 		assert_ne(g["monster_id"], "")
 		assert_true(g["monster_base_power"] > 0)
+
+
+func test_spawn_ticket_gate_is_placed_exactly_at_the_given_coords() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	var gate := GateSpawner.spawn_ticket_gate(51.5, -0.1, "E", monsters, rng)
+	assert_eq(gate["lat"], 51.5)
+	assert_eq(gate["lon"], -0.1)
+
+
+func test_spawn_ticket_gate_uses_the_rank_appropriate_pool() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2
+	var pool := GateSpawner.rank_pool_for_rank("C")
+	for i in 10:
+		var gate := GateSpawner.spawn_ticket_gate(51.5, -0.1, "C", monsters, rng)
+		assert_true(pool.has(gate["rank"]))
+
+
+func test_spawn_ticket_gate_has_a_real_monster() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var gate := GateSpawner.spawn_ticket_gate(51.5, -0.1, "E", monsters, rng)
+	assert_ne(gate["monster_id"], "")
+	assert_true(gate["monster_base_power"] > 0)
+
+
+func test_spawn_ticket_gate_deterministic_with_same_seed() -> void:
+	var rng_a := RandomNumberGenerator.new()
+	rng_a.seed = 42
+	var rng_b := RandomNumberGenerator.new()
+	rng_b.seed = 42
+	var gate_a := GateSpawner.spawn_ticket_gate(51.5, -0.1, "C", monsters, rng_a)
+	var gate_b := GateSpawner.spawn_ticket_gate(51.5, -0.1, "C", monsters, rng_b)
+	assert_eq(gate_a, gate_b)

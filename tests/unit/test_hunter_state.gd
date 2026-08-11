@@ -900,3 +900,19 @@ func test_hunter_rank_round_trips_through_dict() -> void:
 func test_from_dict_defaults_hunter_rank_to_e() -> void:
 	var restored := HunterState.from_dict({})
 	assert_eq(restored.hunter_rank, "E")
+
+
+func test_spend_gate_ticket_decrements_when_available() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.gate_tickets = 2
+	var ok := s.spend_gate_ticket()
+	assert_true(ok)
+	assert_eq(s.gate_tickets, 1)
+
+
+func test_spend_gate_ticket_fails_when_none_held() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.gate_tickets, 0)
+	var ok := s.spend_gate_ticket()
+	assert_false(ok)
+	assert_eq(s.gate_tickets, 0)

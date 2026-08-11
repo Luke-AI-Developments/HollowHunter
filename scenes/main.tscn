@@ -127,6 +127,14 @@ offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Character"
 
+[node name="UseTicketButton" type="Button" parent="GameUI"]
+offset_left = 1160.0
+offset_top = 370.0
+offset_right = 1320.0
+offset_bottom = 410.0
+theme_override_font_sizes/font_size = 18
+text = "Use Ticket"
+
 [node name="ArmyLabel" type="Label" parent="GameUI"]
 offset_left = 40.0
 offset_top = 420.0

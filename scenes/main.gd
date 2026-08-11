@@ -24,6 +24,9 @@ var _health_status := "Requesting..."
 var _hunter_gear_rows: Array = []  ## Array[Dictionary]: {slot, label, equip_btn, unequip_btn}
 var _shadow_gear_rows: Array = []  ## same shape, for whichever shadow is selected
 var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear panel
+var _has_location := false  ## Phase 2/P7 step 1: whether _last_lat/_last_lon are real yet
+var _last_lat: float = 0.0  ## most recent GPS fix -- §8a's ticket gate spawns "where you are"
+var _last_lon: float = 0.0
 
 @onready var subclass_picker: Node2D = $SubclassPicker
 @onready var game_ui: Node2D = $GameUI
@@ -63,6 +66,7 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 @onready var character_fitness_label: Label = $GameUI/CharacterPanel/FitnessLabel
 @onready var character_health_label: Label = $GameUI/CharacterPanel/HealthStatusLabel
 @onready var character_trial_button: Button = $GameUI/CharacterPanel/TrialButton
+@onready var use_ticket_button: Button = $GameUI/UseTicketButton
 
 
 func _ready() -> void:
@@ -180,6 +184,7 @@ func _setup_gear_panels() -> void:
 		character_button.pressed.connect(_on_character_button_pressed)
 		$GameUI/CharacterPanel/CloseButton.pressed.connect(_on_character_close_pressed)
 		character_trial_button.pressed.connect(_on_character_trial_pressed)
+		use_ticket_button.pressed.connect(_on_use_ticket_pressed)
 
 
 ## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
@@ -239,6 +244,12 @@ func _on_location_permission_result(granted: bool) -> void:
 
 
 func _on_location_update(lat: float, lon: float, _accuracy: float, _timestamp_ms: int) -> void:
+	# Phase 2/P7 step 1: cached for the ticket gate (§8a "at your current
+	# location") -- separate from map_view, which only tracks the position
+	# for its own rendering.
+	_has_location = true
+	_last_lat = lat
+	_last_lon = lon
 	if state == null:
 		return  # subclass not chosen yet
 	map_view.show_position(lat, lon, state.hunter_rank)
@@ -338,19 +349,16 @@ func _current_gate_power() -> int:
 	return GameLogic.gate_power(personal, squad_power)
 
 
-func _on_enter_gate_pressed() -> void:
-	var idx := map_view.get_nearest_gate_index()
-	if idx < 0:
-		label.text += "\n\nNo gates nearby"
-		return
-	var gate := map_view.get_gate(idx)
-
+## Runs the fight + rewards for any already-spawned gate dict (map gate or
+## ticket gate, same shape either way) -- CLAIM/loot/Essence rolls, saves,
+## refreshes the army/inventory/main labels, and returns the result text to
+## append to `label`. Extracted from _on_enter_gate_pressed (Phase 2/P7 step
+## 1) so the new ticket gate (§8a) doesn't duplicate this whole flow.
+func _resolve_gate(gate: Dictionary) -> String:
 	var total_power := _current_gate_power()
-
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var result := GateEncounter.run(total_power, gate, state.level, rng)
-	map_view.remove_gate(idx)
 
 	var msg := (
 		"\n\n%s gate (%s): %s"
@@ -377,13 +385,50 @@ func _on_enter_gate_pressed() -> void:
 	_refresh_label()
 	_refresh_army_label()
 	_refresh_inventory_label()
-	label.text += msg
 	print(
 		(
 			"PHASE1_GATE: rank=%s rounds=%s cleared=%s claimed=%s"
 			% [gate["rank"], result["rounds"], result["cleared"], result["claimed"]]
 		)
 	)
+	return msg
+
+
+func _on_enter_gate_pressed() -> void:
+	var idx := map_view.get_nearest_gate_index()
+	if idx < 0:
+		label.text += "\n\nNo gates nearby"
+		return
+	var gate := map_view.get_gate(idx)
+	map_view.remove_gate(idx)
+	label.text += _resolve_gate(gate)
+
+
+## Phase 2/P7 step 1: spends a gate ticket to open a gate right where the
+## hunter is standing, no walking required (§8a). No-op with a status
+## message (no error UI elsewhere in this project either) if there's no
+## ticket to spend or no GPS fix yet to place it at.
+func _on_use_ticket_pressed() -> void:
+	if not _has_location:
+		label.text += "\n\nNo GPS fix yet -- can't place a ticket gate"
+		return
+	if not state.spend_gate_ticket():
+		label.text += "\n\nNo gate tickets"
+		return
+
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var gate := GateSpawner.spawn_ticket_gate(
+		_last_lat, _last_lon, state.hunter_rank, _monsters, rng
+	)
+	if gate.is_empty():
+		# Content has no monster anywhere in the rank pool -- shouldn't
+		# happen with the real monsters.json, but refund rather than eat
+		# the ticket on a gate that can't exist.
+		state.gate_tickets += 1
+		label.text += "\n\nTicket gate failed to spawn -- ticket refunded"
+		return
+	label.text += "\n\n[Ticket]" + _resolve_gate(gate)
 
 
 func _refresh_army_label() -> void:

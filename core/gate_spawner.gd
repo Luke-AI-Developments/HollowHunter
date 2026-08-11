@@ -63,6 +63,39 @@ static func spawn_gates(
 	return gates
 
 
+## Phase 2/P7 step 1: a single gate for a spent ticket (§8a "instantly open
+## a gate at your current location -- no walking"), placed exactly at
+## `lat`/`lon` (no scatter offset, unlike spawn_gates -- a ticket gate IS
+## "where you are", not a nearby placeholder to walk to). Rolls a rank from
+## the same ±1-of-earned-rank pool as normal map spawns ("the ticketed
+## gate's rank scales around your level" -- rank pool already scales on the
+## hunter's earned rank here, consistent with every other gate on the map).
+## Returns {} if content has no monster anywhere in that pool (falls
+## through the whole pool before giving up, unlike spawn_gates() which just
+## skips one slot in a batch -- a ticket can't silently produce nothing).
+static func spawn_ticket_gate(
+	lat: float, lon: float, hunter_rank: String, monsters: Array, rng: RandomNumberGenerator = null
+) -> Dictionary:
+	var pool := rank_pool_for_rank(hunter_rank)
+	var rolled: String = pool[_rand_index(pool.size(), rng)]
+	var ordered_ranks := [rolled] + pool.filter(func(r: String) -> bool: return r != rolled)
+	for rank: String in ordered_ranks:
+		var candidates := Content.monsters_by_rank(monsters, rank)
+		if candidates.is_empty():
+			continue
+		var monster: Dictionary = candidates[_rand_index(candidates.size(), rng)]
+		return {
+			"rank": rank,
+			"lat": lat,
+			"lon": lon,
+			"monster_id": monster.get("id", ""),
+			"monster_name": monster.get("name", ""),
+			"monster_base_power": monster.get("base_power", 0),
+			"monster_extract_chance": monster.get("extract_chance", 0.0),
+		}
+	return {}
+
+
 static func _rand_index(size: int, rng: RandomNumberGenerator) -> int:
 	var f := rng.randf() if rng else randf()
 	return min(int(f * size), size - 1)

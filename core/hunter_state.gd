@@ -573,6 +573,17 @@ func pass_assessment(target_rank: String) -> bool:
 	return true
 
 
+## Phase 2/P7 step 1: spends one gate ticket (§8a "single-use ticket... to
+## instantly open a gate"). False (no change) if none are held -- caller
+## gates the actual gate spawn/encounter on this returning true, same
+## pattern as the Essence-spending methods above (enhance_item et al.).
+func spend_gate_ticket() -> bool:
+	if gate_tickets <= 0:
+		return false
+	gate_tickets -= 1
+	return true
+
+
 func to_dict() -> Dictionary:
 	return {
 		"level": level,
