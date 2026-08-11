@@ -30,6 +30,9 @@ var _last_lon: float = 0.0
 var _pending_break_gate: Dictionary = {}  ## Phase 2/P8: the offered-but-not-yet-answered §8b gate
 
 @onready var subclass_picker: Node2D = $SubclassPicker
+@onready var subclass_title_label: Label = $SubclassPicker/TitleLabel
+@onready var welcome_label: Label = $SubclassPicker/WelcomeLabel
+@onready var continue_button: Button = $SubclassPicker/ContinueButton
 @onready var game_ui: Node2D = $GameUI
 @onready var label: Label = $GameUI/Label
 @onready var map_view: MapView = $GameUI/MapView
@@ -79,7 +82,13 @@ func _ready() -> void:
 	_monsters = Content.load_monsters()
 	_equipment = Content.load_equipment()
 
-	if FileAccess.file_exists(SaveService.SAVE_PATH):
+	# Phase 2/P10: whether GPS/Health permissions get requested below THIS
+	# _ready() call, or deferred until after onboarding (§25 -- "value
+	# before permissions"). Captured before load_or_create() below, which
+	# would otherwise make the file "exist" even for a brand-new hunter.
+	var is_new_hunter := not FileAccess.file_exists(SaveService.SAVE_PATH)
+
+	if not is_new_hunter:
 		state = SaveService.load_or_create()
 		subclass_picker.visible = false
 		game_ui.visible = true
@@ -101,6 +110,10 @@ func _ready() -> void:
 	bridge.steps_result.connect(_on_steps_result)
 	bridge.workouts_result.connect(_on_workouts_result)
 
+	if is_new_hunter:
+		# Deferred to _on_onboarding_continue_pressed(), after the guided
+		# first gate/CLAIM (§25 step 5 comes after step 4, not before it).
+		return
 	bridge.requestLocationPermission()
 	bridge.checkHealthConnectAvailable()
 
@@ -113,13 +126,53 @@ func _show_subclass_picker() -> void:
 	for clazz in CLASSES:
 		var button: Button = subclass_picker.get_node("%sButton" % clazz.capitalize())
 		button.pressed.connect(_on_subclass_chosen.bind(clazz))
+	continue_button.pressed.connect(_on_onboarding_continue_pressed)
 
 
+## Phase 2/P10: §25 steps 3-4 -- a free starter shadow, then a scripted,
+## guaranteed-win first gate/CLAIM, BEFORE _start_game() or any
+## permission request (those wait for _on_onboarding_continue_pressed()).
+## Reuses the SubclassPicker screen (WelcomeLabel/ContinueButton) rather
+## than a new panel -- same "one screen, swap its content" pattern as
+## nothing-new-to-build-here.
 func _on_subclass_chosen(subclass: String) -> void:
 	state = SaveService.load_or_create(subclass)
+
+	var starter_id := Onboarding.starter_monster_id(subclass, _monsters)
+	state.claim_shadow(starter_id, "E")
+	var starter_name: String = Content.monster_by_id(_monsters, starter_id).get("name", "")
+
+	var gate_monster_id := Onboarding.guided_gate_monster_id(starter_id, _monsters)
+	var result := Onboarding.resolve_guided_gate(gate_monster_id, _monsters)
+	state.claim_shadow(result["monster_id"], "E")
+	SaveService.save(state)
+
+	for clazz in CLASSES:
+		subclass_picker.get_node("%sButton" % clazz.capitalize()).visible = false
+	subclass_title_label.visible = false
+	welcome_label.visible = true
+	continue_button.visible = true
+	welcome_label.text = (
+		(
+			"Welcome, %s hunter.\n\n%s joins you as your first shadow.\n\n"
+			+ "A weak gate ruptures nearby -- you clear it and CLAIM %s!\n\n"
+			+ "Your real workouts and steps level up your hunter from here."
+			+ " Your health data stays on your device and is never sold or shared."
+		)
+		% [subclass, starter_name, result["monster_name"]]
+	)
+
+
+## Phase 2/P10: the deferred half of §25 step 5 -- enters the real game
+## and only NOW asks for GPS/Health permissions, after the guided
+## first-gate win/CLAIM above already showed the payoff.
+func _on_onboarding_continue_pressed() -> void:
 	subclass_picker.visible = false
 	game_ui.visible = true
 	_start_game()
+	if bridge:
+		bridge.requestLocationPermission()
+		bridge.checkHealthConnectAvailable()
 
 
 func _start_game() -> void:

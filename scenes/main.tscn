@@ -15,10 +15,28 @@ autostart = true
 [node name="TitleLabel" type="Label" parent="SubclassPicker"]
 offset_left = 40.0
 offset_top = 40.0
-offset_right = 700.0
+offset_right = 900.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
-text = "Choose your subclass"
+text = "How do you train most? Pick your subclass -- it's permanent."
+
+[node name="WelcomeLabel" type="Label" parent="SubclassPicker"]
+visible = false
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 2000.0
+offset_bottom = 700.0
+theme_override_font_sizes/font_size = 26
+text = ""
+
+[node name="ContinueButton" type="Button" parent="SubclassPicker"]
+visible = false
+offset_left = 40.0
+offset_top = 720.0
+offset_right = 400.0
+offset_bottom = 790.0
+theme_override_font_sizes/font_size = 24
+text = "Let's go"
 
 [node name="WarriorButton" type="Button" parent="SubclassPicker"]
 offset_left = 40.0
