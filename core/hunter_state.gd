@@ -54,6 +54,9 @@ var hunter_rank: String  ## Phase 2/P6 step 1: EARNED rank (E-S, §28) -- starts
 ## Character screen) was wrong per this section and got fixed to read hunter_rank instead;
 ## rank_for_level() is still correct and used, just for its real meaning: which Trial is
 ## currently unlocked for attempt.
+var last_gate_break_offer: int  ## Phase 2/P8: Unix seconds of the last Gate Break offer (§8b),
+## 0 = never. Same "scene layer supplies the wall clock" convention as
+## stronghold_last_collected -- GateBreak.should_trigger() reads this as the cooldown anchor.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -74,6 +77,7 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.stronghold_last_collected = 0
 	s.current_streak = 0
 	s.hunter_rank = "E"
+	s.last_gate_break_offer = 0
 	return s
 
 
@@ -602,6 +606,7 @@ func to_dict() -> Dictionary:
 		"stronghold_last_collected": stronghold_last_collected,
 		"current_streak": current_streak,
 		"hunter_rank": hunter_rank,
+		"last_gate_break_offer": last_gate_break_offer,
 	}
 
 
@@ -623,6 +628,7 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.stronghold_last_collected = int(d.get("stronghold_last_collected", 0))
 	s.current_streak = int(d.get("current_streak", 0))
 	s.hunter_rank = String(d.get("hunter_rank", "E"))
+	s.last_gate_break_offer = int(d.get("last_gate_break_offer", 0))
 	return s
 
 

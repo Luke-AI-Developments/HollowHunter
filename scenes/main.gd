@@ -27,6 +27,7 @@ var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear pa
 var _has_location := false  ## Phase 2/P7 step 1: whether _last_lat/_last_lon are real yet
 var _last_lat: float = 0.0  ## most recent GPS fix -- §8a's ticket gate spawns "where you are"
 var _last_lon: float = 0.0
+var _pending_break_gate: Dictionary = {}  ## Phase 2/P8: the offered-but-not-yet-answered §8b gate
 
 @onready var subclass_picker: Node2D = $SubclassPicker
 @onready var game_ui: Node2D = $GameUI
@@ -67,6 +68,11 @@ var _last_lon: float = 0.0
 @onready var character_health_label: Label = $GameUI/CharacterPanel/HealthStatusLabel
 @onready var character_trial_button: Button = $GameUI/CharacterPanel/TrialButton
 @onready var use_ticket_button: Button = $GameUI/UseTicketButton
+@onready var gate_break_panel: Node2D = $GameUI/GateBreakPanel
+@onready var gate_break_info_label: Label = $GameUI/GateBreakPanel/InfoLabel
+@onready var gate_break_accept_button: Button = $GameUI/GateBreakPanel/AcceptButton
+@onready var gate_break_dismiss_button: Button = $GameUI/GateBreakPanel/DismissButton
+@onready var gate_break_timer: Timer = $GateBreakTimer
 
 
 func _ready() -> void:
@@ -185,6 +191,9 @@ func _setup_gear_panels() -> void:
 		$GameUI/CharacterPanel/CloseButton.pressed.connect(_on_character_close_pressed)
 		character_trial_button.pressed.connect(_on_character_trial_pressed)
 		use_ticket_button.pressed.connect(_on_use_ticket_pressed)
+		gate_break_accept_button.pressed.connect(_on_gate_break_accept_pressed)
+		gate_break_dismiss_button.pressed.connect(_on_gate_break_dismiss_pressed)
+		gate_break_timer.timeout.connect(_maybe_offer_gate_break)
 
 
 ## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
@@ -349,12 +358,15 @@ func _current_gate_power() -> int:
 	return GameLogic.gate_power(personal, squad_power)
 
 
-## Runs the fight + rewards for any already-spawned gate dict (map gate or
-## ticket gate, same shape either way) -- CLAIM/loot/Essence rolls, saves,
-## refreshes the army/inventory/main labels, and returns the result text to
-## append to `label`. Extracted from _on_enter_gate_pressed (Phase 2/P7 step
-## 1) so the new ticket gate (§8a) doesn't duplicate this whole flow.
-func _resolve_gate(gate: Dictionary) -> String:
+## Runs the fight + rewards for any already-spawned gate dict (map gate,
+## ticket gate, or break gate -- same shape either way) -- CLAIM/loot/
+## Essence rolls, saves, refreshes the army/inventory/main labels, and
+## returns the result text to append to `label`. Extracted from
+## _on_enter_gate_pressed (Phase 2/P7 step 1) so the ticket gate (§8a) and
+## break gate (§8b) don't duplicate this whole flow. `is_break` applies
+## GateBreak's boosted Essence + bonus ticket on a clear ("bigger breaks
+## give bigger rewards").
+func _resolve_gate(gate: Dictionary, is_break: bool = false) -> String:
 	var total_power := _current_gate_power()
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -378,6 +390,10 @@ func _resolve_gate(gate: Dictionary) -> String:
 		# Essence on every clear regardless of claim (§14b/§26) -- same
 		# trigger as the loot roll above.
 		var essence_gain := GameLogic.essence_for_gate(gate["rank"])
+		if is_break:
+			essence_gain = GateBreak.bonus_essence(essence_gain)
+			state.gate_tickets += GateBreak.BREAK_TICKET_BONUS
+			msg += "\n+%d Gate Ticket(s) (Gate Break bonus)" % GateBreak.BREAK_TICKET_BONUS
 		state.essence += essence_gain
 		msg += "\nEssence +%d" % essence_gain
 
@@ -402,6 +418,55 @@ func _on_enter_gate_pressed() -> void:
 	var gate := map_view.get_gate(idx)
 	map_view.remove_gate(idx)
 	label.text += _resolve_gate(gate)
+
+
+## Phase 2/P8: probabilistic Gate Break offer (§8b), checked on a timer
+## (GateBreakTimer, main.tscn) rather than on GPS location updates -- a
+## stationary phone gets its location updates throttled/deduped by the OS
+## ("blocked - too fast"/"too close" in logcat, confirmed on-device), which
+## would make breaks almost never fire exactly when the player is sitting
+## still at home. That's backwards for a mechanic §8b explicitly says needs
+## "no GPS movement required". A plain Timer isn't tied to movement at all.
+## See core/gate_break.gd for why this whole check isn't a real push
+## notification. Skips before any GPS fix (no "where you are" to place a
+## gate), if a break is already pending/showing, or on cooldown/unlucky
+## roll (GateBreak.should_trigger).
+func _maybe_offer_gate_break() -> void:
+	if state == null or not _has_location:
+		return
+	if not gate_break_panel.visible and _pending_break_gate.is_empty():
+		var now := int(Time.get_unix_time_from_system())
+		var hour: int = Time.get_time_dict_from_system()["hour"]
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		if GateBreak.should_trigger(now, state.last_gate_break_offer, hour, rng):
+			state.last_gate_break_offer = now
+			var gate := GateSpawner.spawn_ticket_gate(
+				_last_lat, _last_lon, state.hunter_rank, _monsters, rng
+			)
+			SaveService.save(state)
+			if not gate.is_empty():
+				_pending_break_gate = gate
+				gate_break_info_label.text = (
+					"⚠ Gate break!\nA %s gate ruptured nearby -- %s is loose.\nAnswer it?"
+					% [gate["rank"], gate["monster_name"]]
+				)
+				gate_break_panel.visible = true
+
+
+func _on_gate_break_accept_pressed() -> void:
+	var gate := _pending_break_gate
+	_pending_break_gate = {}
+	gate_break_panel.visible = false
+	label.text += "\n\n[GATE BREAK]" + _resolve_gate(gate, true)
+
+
+## No penalty for ignoring a break (§8b: "just a missed reward") -- the
+## cooldown already started the moment the offer was rolled, in
+## _maybe_offer_gate_break(), so dismissing doesn't need to touch state.
+func _on_gate_break_dismiss_pressed() -> void:
+	_pending_break_gate = {}
+	gate_break_panel.visible = false
 
 
 ## Phase 2/P7 step 1: spends a gate ticket to open a gate right where the

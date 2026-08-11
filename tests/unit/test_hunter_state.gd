@@ -916,3 +916,20 @@ func test_spend_gate_ticket_fails_when_none_held() -> void:
 	var ok := s.spend_gate_ticket()
 	assert_false(ok)
 	assert_eq(s.gate_tickets, 0)
+
+
+func test_new_default_never_offered_a_gate_break() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.last_gate_break_offer, 0)
+
+
+func test_last_gate_break_offer_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.last_gate_break_offer = 123456789
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.last_gate_break_offer, 123456789)
+
+
+func test_from_dict_defaults_last_gate_break_offer_to_zero() -> void:
+	var restored := HunterState.from_dict({})
+	assert_eq(restored.last_gate_break_offer, 0)

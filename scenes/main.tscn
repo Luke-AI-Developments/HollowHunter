@@ -6,6 +6,10 @@
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
 
+[node name="GateBreakTimer" type="Timer" parent="."]
+wait_time = 60.0
+autostart = true
+
 [node name="SubclassPicker" type="Node2D" parent="."]
 
 [node name="TitleLabel" type="Label" parent="SubclassPicker"]
@@ -541,3 +545,37 @@ offset_bottom = 980.0
 theme_override_font_sizes/font_size = 22
 text = "Attempt Trial"
 disabled = true
+
+[node name="GateBreakPanel" type="Node2D" parent="GameUI"]
+visible = false
+
+[node name="Bg" type="ColorRect" parent="GameUI/GateBreakPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.2, 0.02, 0.02, 0.95)
+
+[node name="InfoLabel" type="Label" parent="GameUI/GateBreakPanel"]
+offset_left = 40.0
+offset_top = 300.0
+offset_right = 2000.0
+offset_bottom = 600.0
+theme_override_font_sizes/font_size = 32
+text = "Gate break"
+
+[node name="AcceptButton" type="Button" parent="GameUI/GateBreakPanel"]
+offset_left = 40.0
+offset_top = 640.0
+offset_right = 400.0
+offset_bottom = 710.0
+theme_override_font_sizes/font_size = 24
+text = "Answer it"
+
+[node name="DismissButton" type="Button" parent="GameUI/GateBreakPanel"]
+offset_left = 420.0
+offset_top = 640.0
+offset_right = 780.0
+offset_bottom = 710.0
+theme_override_font_sizes/font_size = 24
+text = "Ignore"
