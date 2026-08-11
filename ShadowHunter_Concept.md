@@ -1072,53 +1072,92 @@ HunterState / ShadowInstance: equipped uses the 7 slots; hunter also holds
 
 ---
 
-## 16. Stat-to-power (v0 — expect heavy tuning)
+## 16. Combat system — active party battle (v0, expect heavy tuning)
 
-Everything collapses into one `TOTAL_POWER`, which is what the §5 clear check weighs against gate power. This is a concrete v0 so all our numbers actually resolve — every constant is a knob.
+**LOCKED, replaces the old single power-check + RNG resolve.** Every encounter — gates *and* raids — is now real turn-based party combat: you + 3 chosen shadows vs the enemies, DQ/JRPG-style. Deliberate scope decision: this applies **everywhere**, not just bosses/raids (see the honest trade-off note in §18). Stats and gear still matter exactly as designed — they just feed real combat stats instead of a single comparison number.
 
-### Constants (all tunable)
+### Party composition
+- Your **squad of 6** (class-slotted, §17) stays your prepared roster — unchanged.
+- For any given fight, you field a **party of 4**: yourself + **3 shadows chosen from your squad**.
+- You pick your own moves each turn; shadows act automatically via class-role AI (below) — you never pick a shadow's move.
+
+### Turn order & flow
+- **Speed-based on AGI** — every combatant (your party + enemies) acts in descending AGI order, every round.
+- **Your turn:** pick one unlocked move, pick a target (single, or all enemies for an AoE move).
+- **Shadow turns:** automatic, per class-role priority (below) — every class can attack *and* has role-flavored moves, so nobody's a one-note bot.
+- **Enemy turns:** grunts attack simply; bosses get an occasional telegraphed bigger hit (~2x a normal attack) every few turns, so S-rank bosses feel like S-rank bosses. Exact cadence: tune once playable.
+- **Win:** all enemies to 0 HP. **Loss:** your party to 0 HP — no penalty, gate/floor stays, come back stronger. Same no-attrition philosophy as before.
+
+### Moves — one moveset per class, used two ways
+The same 5 movesets serve double duty: **you** pick manually from your own subclass's list; **shadows** of that class pick automatically from the same list (below). No duplicated design.
+
+**Warrior** (STR) — 1. Strike (Lv1, basic hit) · 2. Power Strike (Lv3, heavier single-target) · 3. Cleave (Lv6, hits all enemies, lighter each) · 4. Rally Cry (Lv10, team attack buff) · 5. Execute (Lv15, big hit, bonus vs. low-HP enemies)
+
+**Guardian** (VIT/END) — 1. Guard Strike (Lv1, basic hit) · 2. Taunt (Lv1, forces enemies to target this Guardian) · 3. Brace (Lv5, big self defense buff) · 4. Shield Ally (Lv8, soaks damage meant for a chosen ally) · 5. Fortress (Lv14, team-wide defense buff)
+
+**Assassin** (AGI/STR) — 1. Quick Strike (Lv1, basic hit) · 2. Weaken (Lv3, lowers enemy defense) · 3. Poison Edge (Lv6, damage-over-time) · 4. Exploit Weakness (Lv10, bonus damage vs. debuffed enemies) · 5. Shadowstep Execute (Lv15, burst finisher)
+
+**Mage** (SEN) — 1. Cyan Bolt (Lv1, single-target magic) · 2. Frost Nova (Lv4, small AoE) · 3. Arcane Barrage (Lv8, bigger single-target hit) · 4. Chain Lightning (Lv12, hits 2-3 targets) · 5. Nova Burst (Lv16, big AoE, on cooldown)
+
+**Support** (SEN/VIT) — 1. Mend (Lv1, heal lowest-HP ally) · 2. Ward (Lv3, defense buff on an ally) · 3. Blessing (Lv6, small team heal/attack buff) · 4. Cleanse (Lv9, removes a debuff) · 5. Sanctuary (Lv14, strong team heal)
+
+Stronger moves sit on a simple **cooldown-turns** system (e.g. "usable every 3 turns") rather than a mana/resource economy — one less number to track, consistent with how lean the rest of the systems are.
+
+### Shadow AI — automatic, role-appropriate priority
+- **Warrior:** finish low-HP enemies with Execute when available; Cleave into groups; otherwise attack the lowest-HP target.
+- **Guardian:** keep Taunt active at all times; Brace when its own HP drops; Shield Ally on the lowest-HP teammate; Guard Strike otherwise.
+- **Assassin:** debuff fresh (undebuffed) targets; finish already-debuffed/low-HP targets; Quick Strike otherwise.
+- **Mage:** AoE when 2+ enemies are up; otherwise the strongest single-target spell available.
+- **Support:** heal whoever's low; cleanse debuffs; buff proactively; **attack when the team's topped up and nothing else is needed** — Support isn't dead weight in an easy fight.
+
+### Stats → combat math (v0, tunable — same spirit as the rest of this doc)
 ```
-STAT_WEIGHT        = 5     # power per stat point
-LEVEL_WEIGHT       = 20    # power per hunter level
-SHADOW_BASE_SCALE  = 0.5   # a shadow starts at half its living monster's power
-SHADOW_LEVEL_SCALE = 0.05  # +5% of base power per shadow level
-                           #   (grade = source monster's rank, static; base_power encodes it —
-                           #    leveling is what creates the cross-grade overlap, e.g. maxed General ≈ low Warlord)
-MONARCH_SCALE      = 0.01  # shadows gain +1% power per HUNTER level (ties army to your training)
-SQUAD_SIZE         = 6     # deployed squad at gates — class-slotted: 1 per class + 1 flex (§17)
-GATE_ARMY_WEIGHT   = 0.25  # squad counts only 25% at gates — YOUR LEVEL dominates
-RAID_ARMY_WEIGHT   = 1.0   # full army counts at raids — the army's showcase
-CLAIM_TRIES        = 3     # attempts to claim a gate/raid boss on a win
-CLAIM_LEVEL_BONUS  = 0.01  # + per-try claim chance per hunter level
-CLAIM_CAP          = 0.90  # max per-try claim chance
-STAT_POINTS_PER_LEVEL = 25   # stat points per hunter level, split by class profile (below)
-CLASS_EXP_MULT        = 1.5  # EXP multiplier when a workout matches your subclass's signature
+HP   = 50 + VIT×4 + END×2
+PATK = 5 + STR×1.5
+MATK = 5 + SEN×1.5
+DEF  = END×0.5 + VIT×0.2
+CRIT_CHANCE = min(35%, 5% + AGI×0.05%)   # Assassins crit noticeably more — reinforces their identity
+SPEED = AGI                               # turn order
 ```
+**Damage on hit:** `max(1, move_power × ATK/MATK − target_DEF) × variance(0.9–1.1) × (1.5 if crit)`
+`move_power`: ~1.0 basics · 1.3–1.8 stronger moves · ~0.6–0.8 per target for AoE · 2.0–2.5 finishers.
 
-### Formulas
+**Worked example (Lv1 vs. Lv40 Warrior, using existing `stats_from`):**
+
+| | Lv1 | Lv40 |
+|---|---:|---:|
+| HP | 82 | 1,350 |
+| PATK | 20 | 605 |
+
+~16x growth either side — early fights resolve in a handful of hits (good for a quick tap mid-walk); a Lv40 fight still feels dangerous.
+
+### Enemy stats — derived from existing base_power / floor_power, not re-authored
+Every monster already has a tuned `base_power` (§14b, Grubmaw=120 up to Xir'Vok=9000) and the Nadir already has a tuned floor curve (`floor_power(n) = 300 × 1.12^n`, §20). Rather than hand-authoring HP/ATK for 61 monsters (or every Nadir floor) from scratch, derive combat stats straight from those existing numbers:
 ```
-effective_stats = stats_from(level, subclass) + Σ(equipped stat_mods)   # level × class profile + gear
-
-personal_power  = Σ(effective_stats) × STAT_WEIGHT
-                + hunter_level × LEVEL_WEIGHT
-                + Σ(equipped power_bonus)
-
-shadow_power(s) = [ monster.base_power × (SHADOW_BASE_SCALE + SHADOW_LEVEL_SCALE × s.level)
-                    + Σ(s.gear power_bonus)
-                    + Σ(s.gear stat_mods) × STAT_WEIGHT ]
-                  × (1 + MONARCH_SCALE × hunter_level)
-
-# GATES (GPS encounters) — YOUR LEVEL dominates; the squad is a modest edge:
-army_power_gate = Σ shadow_power over DEPLOYED squad (≤ SQUAD_SIZE)
-GATE_POWER      = personal_power + army_power_gate × GATE_ARMY_WEIGHT   # army ×0.25
-
-# RAIDS (the Nadir, §20) — your WHOLE army carries:
-army_power_raid = Σ shadow_power over ALL your shadows (no cap)
-RAID_POWER      = personal_power + army_power_raid × RAID_ARMY_WEIGHT   # army ×1.0
+enemy_HP  = base_power × 0.6
+enemy_ATK = base_power × 0.15
 ```
-*(§5's clear check uses `GATE_POWER` at gates; raids compare `RAID_POWER` against each scaling floor — see §8.)*
+This preserves every balancing decision already made in `monsters.json` and the Nadir floor curve — nothing gets re-authored, it's just reinterpreted as combat stats instead of a single compare-and-roll number. (Split ratios are v0/tunable, same as everything else here.)
 
-### Class stat profiles (level → stats)
+### Army Synergy — how raids still reward your WHOLE collection
+The original design deliberately made raids "a test of your army" (old `RAID_ARMY_WEIGHT` ×1.0) vs. gates being "a test of you" (×0.25). Real combat can't literally have 40 shadows all take a turn, so that philosophy now carries forward as a passive bonus instead of a literal power sum: **in raids/the Nadir, your full army beyond the 3 in your active party grants a passive stat bonus** to that party, scaling with total `army_power` (§16's old formula, still alive and useful as an input):
+```
+ARMY_SYNERGY (raids only, v0) = +1% party HP/PATK/MATK/DEF per 10,000 total army_power, capped at +50%
+```
+Gates get no synergy bonus — keeping "gates reward training, raids reward your collection" intact. This is the one deliberate, honest change from the original raid design: the Nadir no longer has your entire army physically fighting, but growing it still matters just as much, as a force-multiplier on the 4 who are.
+
+### Auto-battle & Skip — keeping this workable mid-walk
+Every fight, gate or raid, offers three ways to run it:
+- **Manual** — pick your own moves and targets each turn.
+- **Auto-battle** — the game picks your moves too, using the same role-priority logic as your shadows. One tap starts it, watch it resolve.
+- **Skip** — auto-battle resolves instantly, results only.
+This is what keeps a routine E-rank gate a genuine one-tap action even though the underlying resolution is now real combat, not a single dice roll — the trade-off named in §18.
+
+### What this replaces vs. what's still alive
+**Deprecated as the resolve mechanic:** `GATE_POWER`, `RAID_POWER`, `clear_probability`, `resolve_clear`, and `GATE_ARMY_WEIGHT`/`RAID_ARMY_WEIGHT` as literal power-sum weights.
+**Still fully alive, now feeding combat instead of a single number:** `stats_from` + class profiles (below), `SQUAD_SIZE` (6), `personal_power`'s underlying stats, `shadow_power`'s base_power/level scaling (now a shadow's own HP/ATK), `floor_power` (now feeds Nadir enemy stat derivation), `CLAIM_*` (claim flow unchanged — still fires after winning a boss fight, §18).
+
+### Class stat profiles (level → stats) — unchanged
 Each level grants `STAT_POINTS_PER_LEVEL` (25) points, split by your subclass's profile. Every class still gains all five stats — just leaned:
 
 | Class | STR | AGI | VIT | END | SEN |
@@ -1129,25 +1168,29 @@ Each level grants `STAT_POINTS_PER_LEVEL` (25) points, split by your subclass's 
 | Mage | 15% | 15% | 15% | 10% | 45% |
 | Support | 20% | 10% | 25% | 15% | 30% |
 
-`stats_from(level, class) = level × 25 × profile%`. E.g. a L20 Warrior ≈ STR 200 / VIT 125 / END 75 / AGI 50 / SEN 50. (A L1 hunter has 25 points ≈ 5 each — matching the worked examples below.)
+`stats_from(level, class) = level × 25 × profile%`. E.g. a L20 Warrior ≈ STR 200 / VIT 125 / END 75 / AGI 50 / SEN 50.
 
-### Two contexts: your level at gates, your army in raids
-- **Gates** (on-the-go GPS fights) are **mostly a test of YOU** — your hunter **level / personal power dominates** (army weighted ×0.25). Your deployed **squad of 6** is a meaningful *edge* and a tactical choice (tank + dps + support), but never the main story. This keeps the walking loop tied to your **fitness**, not your collection size.
-- **Raids** (the Nadir, §20) are **a test of your ARMY** — your **entire collection** counts at full weight (×1.0); level still contributes, but the deep, broad, geared army is what carries you. It *is* an army.
+---
 
-Deliberate split: **gates reward your training, raids reward your collection.** Squad size can grow via progression later.
+## 16b. Battle screen — UI layout
 
-### Worked examples (illustrative, level-derived model)
-- **New hunter (gate)** — L1 (25 pts ≈ 5/stat), no gear/shadows → GATE_POWER **145**. vs E gate (150): **~48% clear**. Brand-new coin-flip. ✓
-- **Early-mid (gate)** — L8, ~4 cheap pieces, 3 low shadows → personal ≈1,360 + squad ≈405 ×0.25 → GATE ≈**1,460**. vs D (400): crush; vs C (1,000): **~76%** — your **level** carries it, the squad just nudges. ✓
-- **Endgame (raid)** — L40 (1,000 pts), strong gear, full army of levelled A-shadows → personal ≈8,200 + army ≈50,400 ×1.0 → RAID ≈**58,600**. The army showcase; deep Castle floors scale to it (§20).
+The screen §16's combat system actually plays out on. Shared by **every** fight — gates, gate-breaks, and every Nadir floor — so it's built once and reused everywhere. Portrait mobile layout, top to bottom:
 
-### Balance notes
-The gate/raid split largely handles the old army-vs-personal problem:
-- **At gates**, `GATE_ARMY_WEIGHT` (0.25) makes your **level / personal power the dominant factor** — the squad is a boost, not the point — so your **workouts** drive gate progression, not how many shadows you've stacked.
-- **In raids** (the Nadir), the whole army snowballs — and that's *fine*, because the tower's floors have **fixed, escalating power** (§20): you climb as far as your current strength allows, hit a wall, then come back stronger. A permanent, personal difficulty ladder.
+**1. Enemy row (top).** Up to 4 enemy slots — sprite/portrait, name, HP bar (current/max). A **telegraph icon** appears above a boss when its next turn is a big hit (§16), so you can see it coming, not just eat it. A gate run is still **up to 3 sequential sub-battles** (*trash → trash → boss*, unchanged `GateInstance` structure, §18) — each sub-battle populates this row fresh; exact enemy-count-per-round is a balance detail to tune once playable, not fixed here.
 
-Still-open knobs: **MONARCH_SCALE** (raise it to keep your training scaling the army even in raids — very on-theme), **SQUAD_SIZE** for gates, and per-stat weights. Fixed open-world S-gates going trivial for a maxed hunter is by design — endgame challenge lives in the scaling raids.
+**2. Turn-order strip.** A slim horizontal row of small portraits (your party + enemies, AGI-sorted) showing the next few turns in sequence — standard JRPG convention, gives the telegraph icon above real weight ("boss goes in 2 turns").
+
+**3. Battle stage (middle).** Mostly empty space — background is the "inside the gate" dark-fantasy world (§9b's world-separation: real world outside, near-black frost-cyan world within), not the map. Floating damage numbers pop here on hits (crits visually distinct — bigger/brighter), and a brief **System UI toast** (§9c, small tier) names the action taken — *"Ashen Warden used Taunt!"* — since shadow/enemy turns are automatic and still need to read clearly without full animation. Keeps faith with the original "no real animation, AI-art-friendly" philosophy — this is readable text + numbers + sprite flashes, not a fight choreography.
+
+**4. Party row.** Your 4 combatants (you + 3 chosen shadows) — portrait, class icon, HP bar, cooldown pips on any move currently unavailable. The unit whose turn is active gets a highlight ring.
+
+**5. Action bar (bottom, your turn only).** Your unlocked moves as a row of buttons (name + cooldown state). Tap a move → if it needs a target, enemy portraits highlight as tappable, tap one to resolve; AoE moves resolve immediately with no target tap. During shadow/enemy turns this area shows a simple **"[Name] is acting…"** state instead — no dead air, no player input possible.
+
+**6. Always-available controls (corner, all turns).** **Auto-battle** toggle (AI plays your turns too, using your subclass's same role-priority logic as shadows) and **Skip** (resolves the rest instantly, straight to results) — both from §16, both critical to keeping a routine gate a one-tap action mid-walk.
+
+**Transitions:** enters from the gate preview card (§18) or a Nadir "Take on floor" tap (§20); on win, hands off straight into the existing Results page (§18's CLAIM ceremony, unchanged).
+
+**No new art required.** The existing preset-hunter portraits and monster portraits (already generated/planned) work directly as static battle-HUD icons — this screen is menu-driven, not directional/animated, so it doesn't need a separate "simpler battle/map sprite" asset type. A real scope-saver from the overhaul, not a cost.
 
 ---
 
@@ -1157,7 +1200,7 @@ Still-open knobs: **MONARCH_SCALE** (raise it to keep your training scaling the 
 
 **Roster — grouped by class.** Collapsible sections (Warrior / Guardian / Assassin / Mage / Support), each listing your shadows. **Sort/filter by grade (rank) and by power.**
 
-**Gate squad — one squad, no presets, class-slotted.** A single team of 6 you take into *every* gate, with **fixed class slots: one each of Warrior · Guardian · Assassin · Mage · Support + 1 Flex** (any class). This *forces* a balanced comp and a reason to collect (and gear) every class — even though combat is just summed power (§30), so the slots carry **no mechanical effect**; they only shape *who* you field. Auto-optimize fills each slot with your strongest of that class; tweak by hand. Early on, empty slots are fine — fill them as you collect. *(Raids ignore the squad — they auto-field your whole army.)*
+**Gate squad — one squad, no presets, class-slotted.** A single team of 6 you maintain, with **fixed class slots: one each of Warrior · Guardian · Assassin · Mage · Support + 1 Flex** (any class). This *forces* a balanced comp and a reason to collect (and gear) every class. **Since the §16 combat overhaul, this now has real mechanical teeth** — for any fight, you pick **3 of these 6** to actually field (you + those 3 = your party of 4, §16), and a team missing a Guardian's taunt or a Support's heals genuinely plays worse, not just symbolically. Auto-optimize fills each slot with your strongest of that class; tweak by hand. Early on, empty slots are fine — fill them as you collect. *(Raids also draw their 3 from this squad — your wider army instead contributes the passive Army Synergy bonus, §16.)*
 
 **Shadow detail (tap a shadow) — one hub with everything:**
 - **Identity:** grade + level (with progress to cap), class/role, element, current power.
@@ -1180,30 +1223,24 @@ Still-open knobs: **MONARCH_SCALE** (raise it to keep your training scaling the 
 
 ## 18. Gate encounter screen & flow
 
-Fast and light — you should be able to walk up, run a gate, and be done in seconds. No real animation (AI-art-friendly): fights are **sprite clashes** where the loser's sprite flies off screen.
+**Superseded fight mechanic:** combat is now the active party battle system in §16 (you + 3 chosen shadows, real turns), not the old single power-check. Honest trade-off, decided deliberately: this trades some of the original "never stop walking" frictionlessness for a genuinely more engaging fight — offset by **Auto-battle** and **Skip** (§16), which keep a routine gate a one-tap action when you don't want to play it out.
 
-**1. Gate preview (tap a gate on the map).** A card shows the gate's **rank** (E–S), a **recommended power** to beat it, and the **boss** (name + sprite). You weigh it against your `GATE_POWER` and decide — no exact odds shown.
+**1. Gate preview (tap a gate on the map).** A card shows the gate's **rank** (E–S), the enemies you'll face (trash + boss, derived stats per §16), and your current party. You size it up and decide whether to engage, auto-battle, or skip.
 
-**2. The run — three quick rounds.** Tap **Start**; the gate plays through **3 fast sprite-clashes**: *trash → trash → boss*. Each clash = your **hunter avatar** sprite vs the enemy sprite, auto-resolved by `GATE_POWER` vs that round's power (weighted RNG, §5); the loser's sprite flies off screen. Rounds escalate:
-- Round 1 (trash) ≈ gate_power × 0.3
-- Round 2 (trash) ≈ gate_power × 0.4
-- Round 3 (**boss**) = gate_power — the real check
-A **Skip** button resolves all three instantly and jumps straight to results.
+**2. The run — active party battle.** Tap **Start** to enter the battle screen: you + your 3 chosen shadows vs the gate's enemies (*trash → trash → boss*, §16's turn-based flow). Pick moves manually, or tap **Auto** (AI plays your turns too) or **Skip** (resolves instantly, results only) — same three modes either way.
 
 **3. On loss.** You simply **walk away — the gate stays**. Retry when you're stronger. No penalty.
 
-**4. Results page (on clearing all three).**
-- **CLAIM the boss** — a big dramatic prompt. Only the boss is claimable. **3 free RNG attempts**; chance rises with hunter level. Miss all three → no claim this run (gate stays, so you can retry).
+**4. Results page (on winning).**
+- **CLAIM the boss** — a big dramatic prompt (§9c System UI ceremonial panel). Only the boss is claimable. **3 free RNG attempts**; chance rises with hunter level. Miss all three → no claim this run (gate stays, so you can retry).
   `claim_chance/try = min(CLAIM_CAP 0.90, boss.extract_chance + hunter_level × CLAIM_LEVEL_BONUS 0.01)`, over `CLAIM_TRIES 3` → overall `1 − (1−p)³`.
   Success → the boss joins your Host as a shadow (grade = boss's rank).
 - **Loot** — gear, Essence, EXP earned, in a summary. Loot drops on clear **regardless** of the claim result.
 
 **Notes:**
 - Low gates just have a **trash-tier boss** (e.g. a Grubmaw), so early on you're claiming trash to seed the army — exactly right for common shadows.
-- Trash rounds are near-free if you can beat the boss; they're for pacing/feel and Skip removes them for grinding.
 - The **CLAIM charm** consumable can later be wired to boost odds if desired (currently the 3 tries are free).
-- Data: a `GateInstance` carries `boss_id` (round 3) + `trash_ids` (rounds 1–2).
-- **Idle by design:** combat auto-resolves on power — you never have to stop walking to fight. This is a deliberate core choice (a walking game shouldn't demand you stand still), not a placeholder for a deeper battle system.
+- Data: a `GateInstance` carries `boss_id` (round 3) + `trash_ids` (rounds 1-2) — unchanged; they now resolve as real combat instead of a compare-and-roll.
 
 ---
 
@@ -1277,7 +1314,7 @@ The whole-army endgame ladder: **one deep, persistent tower** you climb over the
 
 **How it works:**
 - One tower (the **Nadir**), many floors. Clear a floor **once** and it's done **forever**; it unlocks the next. You take floors on **manually, one at a time**.
-- **Your whole army fights** (`RAID_POWER`, §16), auto-resolved per floor as a clear-check (§5 RNG) vs that floor's **fixed, escalating power**. **No attrition** — a pure power gate.
+- **Your party of 4** (you + 3 chosen shadows) fights the floor via the active combat system (§16) — real turns, not a single power-check. Your **full army still matters**: everything beyond the 3 in your party grants a passive **Army Synergy** stat bonus to your party (§16), so the whole-collection endgame fantasy stays intact even though only 4 fighters are ever on screen. **No attrition** — losing just means the floor stays for a retry.
 - Progress is **permanent and saved**. Hit a floor you can't beat → leave, get stronger (workouts / bigger army / gear), come back and continue from there.
 
 **Floor power curve (v0, tunable):** `floor_power(n) = 300 × 1.12^n` — floor 1 trivial, deep floors enormous (≈2,900 at floor 20, ≈87,000 at floor 50).
@@ -1586,6 +1623,8 @@ A pass over how the game feels over time — and it forced a fix. **Finding:** t
 ---
 
 ## 30. Combat balance (sanity check)
+
+> **Superseded by the §16 combat overhaul.** This analysis is for the old single power-check resolve and no longer reflects how a fight actually plays out — kept below for historical reference only. Real balance for active party combat needs playtesting (real HP/damage numbers, move timing, AI behavior in practice), not a paper formula — that's a follow-up pass once §16 is built and playable, not something to fake here.
 
 Plugging real numbers into the clear check (`P = r^k/(r^k+1)`, k=3; §5) for a **rank-matched hunter** across the journey, using `GATE_POWER = personal + squad×0.25` (§16):
 
