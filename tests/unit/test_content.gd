@@ -46,3 +46,17 @@ func test_monster_base_power_wires_into_game_logic_shadow_power() -> void:
 	var m := Content.monster_by_id(monsters, "mon_ashen_warden")
 	var power := GameLogic.shadow_power(m["base_power"], 1, 10)
 	assert_true(power > 0)
+
+
+func test_monster_families_lists_every_distinct_family_once() -> void:
+	var families := Content.monster_families(monsters)
+	assert_eq(families.size(), 8)
+	assert_true(families.has("Hollow Brood"))
+	assert_true(families.has("Rime Sylphs"))
+
+
+func test_monsters_by_family_filters() -> void:
+	var brood := Content.monsters_by_family(monsters, "Hollow Brood")
+	assert_true(brood.size() > 0)
+	for m: Dictionary in brood:
+		assert_eq(m["family"], "Hollow Brood")

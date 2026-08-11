@@ -98,3 +98,56 @@ func test_spawn_ticket_gate_deterministic_with_same_seed() -> void:
 	var gate_a := GateSpawner.spawn_ticket_gate(51.5, -0.1, "C", monsters, rng_a)
 	var gate_b := GateSpawner.spawn_ticket_gate(51.5, -0.1, "C", monsters, rng_b)
 	assert_eq(gate_a, gate_b)
+
+
+func test_spawn_incursion_gates_returns_requested_count() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	var gates := GateSpawner.spawn_incursion_gates(
+		51.5, -0.1, "C", "Hollow Brood", monsters, 6, rng
+	)
+	assert_eq(gates.size(), 6)
+
+
+func test_spawn_incursion_gates_are_all_the_incursion_family() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2
+	var gates := GateSpawner.spawn_incursion_gates(
+		51.5, -0.1, "C", "Hollow Brood", monsters, 10, rng
+	)
+	for g: Dictionary in gates:
+		var m := Content.monster_by_id(monsters, g["monster_id"])
+		assert_eq(m["family"], "Hollow Brood")
+
+
+func test_spawn_incursion_gates_are_flagged_with_incursion_bonus() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var gates := GateSpawner.spawn_incursion_gates(51.5, -0.1, "E", "Gloamwing", monsters, 5, rng)
+	for g: Dictionary in gates:
+		assert_true(g["incursion_bonus"])
+
+
+func test_spawn_incursion_gates_skew_higher_than_the_normal_pool() -> void:
+	# Normal E-rank pool is ["E", "D"]; incursion should bump toward ["D", "C"]
+	# (no E gates at all -- "a rank higher").
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	var gates := GateSpawner.spawn_incursion_gates(
+		51.5, -0.1, "E", "Hollow Brood", monsters, 20, rng
+	)
+	for g: Dictionary in gates:
+		assert_ne(g["rank"], "E")
+
+
+func test_spawn_incursion_gates_handles_a_thin_family_at_the_bumped_rank() -> void:
+	# Tarlings only has E/D monsters -- an E-rank hunter's incursion pool
+	# bumps to ["D", "C"], which has no Tarlings at all; this must still
+	# fall back to a real Tarlings monster rather than skip/crash.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var gates := GateSpawner.spawn_incursion_gates(51.5, -0.1, "E", "Tarlings", monsters, 5, rng)
+	assert_eq(gates.size(), 5)
+	for g: Dictionary in gates:
+		var m := Content.monster_by_id(monsters, g["monster_id"])
+		assert_eq(m["family"], "Tarlings")

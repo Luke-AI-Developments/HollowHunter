@@ -29,6 +29,23 @@ static func monsters_by_rank(monsters: Array, rank: String) -> Array:
 	return monsters.filter(func(m: Dictionary) -> bool: return m.get("rank") == rank)
 
 
+## Phase 2/P9: distinct family names across all monsters, in first-seen
+## order -- Incursion.active_family() picks from this list.
+static func monster_families(monsters: Array) -> Array:
+	var seen := {}
+	var families := []
+	for m: Dictionary in monsters:
+		var family: String = m.get("family", "")
+		if family != "" and not seen.has(family):
+			seen[family] = true
+			families.append(family)
+	return families
+
+
+static func monsters_by_family(monsters: Array, family: String) -> Array:
+	return monsters.filter(func(m: Dictionary) -> bool: return m.get("family", "") == family)
+
+
 static func equipment_by_id(equipment: Dictionary, id: String) -> Dictionary:
 	for e: Dictionary in equipment.get("base_equipment", []):
 		if e.get("id") == id:

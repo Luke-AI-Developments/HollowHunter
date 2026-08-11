@@ -394,6 +394,12 @@ func _resolve_gate(gate: Dictionary, is_break: bool = false) -> String:
 			essence_gain = GateBreak.bonus_essence(essence_gain)
 			state.gate_tickets += GateBreak.BREAK_TICKET_BONUS
 			msg += "\n+%d Gate Ticket(s) (Gate Break bonus)" % GateBreak.BREAK_TICKET_BONUS
+		elif gate.get("incursion_bonus", false):
+			# Phase 2/P9: incursion gates carry this flag from
+			# GateSpawner.spawn_incursion_gates() -- §19's "boosted...
+			# drops" for the zone's family.
+			essence_gain = Incursion.bonus_essence(essence_gain)
+			msg += "\n(Incursion bonus)"
 		state.essence += essence_gain
 		msg += "\nEssence +%d" % essence_gain
 

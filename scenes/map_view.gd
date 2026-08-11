@@ -20,23 +20,46 @@ const RANK_COLORS := {
 	"S": Color.CRIMSON,
 }
 
+const NORMAL_GATE_COUNT := 5
+const INCURSION_GATE_COUNT := 8  ## invented v0: §19's "denser" -- see core/incursion.gd
+
 var _center_lat: float = 0.0
 var _center_lon: float = 0.0
 var _has_fix := false
 var _gates: Array = []
+var _active_incursion_family := ""  ## Phase 2/P9: "" if this area+week isn't under one (§19)
 
 
 ## Gates are rolled once, from the first fix -- moving around doesn't
 ## reroll them (that would just be jittery placeholder noise, not a
 ## feature). Re-call from a "new gates" action once that exists.
+##
+## Phase 2/P9: also checks Incursion.active_family() for this spot/week at
+## that same first fix -- deterministic, so it's fine to compute once and
+## hold rather than re-check on every position update.
 func show_position(lat: float, lon: float, hunter_rank: String) -> void:
 	if not _has_fix:
 		_center_lat = lat
 		_center_lon = lon
 		_has_fix = true
+		var monsters := Content.load_monsters()
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
-		_gates = GateSpawner.spawn_gates(lat, lon, hunter_rank, Content.load_monsters(), 5, rng)
+
+		var area := Incursion.area_key(lat, lon)
+		var week := Incursion.week_number(int(Time.get_unix_time_from_system()))
+		_active_incursion_family = Incursion.active_family(
+			area, week, Content.monster_families(monsters)
+		)
+
+		if _active_incursion_family != "":
+			_gates = GateSpawner.spawn_incursion_gates(
+				lat, lon, hunter_rank, _active_incursion_family, monsters, INCURSION_GATE_COUNT, rng
+			)
+		else:
+			_gates = GateSpawner.spawn_gates(
+				lat, lon, hunter_rank, monsters, NORMAL_GATE_COUNT, rng
+			)
 	queue_redraw()
 
 
@@ -80,6 +103,17 @@ func _draw() -> void:
 			24
 		)
 		return
+
+	if _active_incursion_family != "":
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(-100, -60),
+			"⚡ Incursion: %s" % _active_incursion_family,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			24,
+			Color.ORANGE_RED
+		)
 
 	for g: Dictionary in _gates:
 		var dx: float = (g["lon"] - _center_lon) * PIXELS_PER_DEGREE

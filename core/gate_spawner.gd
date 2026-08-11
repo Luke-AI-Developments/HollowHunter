@@ -96,6 +96,71 @@ static func spawn_ticket_gate(
 	return {}
 
 
+## Phase 2/P9: gates for an active Incursion zone (§19) -- same rank pool
+## as a normal spawn, but every rolled rank is bumped one tier higher
+## ("a rank higher") and every monster is restricted to `family`
+## ("all that family"). "Denser" isn't this function's concern -- that's
+## just a bigger `count` from the caller, same knob as spawn_gates().
+## Falls back to the family's own highest-rank monster if the bumped rank
+## has no member of that family (several families are thin -- e.g.
+## Tarlings/Gloamwing only span E-D, so a bumped-to-C roll would otherwise
+## come up empty for them).
+static func spawn_incursion_gates(
+	center_lat: float,
+	center_lon: float,
+	hunter_rank: String,
+	incursion_family: String,
+	monsters: Array,
+	count: int = 5,
+	rng: RandomNumberGenerator = null
+) -> Array:
+	var pool := _bumped_rank_pool(hunter_rank)
+	var family_monsters := Content.monsters_by_family(monsters, incursion_family)
+	var gates := []
+	for i in count:
+		var rank: String = pool[_rand_index(pool.size(), rng)]
+		var candidates := family_monsters.filter(
+			func(m: Dictionary) -> bool: return m.get("rank", "") == rank
+		)
+		if candidates.is_empty():
+			candidates = family_monsters
+		if candidates.is_empty():
+			continue
+		var monster: Dictionary = candidates[_rand_index(candidates.size(), rng)]
+		(
+			gates
+			. append(
+				{
+					"rank": String(monster.get("rank", rank)),
+					"lat": center_lat + _rand_offset(rng),
+					"lon": center_lon + _rand_offset(rng),
+					"monster_id": monster.get("id", ""),
+					"monster_name": monster.get("name", ""),
+					"monster_base_power": monster.get("base_power", 0),
+					"monster_extract_chance": monster.get("extract_chance", 0.0),
+					"incursion_bonus": true,
+				}
+			)
+		)
+	return gates
+
+
+static func _bumped_rank_pool(earned_rank: String) -> Array:
+	var deduped := []
+	for r: String in rank_pool_for_rank(earned_rank):
+		var bumped := _bump_rank(r)
+		if not deduped.has(bumped):
+			deduped.append(bumped)
+	return deduped
+
+
+static func _bump_rank(rank: String) -> String:
+	var idx := RANKS.find(rank)
+	if idx < 0:
+		return rank
+	return RANKS[mini(idx + 1, RANKS.size() - 1)]
+
+
 static func _rand_index(size: int, rng: RandomNumberGenerator) -> int:
 	var f := rng.randf() if rng else randf()
 	return min(int(f * size), size - 1)
