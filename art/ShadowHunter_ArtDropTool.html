@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shadow Hunter — Art Drop Tool</title>
+<style>
+  :root{
+    --bg:#03070d; --panel:#0a1420; --panel2:#0d1826; --line:#16283a;
+    --cyan:#22d3ee; --icy:#7ff0ff; --text:#dff6ff; --muted:#7f97a8;
+    --ok:#22d3ee; --warn:#f0b429;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    padding:24px 28px 60px;
+  }
+  h1{
+    font-size:22px; margin:0 0 4px; letter-spacing:.5px;
+    color:var(--icy); text-shadow:0 0 18px rgba(34,211,238,.35);
+  }
+  .sub{color:var(--muted); font-size:13px; margin-bottom:20px;}
+  .bar{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; margin-bottom:14px; position:sticky; top:12px; z-index:10;
+    backdrop-filter:blur(6px);
+  }
+  button{
+    background:linear-gradient(180deg,#123244,#0c2230); color:var(--icy);
+    border:1px solid var(--cyan); border-radius:7px; padding:9px 16px;
+    font-size:13px; cursor:pointer; letter-spacing:.3px;
+  }
+  button:hover{ box-shadow:0 0 12px rgba(34,211,238,.4); }
+  button.secondary{ border-color:var(--line); color:var(--muted); }
+  input[type=text]{
+    background:#081119; border:1px solid var(--line); border-radius:7px;
+    color:var(--text); padding:9px 12px; font-size:13px; min-width:200px;
+  }
+  .progress-wrap{ flex:1; min-width:180px; }
+  .progress-track{
+    height:8px; background:#081119; border-radius:5px; overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .progress-fill{
+    height:100%; background:linear-gradient(90deg,var(--cyan),var(--icy));
+    width:0%; transition:width .3s;
+  }
+  .progress-label{ font-size:12px; color:var(--muted); margin-top:4px; }
+  .mode-note{ font-size:12px; color:var(--warn); }
+  .mode-note.ok{ color:var(--cyan); }
+
+  .catnav{
+    display:flex; gap:8px; flex-wrap:wrap; margin-bottom:26px;
+  }
+  .catnav a{
+    color:var(--muted); text-decoration:none; font-size:12px;
+    border:1px solid var(--line); border-radius:6px; padding:6px 10px;
+    background:var(--panel2);
+  }
+  .catnav a .n{ color:var(--icy); }
+
+  h2.section{
+    font-size:15px; text-transform:uppercase; letter-spacing:1.5px;
+    color:var(--icy); margin:34px 0 4px; border-bottom:1px solid var(--line);
+    padding-bottom:6px; scroll-margin-top:110px;
+  }
+  h3.subsection{
+    font-size:12px; text-transform:uppercase; letter-spacing:1px;
+    color:var(--muted); margin:18px 0 8px;
+  }
+  .cat-desc{ font-size:12px; color:var(--muted); margin-bottom:14px; }
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:12px;
+  }
+  .slot{
+    border:1.5px dashed var(--line); border-radius:10px; background:var(--panel2);
+    aspect-ratio:1/1; position:relative; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:8px;
+    transition:border-color .15s, background .15s; overflow:hidden; cursor:pointer;
+  }
+  .slot.dragover{ border-color:var(--cyan); background:#0f2432; }
+  .slot.filled{ border-style:solid; border-color:var(--cyan); }
+  .slot .rank{
+    position:absolute; top:6px; left:6px; font-size:10px; font-weight:700;
+    background:#081119; border:1px solid var(--line); border-radius:4px;
+    padding:1px 6px; color:var(--icy);
+  }
+  .slot .check{
+    position:absolute; top:6px; right:6px; color:var(--cyan); font-size:14px;
+    text-shadow:0 0 6px rgba(34,211,238,.7); display:none;
+  }
+  .slot.filled .check{ display:block; }
+  .slot img{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    opacity:.55;
+  }
+  .slot .name{
+    font-size:11.5px; color:var(--text); z-index:1; line-height:1.25;
+    text-shadow:0 1px 3px #000;
+  }
+  .slot .fname{
+    font-size:9.5px; color:var(--muted); z-index:1; margin-top:3px;
+    font-family:monospace; text-shadow:0 1px 3px #000;
+  }
+  .slot .plus{ font-size:20px; color:var(--muted); z-index:1; }
+  .slot input[type=file]{ display:none; }
+  .clear-x{
+    position:absolute; bottom:5px; right:5px; z-index:2; font-size:10px;
+    background:#081119; border:1px solid var(--line); border-radius:4px;
+    color:var(--muted); padding:1px 5px; display:none;
+  }
+  .slot.filled:hover .clear-x{ display:block; }
+  footer{ margin-top:34px; font-size:12px; color:var(--muted); line-height:1.6; }
+  footer b{ color:var(--icy); }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<h1>SHADOW HUNTER — Art Drop Tool</h1>
+<div class="sub">Drag an image onto a slot to save it with the right filename in the right folder. Works offline, nothing uploads anywhere. 196 slots across 8 categories.</div>
+
+<div class="bar">
+  <button id="pickFolderBtn">📁 Choose save folder</button>
+  <span id="modeNote" class="mode-note">No folder selected — files will download to your Downloads folder with the correct name instead.</span>
+  <input type="text" id="search" placeholder="Search name or filename…">
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 196 saved</div>
+  </div>
+  <button class="secondary" id="resetBtn">Reset progress</button>
+</div>
+
+<div class="catnav">
+  <a href="#cat-hero">Hero <span class="n">(3)</span></a>
+  <a href="#cat-promo">Promo <span class="n">(4)</span></a>
+  <a href="#cat-presets">Presets <span class="n">(12)</span></a>
+  <a href="#cat-stages">Rank stages <span class="n">(36)</span></a>
+  <a href="#cat-monsters">Monsters <span class="n">(61)</span></a>
+  <a href="#cat-equipment">Equipment <span class="n">(50)</span></a>
+  <a href="#cat-sets">Armor sets <span class="n">(15)</span></a>
+  <a href="#cat-ui">UI / store <span class="n">(15)</span></a>
+</div>
+
+<h2 class="section" id="cat-hero">Hero key art (3)</h2>
+<div class="cat-desc">Saves to <b>/hero</b></div>
+<div class="grid" id="heroGrid"></div>
+
+<h2 class="section" id="cat-promo">Promotional / social variants (4)</h2>
+<div class="cat-desc">Saves to <b>/promo</b> — for ongoing TikTok/Reddit/X content variety</div>
+<div class="grid" id="promoGrid"></div>
+
+<h2 class="section" id="cat-presets">Preset hunter portraits (12)</h2>
+<div class="cat-desc">Saves to <b>/presets</b> as <b>preset_hunter_&lt;id&gt;.png</b> — face visible, the playable roster (§3b)</div>
+<h3 class="subsection">Female (6)</h3>
+<div class="grid" id="presetsFGrid"></div>
+<h3 class="subsection">Male (6)</h3>
+<div class="grid" id="presetsMGrid"></div>
+
+<h2 class="section" id="cat-stages">Preset rank-progression variants (36)</h2>
+<div class="cat-desc">Saves to <b>/presets</b> as <b>preset_hunter_&lt;id&gt;_&lt;stage&gt;.png</b> — same 12 hunters, 3 power-stages each (§3c)</div>
+<h3 class="subsection">Early (E–D rank) — 12</h3>
+<div class="grid" data-stage="early"></div>
+<h3 class="subsection">Mid (C–B rank) — 12</h3>
+<div class="grid" data-stage="mid"></div>
+<h3 class="subsection">Late (A–S rank) — 12</h3>
+<div class="grid" data-stage="late"></div>
+
+<h2 class="section" id="cat-monsters">Monsters (61)</h2>
+<div class="cat-desc">Saves to <b>/monsters</b> as <b>por_&lt;id&gt;.png</b></div>
+<h3 class="subsection" id="rankE">E-rank (10)</h3>
+<div class="grid" data-rank="E"></div>
+<h3 class="subsection" id="rankD">D-rank (13)</h3>
+<div class="grid" data-rank="D"></div>
+<h3 class="subsection" id="rankC">C-rank (15)</h3>
+<div class="grid" data-rank="C"></div>
+<h3 class="subsection" id="rankB">B-rank (11)</h3>
+<div class="grid" data-rank="B"></div>
+<h3 class="subsection" id="rankA">A-rank (7)</h3>
+<div class="grid" data-rank="A"></div>
+<h3 class="subsection" id="rankS">S-rank bosses (5)</h3>
+<div class="grid" data-rank="S"></div>
+
+<h2 class="section" id="cat-equipment">Equipment — 50 base pieces</h2>
+<div class="cat-desc">Saves to <b>/equipment</b> as <b>spr_&lt;id&gt;.png</b></div>
+<h3 class="subsection">Warrior (10)</h3>
+<div class="grid" data-eqclass="WARRIOR"></div>
+<h3 class="subsection">Guardian (10)</h3>
+<div class="grid" data-eqclass="GUARDIAN"></div>
+<h3 class="subsection">Assassin (10)</h3>
+<div class="grid" data-eqclass="ASSASSIN"></div>
+<h3 class="subsection">Mage (10)</h3>
+<div class="grid" data-eqclass="MAGE"></div>
+<h3 class="subsection">Support (10)</h3>
+<div class="grid" data-eqclass="SUPPORT"></div>
+
+<h2 class="section" id="cat-sets">Armor sets — 15 full showcases</h2>
+<div class="cat-desc">Saves to <b>/sets</b> as <b>&lt;id&gt;.png</b></div>
+<div class="grid" id="setsGrid"></div>
+
+<h2 class="section" id="cat-ui">UI / store assets (15)</h2>
+<div class="cat-desc">Saves to <b>/ui</b> as <b>&lt;id&gt;.png</b></div>
+<div class="grid" id="uiGrid"></div>
+
+<footer>
+  <div>All filenames match the ids already in <b>monsters.json</b> / <b>equipment.json</b> — drops straight into the game later, no renaming.</div>
+  <div style="margin-top:6px;">Click "Choose save folder" once (Chrome/Edge desktop only) and grant write access — every drop after that saves directly, no manual renaming. On other browsers, dropped files still download with the correct filename; just move them into the right folder yourself.</div>
+  <div style="margin-top:6px;">Progress is remembered in this browser for this file. If it resets, no data is lost — already-saved images stay in your folder; just skip anything already done.</div>
+</footer>
+
+<script>
+const HERO = [
+  {id:'key_art_hero_vertical', name:'Hero — Vertical (9:16, TikTok/Reels)', folder:'hero', file:'key_art_hero_vertical.png'},
+  {id:'key_art_hero_wide',     name:'Hero — Wide (16:9, YouTube/banner)',   folder:'hero', file:'key_art_hero_wide.png'},
+  {id:'key_art_hero_square',   name:'Hero — Square (1:1, feed/profile)',    folder:'hero', file:'key_art_hero_square.png'},
+];
+
+const PROMO = [
+  {id:'promo_bust',      name:'Close-up bust (thumbnail)',   folder:'promo', file:'promo_bust.png'},
+  {id:'promo_action',    name:'Action pose (mid-strike)',    folder:'promo', file:'promo_action.png'},
+  {id:'promo_army',      name:'Shadow army (wide)',           folder:'promo', file:'promo_army.png'},
+  {id:'promo_titlecard', name:'Title card (portal, no figure)', folder:'promo', file:'promo_titlecard.png'},
+];
+
+const PRESETS = [
+  ['F','f1','short silver-white hair, sharp angular features'],
+  ['F','f2','long black ponytail, calm composed'],
+  ['F','f3','auburn hair, freckled, confident smirk'],
+  ['F','f4','undercut + blue-black braid, muscular'],
+  ['F','f5','short blonde bob, hard eyes'],
+  ['F','f6','teal-streaked shaved side, cyan face markings'],
+  ['M','m1','buzzcut, heavy jaw, broad build'],
+  ['M','m2','long dark hair tied back, lean'],
+  ['M','m3','shaved head, thick beard, hulking'],
+  ['M','m4','tousled brown hair, youthful'],
+  ['M','m5','silver-grey swept back, veteran'],
+  ['M','m6','dark curly hair, light stubble'],
+].map(([sex,id,name]) => ({rank:sex, name:`${id.toUpperCase()} — ${name}`, folder:'presets', file:`preset_hunter_${id}.png`}));
+
+const PRESET_IDS = ['f1','f2','f3','f4','f5','f6','m1','m2','m3','m4','m5','m6'];
+const STAGES = [
+  ['early', 'Early (E–D)'],
+  ['mid',   'Mid (C–B)'],
+  ['late',  'Late (A–S)'],
+];
+const PRESET_STAGES = STAGES.flatMap(([stage, label]) =>
+  PRESET_IDS.map(id => ({
+    stage, name: `${id.toUpperCase()} — ${label}`,
+    folder: 'presets', file: `preset_hunter_${id}_${stage}.png`
+  }))
+);
+
+const MONSTERS = [
+  ['E','mon_grubmaw','Grubmaw'],['E','mon_runtclaw','Runtclaw'],['E','mon_tarling','Tarling'],
+  ['E','mon_grublet','Grublet'],['E','mon_cindergnat','Cindergnat'],['E','mon_gloamwing','Gloamwing'],
+  ['E','mon_bonerat','Bonerat'],['E','mon_mirewisp','Mirewisp'],['E','mon_mudtusk','Mudtusk'],
+  ['E','mon_nipclaw','Nipclaw'],
+
+  ['D','mon_tuskrend','Tuskrend'],['D','mon_carapax','Carapax'],['D','mon_gravemarch_footman','Gravemarch Footman'],
+  ['D','mon_tarhulk','Tarhulk'],['D','mon_beetlback','Beetlback'],['D','mon_sporebloat','Sporebloat'],
+  ['D','mon_duskmaw','Duskmaw'],['D','mon_rotknight','Rotknight'],['D','mon_cryptrat','Cryptrat Swarm'],
+  ['D','mon_palewisp','Palewisp'],['D','mon_boartusk','Boartusk'],['D','mon_gnollpike','Gnollpike'],
+  ['D','mon_grimhound','Grimhound'],
+
+  ['C','mon_ashen_warden','Ashen Warden'],['C','mon_sporecrawler','Sporecrawler'],['C','mon_bonegnasher','Bonegnasher'],
+  ['C','mon_glacewisp','Glacewisp'],['C','mon_ashwing','Ashwing'],['C','mon_dreadmaw','Dreadmaw'],
+  ['C','mon_sporelord','Sporelord'],['C','mon_broodlancer','Broodlancer'],['C','mon_direwarden','Direwarden'],
+  ['C','mon_snarlpack','Snarlpack Alpha'],['C','mon_frostbite_sylph','Frostbite Sylph'],['C','mon_glimmerhound','Glimmerhound'],
+  ['C','mon_emberling','Emberling'],['C','mon_grinlet','Grinlet'],['C','mon_cindercreep','Cindercreep'],
+
+  ['B','mon_frostquill','Frostquill'],['B','mon_hivewarden','Hivewarden'],['B','mon_warhowl','Warhowl'],
+  ['B','mon_sepulcher_knight','Sepulcher Knight'],['B','mon_cindermaw_drake','Cindermaw Drake'],['B','mon_hollowhorn','Hollowhorn'],
+  ['B','mon_broodqueen_vassal','Broodqueen Vassal'],['B','mon_ashen_cataphract','Ashen Cataphract'],['B','mon_glacial_revenant','Glacial Revenant'],
+  ['B','mon_duskdrake','Duskdrake'],['B','mon_fiendlord','Fiendlord'],
+
+  ['A','mon_cindervane','Cindervane'],['A','mon_hoarfrost_matron','Hoarfrost Matron'],['A','mon_kaeric',"Kaeric, the First Warden"],
+  ['A','mon_voidcaller','Voidcaller'],['A','mon_broodmother','Broodmother'],['A','mon_rimewarden_sovereign','Rimewarden Sovereign'],
+  ['A','mon_ashen_lord_commander','Ashen Lord Commander'],
+
+  ['S','mon_xirvok',"Xir'Vok, Brood Sovereign"],['S','mon_vharun','Vharun, the Cinder Wyrm'],
+  ['S','mon_pale_sovereign','The Pale Sovereign'],['S','mon_ur_grakh','Ur-Grakh, the Bonemarch King'],
+  ['S','mon_nyxaris','Nyxaris, the Hollow Star'],
+].map(([rank,id,name]) => ({rank, id, name, folder:'monsters', file:`por_${id}.png`}));
+
+const EQUIPMENT = [
+  ['WARRIOR','eq_warcleaver','Warcleaver'],['WARRIOR','eq_gravebite_greataxe','Gravebite Greataxe'],
+  ['WARRIOR','eq_ironbrow_helm','Ironbrow Helm'],['WARRIOR','eq_ashplate_cuirass','Ashplate Cuirass'],
+  ['WARRIOR','eq_juggernaut_plate','Juggernaut Plate'],['WARRIOR','eq_bruiser_gauntlets',"Bruiser's Gauntlets"],
+  ['WARRIOR','eq_trampling_sabatons','Trampling Sabatons'],['WARRIOR','eq_marching_greaves','Marching Greaves'],
+  ['WARRIOR','eq_berserker_signet',"Berserker's Signet"],['WARRIOR','eq_warlord_torc',"Warlord's Torc"],
+
+  ['GUARDIAN','eq_bulwark_shield','Bulwark Shield'],['GUARDIAN','eq_aegis_wall','Aegis Wall'],
+  ['GUARDIAN','eq_wardens_barbute',"Warden's Barbute"],['GUARDIAN','eq_sentinel_cuirass','Sentinel Cuirass'],
+  ['GUARDIAN','eq_immovable_plate','Immovable Plate'],['GUARDIAN','eq_ramguard_gauntlets','Ramguard Gauntlets'],
+  ['GUARDIAN','eq_rootstep_greaves','Rootstep Greaves'],['GUARDIAN','eq_anchor_sabatons','Anchor Sabatons'],
+  ['GUARDIAN','eq_stoneheart_charm','Stoneheart Charm'],['GUARDIAN','eq_bastion_sigil','Bastion Sigil'],
+
+  ['ASSASSIN','eq_shadowfang_dagger','Shadowfang Dagger'],['ASSASSIN','eq_twin_fangs','Twin Fangs'],
+  ['ASSASSIN','eq_gloamhood','Gloamhood'],['ASSASSIN','eq_nightweave_vest','Nightweave Vest'],
+  ['ASSASSIN','eq_phantom_leathers','Phantom Leathers'],['ASSASSIN','eq_silent_grips','Silent Grips'],
+  ['ASSASSIN','eq_gloamstep_boots','Gloamstep Boots'],['ASSASSIN','eq_fleetfoot_shoes','Fleetfoot Shoes'],
+  ['ASSASSIN','eq_killers_band',"Killer's Band"],['ASSASSIN','eq_umbral_pendant','Umbral Pendant'],
+
+  ['MAGE','eq_blightwood_wand','Blightwood Wand'],['MAGE','eq_cindercore_staff','Cindercore Staff'],
+  ['MAGE','eq_seers_cowl',"Seer's Cowl"],['MAGE','eq_runespun_robe','Runespun Robe'],
+  ['MAGE','eq_archon_vestments','Archon Vestments'],['MAGE','eq_channelers_gloves',"Channeler's Gloves"],
+  ['MAGE','eq_wraithsilk_slippers','Wraithsilk Slippers'],['MAGE','eq_wanderers_sandals',"Wanderer's Sandals"],
+  ['MAGE','eq_mana_sigil','Mana Sigil'],['MAGE','eq_oracles_eye',"Oracle's Eye"],
+
+  ['SUPPORT','eq_rally_totem','Rally Totem'],['SUPPORT','eq_bonemarch_banner','Bonemarch Banner'],
+  ['SUPPORT','eq_chaplains_hood',"Chaplain's Hood"],['SUPPORT','eq_wardenpriest_robe','Warden-Priest Robe'],
+  ['SUPPORT','eq_hierophant_vestments','Hierophant Vestments'],['SUPPORT','eq_blessing_gloves','Blessing Gloves'],
+  ['SUPPORT','eq_shepherds_treads',"Shepherd's Treads"],['SUPPORT','eq_acolyte_sandals','Acolyte Sandals'],
+  ['SUPPORT','eq_wardsong_charm','Wardsong Charm'],['SUPPORT','eq_aegis_of_the_host','Aegis of the Host'],
+].map(([clazz,id,name]) => ({clazz, id, name, folder:'equipment', file:`spr_${id}.png`}));
+
+const SETS = [
+  ['WARRIOR','D','set_ashen_vanguard_plate','Ashen Vanguard Plate'],
+  ['WARRIOR','B','set_emberforged_regalia','Emberforged Regalia'],
+  ['WARRIOR','S','set_bonemarch_warplate','Bonemarch Warplate'],
+  ['GUARDIAN','D','set_wardens_eternal_guard',"Warden's Eternal Guard"],
+  ['GUARDIAN','B','set_rimefell_aegis','Rimefell Aegis'],
+  ['GUARDIAN','S','set_obsidian_bastion','Obsidian Bastion'],
+  ['ASSASSIN','D','set_gloamstalker_garb','Gloamstalker Garb'],
+  ['ASSASSIN','B','set_voidcreep_shroud','Voidcreep Shroud'],
+  ['ASSASSIN','S','set_cinderdance_leathers','Cinderdance Leathers'],
+  ['MAGE','D','set_broodcaller_vestments','Broodcaller Vestments'],
+  ['MAGE','B','set_hoarfrost_weave','Hoarfrost Weave'],
+  ['MAGE','S','set_sovereigns_regalia',"Sovereign's Regalia"],
+  ['SUPPORT','D','set_sanctified_ward','Sanctified Ward'],
+  ['SUPPORT','B','set_warhowls_standard',"Warhowl's Standard"],
+  ['SUPPORT','S','set_hive_sovereign_raiment','Hive-Sovereign Raiment'],
+].map(([clazz,tier,id,name]) => ({rank:tier, name:`${name} (${clazz.slice(0,1)+clazz.slice(1).toLowerCase()})`, folder:'sets', file:`${id}.png`}));
+
+const UI = [
+  {id:'ui_icon_playstore', name:'App icon (Play Store)'},
+  {id:'ui_feature_graphic', name:'Store feature graphic'},
+  {id:'ui_icon_essence', name:'Essence currency icon'},
+  {id:'ui_system_frame', name:'System UI frame (pop-up border)'},
+  {id:'ui_class_warrior', name:'Class icon — Warrior'},
+  {id:'ui_class_guardian', name:'Class icon — Guardian'},
+  {id:'ui_class_assassin', name:'Class icon — Assassin'},
+  {id:'ui_class_mage', name:'Class icon — Mage'},
+  {id:'ui_class_support', name:'Class icon — Support'},
+  {id:'ui_rank_e', name:'Rank badge — E'},
+  {id:'ui_rank_d', name:'Rank badge — D'},
+  {id:'ui_rank_c', name:'Rank badge — C'},
+  {id:'ui_rank_b', name:'Rank badge — B'},
+  {id:'ui_rank_a', name:'Rank badge — A'},
+  {id:'ui_rank_s', name:'Rank badge — S'},
+].map(u => ({...u, folder:'ui', file:`${u.id}.png`}));
+
+const ALL_SLOTS = [...HERO, ...PROMO, ...PRESETS, ...PRESET_STAGES, ...MONSTERS, ...EQUIPMENT, ...SETS, ...UI];
+const TOTAL = ALL_SLOTS.length;
+
+let dirHandle = null;
+const FS_SUPPORTED = 'showDirectoryPicker' in window;
+const STORAGE_KEY = 'shadowhunter_art_drop_progress_v2';
+
+function loadProgress(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e){ return {}; }
+}
+function saveProgress(p){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+}
+let progress = loadProgress();
+
+function progressKey(item){ return item.folder + '/' + item.file; }
+
+function updateProgressBar(){
+  const done = Object.keys(progress).filter(k => progress[k]).length;
+  document.getElementById('progressFill').style.width = (done/TOTAL*100) + '%';
+  document.getElementById('progressLabel').textContent = `${done} / ${TOTAL} saved`;
+}
+
+function buildSlotEl(item){
+  const key = progressKey(item);
+  const el = document.createElement('div');
+  el.className = 'slot' + (progress[key] ? ' filled' : '');
+  el.dataset.key = key;
+  el.dataset.name = item.name.toLowerCase();
+  el.dataset.file = item.file.toLowerCase();
+  el.innerHTML = `
+    ${item.rank ? `<span class="rank">${item.rank}</span>` : ''}
+    <span class="check">✓ saved</span>
+    <span class="plus">＋</span>
+    <span class="name">${item.name}</span>
+    <span class="fname">${item.file}</span>
+    <span class="clear-x">clear</span>
+    <input type="file" accept="image/*">
+  `;
+  const fileInput = el.querySelector('input[type=file]');
+
+  el.addEventListener('click', (e) => {
+    if (e.target.classList.contains('clear-x')) {
+      e.stopPropagation();
+      delete progress[key];
+      saveProgress(progress);
+      el.classList.remove('filled');
+      const img = el.querySelector('img'); if (img) img.remove();
+      updateProgressBar();
+      return;
+    }
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(item, fileInput.files[0], el, key);
+  });
+  ['dragenter','dragover'].forEach(evt =>
+    el.addEventListener(evt, e => { e.preventDefault(); el.classList.add('dragover'); })
+  );
+  ['dragleave','drop'].forEach(evt =>
+    el.addEventListener(evt, e => { e.preventDefault(); el.classList.remove('dragover'); })
+  );
+  el.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(item, f, el, key);
+  });
+  return el;
+}
+
+async function handleFile(item, file, el, key){
+  let img = el.querySelector('img');
+  if (!img) { img = document.createElement('img'); el.prepend(img); }
+  img.src = URL.createObjectURL(file);
+
+  if (dirHandle) {
+    try {
+      const subDir = await dirHandle.getDirectoryHandle(item.folder, {create:true});
+      const fileHandle = await subDir.getFileHandle(item.file, {create:true});
+      const writable = await fileHandle.createWritable();
+      await writable.write(file);
+      await writable.close();
+    } catch(err) {
+      console.error(err);
+      alert('Could not save directly — falling back to download.\n' + err.message);
+      triggerDownload(file, item.file);
+    }
+  } else {
+    triggerDownload(file, item.file);
+  }
+
+  progress[key] = true;
+  saveProgress(progress);
+  el.classList.add('filled');
+  updateProgressBar();
+}
+
+function triggerDownload(file, filename){
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+// build DOM
+document.getElementById('heroGrid').append(...HERO.map(buildSlotEl));
+document.getElementById('promoGrid').append(...PROMO.map(buildSlotEl));
+document.getElementById('presetsFGrid').append(...PRESETS.filter(p => p.rank === 'F').map(buildSlotEl));
+document.getElementById('presetsMGrid').append(...PRESETS.filter(p => p.rank === 'M').map(buildSlotEl));
+
+STAGES.forEach(([stage]) => {
+  const grid = document.querySelector(`.grid[data-stage="${stage}"]`);
+  const items = PRESET_STAGES.filter(p => p.stage === stage);
+  grid.append(...items.map(buildSlotEl));
+});
+
+['E','D','C','B','A','S'].forEach(rank => {
+  const grid = document.querySelector(`.grid[data-rank="${rank}"]`);
+  const items = MONSTERS.filter(m => m.rank === rank);
+  grid.append(...items.map(buildSlotEl));
+});
+
+['WARRIOR','GUARDIAN','ASSASSIN','MAGE','SUPPORT'].forEach(clazz => {
+  const grid = document.querySelector(`.grid[data-eqclass="${clazz}"]`);
+  const items = EQUIPMENT.filter(e => e.clazz === clazz);
+  grid.append(...items.map(buildSlotEl));
+});
+
+document.getElementById('setsGrid').append(...SETS.map(buildSlotEl));
+document.getElementById('uiGrid').append(...UI.map(buildSlotEl));
+
+updateProgressBar();
+
+// folder picker
+const modeNote = document.getElementById('modeNote');
+if (!FS_SUPPORTED) {
+  modeNote.textContent = 'Your browser doesn\'t support direct folder saving — files will download with the correct filename; move them into the matching subfolder yourself. (Use Chrome or Edge desktop for direct saving.)';
+}
+document.getElementById('pickFolderBtn').addEventListener('click', async () => {
+  if (!FS_SUPPORTED) {
+    alert('Direct folder saving needs Chrome or Edge on desktop. Open this file in one of those to enable it — for now, drops will download normally with correct filenames.');
+    return;
+  }
+  try {
+    dirHandle = await window.showDirectoryPicker({mode:'readwrite'});
+    modeNote.textContent = `Saving directly into "${dirHandle.name}/hero, /promo, /monsters, /equipment, /sets, /ui" ✓`;
+    modeNote.classList.add('ok');
+  } catch(e) { /* cancelled */ }
+});
+
+// search filter
+document.getElementById('search').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.slot').forEach(el => {
+    const show = !q || el.dataset.name.includes(q) || el.dataset.file.includes(q);
+    el.style.display = show ? '' : 'none';
+  });
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('Clear saved-progress markers? (Does not delete any files already saved to disk.)')) return;
+  progress = {};
+  saveProgress(progress);
+  document.querySelectorAll('.slot').forEach(el => {
+    el.classList.remove('filled');
+    const img = el.querySelector('img'); if (img) img.remove();
+  });
+  updateProgressBar();
+});
+</script>
+</body>
+</html>

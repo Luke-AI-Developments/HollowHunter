@@ -215,6 +215,15 @@ Solo gameplay, but a leaderboard gives it a competitive spine. Kept simple — i
 
 > **Production order: placeholder-first.** Build the whole game with placeholder art (colored shapes + labels, or free CC0 packs from **Kenney.nl**) and do the real art as a single pass at the end. This section is the *target* for that final pass, not day-one work. **Critical enabler:** reference every sprite by a data ID → art-path (never hardcode sprites), so final assets swap in by editing data, not code. Consequence: keep the art MCPs (PixelLab/Aseprite/Blender) **off** during systems development — enable them only for the art phase.
 
+### Art identity — LOCKED v1 (supersedes earlier palette notes)
+*Decided with the founder during the marketing key-art work.*
+- **Setting: contemporary real-world dark fantasy — NOT medieval, NOT cyberpunk.** Solo-Leveling-style: a *normal modern city* (kept grounded and minimal), and arcane **gates — swirling cyan portals** — open onto the dark, draconic monster-world. Keep the two **visually distinct**: the real world stays grounded/sparse; the dark fantasy lives *inside* the gates. Hunters read modern, never knightly, and never heavy-sci-fi mech (dial the glowing-tech back — the glow belongs to the gate).
+- **Mood / hero concept:** *a dark draconic world, and you are the power whose light cuts through it.* Frost-cyan light piercing the black.
+- **Palette (LOCKED): frost cyan.** Near-black base `#050b12` / `#03070d`; electric cyan accent `#22d3ee`; icy-white highlight `#7ff0ff`. Cyan = "the light" — reserve it for the hunter's power, gates, and glows against the dark. (Replaces the earlier purple-lead; shadow-monster glows are now cyan.)
+- **Hero design (Fire Emblem × Octopath × Solo Leveling mold):** HD-2D pixel-art hero with cinematic lighting / bloom / DoF; a hunter with **hood up and the face lost in shadow (mysterious — NO mask/face-covering), only piercing glowing cyan eyes visible**; **armour blends near-future tech with segmented plate + dark leather** (techwear, functional straps — NOT a medieval knight); glowing cyan energy runes tracing the armour; a tattered dark coat/cloak; a blade wreathed in frost-cyan energy; heroic stance, rim-lit cyan against the draconic gate-world.
+- **Key-art image prompt (for image tool / artist):** *"Heroic near-future dark-fantasy shadow hunter, HD-2D style like Octopath Traveler — detailed pixel-art character, cinematic lighting, bloom, tilt-shift DoF; anime hero in the spirit of Fire Emblem and Solo Leveling; NOT medieval. Hunter with hood up and face lost in shadow (no mask), only piercing glowing cyan eyes visible; sleek modern tactical armour blending near-future tech panels with segmented plate and dark leather, functional straps, glowing cyan energy runes; tattered dark coat; blade wreathed in frost-cyan energy with a modern hilt; confident stance, rim-lit electric cyan; dark draconic gate-world behind with a looming dragon shadow and a shaft of cyan light cutting through; palette near-black + cyan #22d3ee + icy white #7ff0ff; portrait poster, dramatic, high contrast, ominous power fantasy. --ar 2:3"*
+- **Consistency + AI-art note:** generate a **character sheet** for the recurring hero; **commission/hand-finish the final hero art** (art is the scrutiny point, §23/§27).
+
 ### Visual target: HD-2D (Octopath-style), built in Godot 4
 The look comes from **rendering, not sprite detail**: pixel-art sprites placed in 3D-lit scenes with real-time lighting, glow/bloom (perfect for the neon-purple magic), tilt-shift depth-of-field, particles, and atmospheric haze. Godot 4's Forward+ renderer supports all of it — `WorldEnvironment` (glow, DoF, fog), `Sprite3D`/billboards, `Light3D`, `GPUParticles`.
 
@@ -229,10 +238,10 @@ The look comes from **rendering, not sprite detail**: pixel-art sprites placed i
 - Bosses: larger canvas (e.g. 128×128+).
 - Portraits (menus/dialogue): higher-res **~512×512**, painted, more detail.
 
-**Palette:**
-- Base: dark and desaturated — charcoal/near-black backgrounds, deep blues and violets.
-- Accents (1–2 only): high-saturation **arcane purple** + **electric cyan/blue** for magic, auras, glows.
-- Shadows (extracted monsters): inky near-black silhouette with a purple/blue inner glow + smoky particle edges — a *unified treatment* so any monster instantly reads as "a shadow."
+**Palette (locked to §9b's frost-cyan — see note there):**
+- Base: dark and desaturated — charcoal/near-black backgrounds.
+- Accent (single, not two): high-saturation **electric cyan** (`#22d3ee`) + icy-white (`#7ff0ff`) highlight for magic, auras, glows. No purple/violet — cyan is "the light," reserved for the hunter's power, gates, and glows against the dark.
+- Shadows (extracted monsters): inky near-black silhouette with a **cyan** inner glow + smoky particle edges — a *unified treatment* so any monster instantly reads as "a shadow."
 
 **Rendering (Godot `WorldEnvironment`):** strong bloom/glow on magic and rim lights, tilt-shift depth-of-field (top/bottom blur), subtle volumetric haze, high contrast.
 
@@ -243,9 +252,9 @@ The look comes from **rendering, not sprite detail**: pixel-art sprites placed i
 **Consistency rig:** a fixed generation prompt template + fixed seed + reference image, and every output post-processed (downscale to target res + palette-snap to the locked palette). *Consistency across assets — not single-image quality — is the real challenge with AI art.*
 
 **Reusable prompt template (fill the brackets):**
-> *"[subject], pixel art game sprite, [64x64], dark fantasy, moody cinematic lighting, limited palette of charcoal-black + deep violet + neon purple/cyan accent, subtle dark outline, dramatic rim light, glowing [element] magic, clean readable silhouette, [front/8-direction] view, transparent background, HD-2D asset"*
+> *"[subject], pixel art game sprite, [64x64], dark fantasy, moody cinematic lighting, limited palette of charcoal-black + electric cyan accent, subtle dark outline, dramatic rim light, glowing cyan [element] magic, clean readable silhouette, [front/8-direction] view, transparent background, HD-2D asset"*
 >
-> Shadow variant: append *"rendered as an inky black shadow silhouette with glowing purple inner light and smoky edges."*
+> Shadow variant: append *"rendered as an inky black shadow silhouette with glowing cyan inner light and smoky edges."*
 
 ### Recommended art tooling (Claude Code + external)
 Minimal stack — generate → clean → integrate:
@@ -264,6 +273,25 @@ Minimal stack — generate → clean → integrate:
 - **Progression *is* the customization:** you don't pick a class — your real workouts define your build. The avatar visibly evolves with rank: E-rank ragged and plain → S-rank glowing with shadow aura. Visual rank-up is a core motivator.
 - **Equipment = paper-doll overlays:** looted gear (weapon / armor / aura) shows on the avatar — a small, controlled layer set, not full-body customization.
 - **Two asset types:** a detailed **portrait** for menus/dialogue + a simpler **battle/map sprite** (where the light pixelization lives).
+
+---
+
+## 9c. System UI — pop-up notification windows
+
+**The genre convention, on-brand.** LitRPG/progression-fantasy shows (Solo Leveling, Overlord, Slime, countless web novels) all use a "status window" pop-up as the visual language of leveling up — it's a genre trope, not owned by any one IP, and it's exactly the shorthand that tells a viewer "this is that kind of power fantasy" in half a second. We build our own version in the locked frost-cyan identity (§9b), not a copy of anyone's specific panel design.
+
+**Visual treatment:**
+- A dark, semi-transparent glass panel with an **angular, rune-etched cyan border** — sharp geometric corner-brackets, not rounded corners, matching the near-future dark-fantasy identity.
+- Text in icy-white (`#7ff0ff`), a thin glowing cyan divider line under any header, subtle scan-line shimmer on appear.
+- Materializes with a quick "glitch-in" (a few frames of noise/flicker resolving into the panel), not a soft fade — reinforces the "System" feel.
+
+**Two tiers, matched to the moment:**
+- **Toast** — small, corner-anchored, auto-fades after ~2s. Used for: EXP gained, minor loot, small stat gains.
+- **Full ceremonial panel** — centered, tap-anywhere/anywhere-to-dismiss, the glitch-in materialize. Used for: **rank up**, **boss CLAIM success** (§18), **gate cleared** reward breakdown, **Nadir floor cleared** (§20), **gate-break alert** (§8).
+
+**Why this is low-risk to build:** it's a UI skin on systems already fully spec'd (CLAIM, gate clear, Nadir floors, rank-up) — no new game logic, just a shared panel component Code can wire to existing event triggers.
+
+**Asset need:** one reusable **System UI frame/border graphic** (see Midjourney UI pack, §7) that the panel component stretches/tiles around whatever text or reward summary it's showing.
 
 ---
 
@@ -1085,7 +1113,7 @@ HunterState / ShadowInstance: equipped uses the 7 slots; hunter also holds
 - **Speed-based on AGI** — every combatant (your party + enemies) acts in descending AGI order, every round.
 - **Your turn:** pick one unlocked move, pick a target (single, or all enemies for an AoE move).
 - **Shadow turns:** automatic, per class-role priority (below) — every class can attack *and* has role-flavored moves, so nobody's a one-note bot.
-- **Enemy turns:** grunts attack simply; bosses get an occasional telegraphed bigger hit (~2x a normal attack) every few turns, so S-rank bosses feel like S-rank bosses. Exact cadence: tune once playable.
+- **Enemy turns:** grunts attack simply; bosses get an occasional telegraphed bigger hit (~2× a normal attack) every few turns, so S-rank bosses feel like S-rank bosses. Exact cadence: tune once playable.
 - **Win:** all enemies to 0 HP. **Loss:** your party to 0 HP — no penalty, gate/floor stays, come back stronger. Same no-attrition philosophy as before.
 
 ### Moves — one moveset per class, used two ways
@@ -1097,7 +1125,7 @@ The same 5 movesets serve double duty: **you** pick manually from your own subcl
 
 **Assassin** (AGI/STR) — 1. Quick Strike (Lv1, basic hit) · 2. Weaken (Lv3, lowers enemy defense) · 3. Poison Edge (Lv6, damage-over-time) · 4. Exploit Weakness (Lv10, bonus damage vs. debuffed enemies) · 5. Shadowstep Execute (Lv15, burst finisher)
 
-**Mage** (SEN) — 1. Cyan Bolt (Lv1, single-target magic) · 2. Frost Nova (Lv4, small AoE) · 3. Arcane Barrage (Lv8, bigger single-target hit) · 4. Chain Lightning (Lv12, hits 2-3 targets) · 5. Nova Burst (Lv16, big AoE, on cooldown)
+**Mage** (SEN) — 1. Cyan Bolt (Lv1, single-target magic) · 2. Frost Nova (Lv4, small AoE) · 3. Arcane Barrage (Lv8, bigger single-target hit) · 4. Chain Lightning (Lv12, hits 2–3 targets) · 5. Nova Burst (Lv16, big AoE, on cooldown)
 
 **Support** (SEN/VIT) — 1. Mend (Lv1, heal lowest-HP ally) · 2. Ward (Lv3, defense buff on an ally) · 3. Blessing (Lv6, small team heal/attack buff) · 4. Cleanse (Lv9, removes a debuff) · 5. Sanctuary (Lv14, strong team heal)
 
@@ -1129,7 +1157,7 @@ SPEED = AGI                               # turn order
 | HP | 82 | 1,350 |
 | PATK | 20 | 605 |
 
-~16x growth either side — early fights resolve in a handful of hits (good for a quick tap mid-walk); a Lv40 fight still feels dangerous.
+~16× growth either side — early fights resolve in a handful of hits (good for a quick tap mid-walk); a Lv40 fight still feels dangerous.
 
 ### Enemy stats — derived from existing base_power / floor_power, not re-authored
 Every monster already has a tuned `base_power` (§14b, Grubmaw=120 up to Xir'Vok=9000) and the Nadir already has a tuned floor curve (`floor_power(n) = 300 × 1.12^n`, §20). Rather than hand-authoring HP/ATK for 61 monsters (or every Nadir floor) from scratch, derive combat stats straight from those existing numbers:
@@ -1190,7 +1218,7 @@ The screen §16's combat system actually plays out on. Shared by **every** fight
 
 **Transitions:** enters from the gate preview card (§18) or a Nadir "Take on floor" tap (§20); on win, hands off straight into the existing Results page (§18's CLAIM ceremony, unchanged).
 
-**No new art required.** The existing preset-hunter portraits and monster portraits (already generated/planned) work directly as static battle-HUD icons — this screen is menu-driven, not directional/animated, so it doesn't need a separate "simpler battle/map sprite" asset type. A real scope-saver from the overhaul, not a cost.
+**No new art required.** The existing preset-hunter portraits and monster portraits (already in the Midjourney pack) work directly as static battle-HUD icons — this screen is menu-driven, not directional/animated, so it doesn't need the separate "simpler battle/map sprite" asset type §9b originally flagged. A real scope-saver from the overhaul, not a cost.
 
 ---
 
@@ -1227,7 +1255,7 @@ The screen §16's combat system actually plays out on. Shared by **every** fight
 
 **1. Gate preview (tap a gate on the map).** A card shows the gate's **rank** (E–S), the enemies you'll face (trash + boss, derived stats per §16), and your current party. You size it up and decide whether to engage, auto-battle, or skip.
 
-**2. The run — active party battle.** Tap **Start** to enter the battle screen: you + your 3 chosen shadows vs the gate's enemies (*trash → trash → boss*, §16's turn-based flow). Pick moves manually, or tap **Auto** (AI plays your turns too) or **Skip** (resolves instantly, results only) — same three modes either way.
+**2. The run — active party battle.** Tap **Start** to enter the battle screen: you + your 3 chosen shadows vs. the gate's enemies (*trash → trash → boss*, §16's turn-based flow). Pick moves manually, or tap **Auto** (AI plays your turns too) or **Skip** (resolves instantly, results only) — same three modes either way.
 
 **3. On loss.** You simply **walk away — the gate stays**. Retry when you're stronger. No penalty.
 
@@ -1240,7 +1268,7 @@ The screen §16's combat system actually plays out on. Shared by **every** fight
 **Notes:**
 - Low gates just have a **trash-tier boss** (e.g. a Grubmaw), so early on you're claiming trash to seed the army — exactly right for common shadows.
 - The **CLAIM charm** consumable can later be wired to boost odds if desired (currently the 3 tries are free).
-- Data: a `GateInstance` carries `boss_id` (round 3) + `trash_ids` (rounds 1-2) — unchanged; they now resolve as real combat instead of a compare-and-roll.
+- Data: a `GateInstance` carries `boss_id` (round 3) + `trash_ids` (rounds 1–2) — unchanged; they now resolve as real combat instead of a compare-and-roll.
 
 ---
 
@@ -1420,7 +1448,7 @@ Assigned shadows are "busy" until reassigned; bigger/more facilities = more slot
 6. Integrate via sprite IDs.
 
 ### Cost-savers (make it survivable solo)
-- **Shadow forms = a shader, not art.** A defeated monster's shadow is the base sprite recolored to inky-black + purple inner glow + smoky edge via a Godot shader. **61 shadows for near-free**, and they auto-read as "a shadow."
+- **Shadow forms = a shader, not art.** A defeated monster's shadow is the base sprite recolored to inky-black + **cyan** inner glow + smoky edge via a Godot shader. **61 shadows for near-free**, and they auto-read as "a shadow."
 - **Equipment: icons + a few avatar tiers.** Draw ~110 *inventory icons* (small, fast), but on the hunter/shadow avatar only show a **handful of visual tiers by set/rarity**, not 110 paper-doll layers. Avoids a combinatorial art explosion.
 - **Grade/rank shown via aura VFX** — a shader glow whose intensity/color rises with grade (Wraith→Sovereign), so higher-grade shadows *look* stronger without redrawing them.
 - **Reuse backdrops** per family/theme rather than per-gate.
@@ -1430,7 +1458,7 @@ Assigned shadows are "busy" until reassigned; bigger/more facilities = more slot
 Not the sprites — the **VFX and lighting**: Godot bloom/glow, tilt-shift depth-of-field, particles on hits/CLAIM/level-up, and the sprite fly-off on win/loss. Budget real time here; it's the difference between "flat pixel art" and "Octopath vibe."
 
 ### UI kit
-An original "System" aesthetic — dark glass panels, arcane purple/cyan accents, rune-etched frames — a cohesive set of panels/buttons/icons/fonts. Do this early: consistent UI makes the whole app feel finished even while sprites are still rough.
+An original "System" aesthetic — dark glass panels, electric-cyan accents, rune-etched frames — a cohesive set of panels/buttons/icons/fonts (now fully spec'd in §9c). Do this early: consistent UI makes the whole app feel finished even while sprites are still rough.
 
 ### Order of the art pass
 1. **UI kit + VFX** (makes everything feel real).
@@ -1472,6 +1500,7 @@ This is §11's MVP kernel, now the target for a first playable you'd actually en
 
 ### Ongoing tracks (parallel, later)
 - **Art pass** (§23): replace placeholders — real sprites, shadow shader, VFX, UI kit.
+  - **Full art blitz (Midjourney), one focused paid month — 147 images:** hero key art (3 formats) + 4 promo/social variants + all 61 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 14 UI/store assets (app icon, feature graphic, class icons, rank badges). Style locked: frost-cyan, near-total darkness, silhouette-first, crisp linework (`--style raw`), one shared `--sref` code for consistency. Full prompt pack in **ShadowHunter_MidjourneyArtPack.md**; save/organize via **ShadowHunter_ArtDropTool.html** (auto-renames + files into `/hero /promo /monsters /equipment /sets /ui`, matching monsters.json/equipment.json ids — drops straight into the game later). Subscribe → blitz in Relax mode → cancel. Reference images are **written descriptions only** — no copyrighted frames used as input (IP safety; UK CDPA s.9(3) gives us authorship of computer-generated work since we make the creative arrangements — see note below).
 - **Polish**: onboarding/first-run, wellbeing (rest-day framing, no overtraining nudges), safety, accessibility.
 - **iOS port**: HealthKit + CoreLocation plugins, once Android is solid.
 
