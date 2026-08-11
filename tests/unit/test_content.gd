@@ -4,11 +4,13 @@ extends GutTest
 
 var monsters: Array
 var equipment: Dictionary
+var moves: Array
 
 
 func before_all() -> void:
 	monsters = Content.load_monsters()
 	equipment = Content.load_equipment()
+	moves = Content.load_moves()
 
 
 func test_all_61_monsters_load() -> void:
@@ -60,3 +62,40 @@ func test_monsters_by_family_filters() -> void:
 	assert_true(brood.size() > 0)
 	for m: Dictionary in brood:
 		assert_eq(m["family"], "Hollow Brood")
+
+
+func test_all_25_moves_load() -> void:
+	assert_eq(moves.size(), 25)
+
+
+func test_move_by_id_found() -> void:
+	var m := Content.move_by_id(moves, "move_warrior_execute")
+	assert_eq(m["name"], "Execute")
+	assert_eq(m["unlock_level"], 15)
+
+
+func test_moves_by_class_returns_5_per_class() -> void:
+	for clazz in ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]:
+		assert_eq(Content.moves_by_class(moves, clazz).size(), 5)
+
+
+func test_unlocked_moves_at_level_1_is_just_the_basic() -> void:
+	var unlocked := Content.unlocked_moves(moves, "WARRIOR", 1)
+	assert_eq(unlocked.size(), 1)
+	assert_eq(unlocked[0]["name"], "Strike")
+
+
+func test_unlocked_moves_grows_with_level() -> void:
+	var unlocked := Content.unlocked_moves(moves, "WARRIOR", 15)
+	assert_eq(unlocked.size(), 5)
+
+
+func test_unlocked_moves_is_sorted_by_unlock_level() -> void:
+	var unlocked := Content.unlocked_moves(moves, "MAGE", 20)
+	var levels: Array = []
+	for m: Dictionary in unlocked:
+		# JSON numbers parse as float (same as monsters.json/equipment.json
+		# elsewhere in this project) -- cast at the assertion, not at load
+		# time, to match that existing convention.
+		levels.append(int(m["unlock_level"]))
+	assert_eq(levels, [1, 4, 8, 12, 16])
