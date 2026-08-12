@@ -116,6 +116,61 @@ static func auto_fill_party(
 	return squad.slice(0, count)
 
 
+## Phase 3/step 6: the party of `count` (default 3, §16) that actually
+## fights, honoring the player's manual picks from the Squad panel (§17's
+## "tweak by hand") when there are any. `active_party_ids` is
+## HunterState.active_party_ids, in the order the player picked them --
+## preserved rather than re-sorted by power, so a deliberate pick isn't
+## silently reordered.
+##
+## Empty `active_party_ids` (nobody's ever opened the picker, or they
+## cleared it) falls back to auto_fill_party() exactly as before this
+## field existed. A partial or stale pick (an id no longer in the current
+## squad-of-6 -- gear/level changes can shuffle who's strongest, or the
+## shadow could have been converted) is filled out to `count` with the
+## squad's strongest remaining members, same "auto-optimize fills the
+## rest" spirit as auto_fill_squad's own flex slot.
+static func resolve_party(
+	army: Array,
+	monsters: Array,
+	hunter_level: int,
+	active_party_ids: Array,
+	equipment: Dictionary = {},
+	inventory: Array = [],
+	count: int = 3
+) -> Array:
+	if active_party_ids.is_empty():
+		return auto_fill_party(army, monsters, hunter_level, equipment, inventory, count)
+
+	var squad := auto_fill_squad(army, monsters, hunter_level, equipment, inventory)
+	var by_id := {}
+	for member: Dictionary in squad:
+		by_id[member["instance_id"]] = member
+
+	var chosen := []
+	var chosen_ids := {}
+	for id in active_party_ids:
+		if chosen.size() >= count:
+			break
+		if by_id.has(id) and not chosen_ids.has(id):
+			chosen.append(by_id[id])
+			chosen_ids[id] = true
+
+	if chosen.size() < count:
+		var remaining: Array = squad.filter(
+			func(m: Dictionary) -> bool: return not chosen_ids.has(m["instance_id"])
+		)
+		remaining.sort_custom(
+			func(a: Dictionary, b: Dictionary) -> bool: return a["power"] > b["power"]
+		)
+		for m: Dictionary in remaining:
+			if chosen.size() >= count:
+				break
+			chosen.append(m)
+
+	return chosen
+
+
 ## Phase 2/P2 step 4: the `count` weakest (lowest power) owned shadows that
 ## AREN'T in the auto-filled squad -- a "surplus" selection for mass-convert
 ## (§17). No formal definition of "surplus" is given in the source;

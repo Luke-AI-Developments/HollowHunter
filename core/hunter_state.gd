@@ -57,6 +57,11 @@ var hunter_rank: String  ## Phase 2/P6 step 1: EARNED rank (E-S, §28) -- starts
 var last_gate_break_offer: int  ## Phase 2/P8: Unix seconds of the last Gate Break offer (§8b),
 ## 0 = never. Same "scene layer supplies the wall clock" convention as
 ## stronghold_last_collected -- GateBreak.should_trigger() reads this as the cooldown anchor.
+var active_party_ids: Array = []  ## Phase 3/step 6: up to 3 gate-squad (§17) shadow
+## instance_ids the player has manually chosen to field (you + these 3 = the party of 4,
+## §16). Empty = no manual pick yet -- SquadBuilder.resolve_party() falls back to
+## auto-picking the strongest 3, the same behavior as before this field existed, so old
+## saves (and anyone who never opens the Squad panel) are unaffected.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -78,6 +83,7 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.current_streak = 0
 	s.hunter_rank = "E"
 	s.last_gate_break_offer = 0
+	s.active_party_ids = []
 	return s
 
 
@@ -139,6 +145,29 @@ func set_shadow_favorite(shadow_instance_id: String, favorite: bool) -> bool:
 	if idx < 0:
 		return false
 	army[idx]["favorite"] = favorite
+	return true
+
+
+## Phase 3/step 6: toggles whether a shadow is one of the manually-chosen
+## fielded 3 (§17's "tweak by hand"). Adding when active_party_ids is
+## already at max_party_size is rejected (false, no-op) rather than
+## bumping someone else out -- the caller (scene layer) decides how to
+## surface that ("field 3 already chosen") rather than this silently
+## picking who gets dropped. Removing always succeeds. No army-membership
+## check here -- SquadBuilder.resolve_party() already tolerates stale ids
+## (a shadow that left the squad) by skipping and backfilling.
+func toggle_party_member(
+	shadow_instance_id: String, fielded: bool, max_party_size: int = 3
+) -> bool:
+	var already_in := active_party_ids.has(shadow_instance_id)
+	if fielded == already_in:
+		return true
+	if fielded:
+		if active_party_ids.size() >= max_party_size:
+			return false
+		active_party_ids.append(shadow_instance_id)
+	else:
+		active_party_ids.erase(shadow_instance_id)
 	return true
 
 
@@ -607,6 +636,7 @@ func to_dict() -> Dictionary:
 		"current_streak": current_streak,
 		"hunter_rank": hunter_rank,
 		"last_gate_break_offer": last_gate_break_offer,
+		"active_party_ids": active_party_ids,
 	}
 
 
@@ -629,6 +659,7 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.current_streak = int(d.get("current_streak", 0))
 	s.hunter_rank = String(d.get("hunter_rank", "E"))
 	s.last_gate_break_offer = int(d.get("last_gate_break_offer", 0))
+	s.active_party_ids = d.get("active_party_ids", [])
 	return s
 
 

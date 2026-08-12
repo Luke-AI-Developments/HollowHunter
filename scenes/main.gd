@@ -79,6 +79,8 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var character_health_label: Label = $GameUI/CharacterPanel/HealthStatusLabel
 @onready var character_trial_button: Button = $GameUI/CharacterPanel/TrialButton
 @onready var use_ticket_button: Button = $GameUI/UseTicketButton
+@onready var squad_button: Button = $GameUI/SquadButton
+@onready var squad_view: SquadView = $GameUI/SquadPanel
 @onready var gate_break_panel: Node2D = $GameUI/GateBreakPanel
 @onready var gate_break_info_label: Label = $GameUI/GateBreakPanel/InfoLabel
 @onready var gate_break_accept_button: Button = $GameUI/GateBreakPanel/AcceptButton
@@ -255,6 +257,10 @@ func _setup_gear_panels() -> void:
 		$GameUI/CharacterPanel/CloseButton.pressed.connect(_on_character_close_pressed)
 		character_trial_button.pressed.connect(_on_character_trial_pressed)
 		use_ticket_button.pressed.connect(_on_use_ticket_pressed)
+		squad_button.pressed.connect(_on_squad_button_pressed)
+		squad_view.close_requested.connect(func() -> void: squad_view.visible = false)
+		squad_view.auto_fill_requested.connect(_on_squad_auto_fill_requested)
+		squad_view.toggle_requested.connect(_on_squad_toggle_requested)
 		gate_break_accept_button.pressed.connect(_on_gate_break_accept_pressed)
 		gate_break_dismiss_button.pressed.connect(_on_gate_break_dismiss_pressed)
 		gate_break_timer.timeout.connect(_maybe_offer_gate_break)
@@ -430,25 +436,29 @@ func _current_gate_power() -> int:
 	return GameLogic.gate_power(personal, squad_power)
 
 
-## Phase 3/step 5: this hunter's + auto-picked 3 shadows' Battle
-## combatants (§16's party of 4) for a real fight. Shadow gear is NOT
-## folded into combat stats here -- a real, flagged gap: §16 defines the
-## player's combat stats via stats_from()+class profile, and gear already
-## feeds personal_power() the same way, but shadows have never had a
-## STR/AGI/VIT/END/SEN breakdown at all (only the single aggregate
-## shadow_power() scalar, used for army-power/Stronghold/etc. elsewhere
-## and left untouched here). The least-invented, most-consistent v0 fill:
-## reuse the SAME stats_from(level, class) pipeline the player uses,
-## keyed to the shadow's own level + monster class instead of the
-## hunter's -- no new formula, just a new application of the existing
-## one. Gear-affecting-shadow-combat-stats is deferred, not forgotten.
+## Phase 3/step 5 (extended step 6): this hunter's + fielded 3 shadows'
+## Battle combatants (§16's party of 4) for a real fight. Which 3 is now
+## SquadBuilder.resolve_party() -- honors the player's manual Squad-panel
+## pick (state.active_party_ids, §17 step 6) when there is one, otherwise
+## falls back to the same auto-pick-strongest-3 as before that panel
+## existed. Shadow gear is NOT folded into combat stats here -- a real,
+## flagged gap: §16 defines the player's combat stats via
+## stats_from()+class profile, and gear already feeds personal_power() the
+## same way, but shadows have never had a STR/AGI/VIT/END/SEN breakdown at
+## all (only the single aggregate shadow_power() scalar, used for
+## army-power/Stronghold/etc. elsewhere and left untouched here). The
+## least-invented, most-consistent v0 fill: reuse the SAME
+## stats_from(level, class) pipeline the player uses, keyed to the
+## shadow's own level + monster class instead of the hunter's -- no new
+## formula, just a new application of the existing one.
+## Gear-affecting-shadow-combat-stats is deferred, not forgotten.
 ##
 ## `apply_synergy` turns on Army Synergy (§16/§20) -- raids/the Nadir only,
 ## per the doc's own "gates get no synergy bonus" line, so gate callers
 ## leave this false (the default).
 func _build_battle_party(apply_synergy: bool = false) -> Array:
-	var chosen := SquadBuilder.auto_fill_party(
-		state.army, _monsters, state.level, _equipment, state.inventory
+	var chosen := SquadBuilder.resolve_party(
+		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
 	)
 	var synergy_bonus := _army_synergy_bonus(chosen) if apply_synergy else 0.0
 	var party := [
@@ -679,6 +689,44 @@ func _on_use_ticket_pressed() -> void:
 		label.text += "\n\nTicket gate failed to spawn -- ticket refunded"
 		return
 	_start_gate_battle(gate, "\n\n[Ticket]")
+
+
+func _on_squad_button_pressed() -> void:
+	squad_view.visible = true
+	_refresh_squad_view()
+
+
+## Clears the manual pick -- back to auto-picking the strongest 3 of the
+## squad-of-6 every fight (SquadBuilder.resolve_party's fallback), same as
+## before this panel existed.
+func _on_squad_auto_fill_requested() -> void:
+	state.active_party_ids = []
+	SaveService.save(state)
+	_refresh_squad_view()
+
+
+func _on_squad_toggle_requested(instance_id: String) -> void:
+	var fielded := state.active_party_ids.has(instance_id)
+	if not state.toggle_party_member(instance_id, not fielded):
+		label.text += "\n\n3 already fielded -- unfield one first."
+		return
+	SaveService.save(state)
+	_refresh_squad_view()
+
+
+## Phase 3/step 6: feeds SquadView the class-slotted squad-of-6 (§17,
+## unchanged SquadBuilder.auto_fill_squad), which of them are manually
+## fielded (state.active_party_ids), and the actually-resolved party
+## (SquadBuilder.resolve_party, including any auto-backfilled slots) --
+## SquadView owns all the row/label display logic itself.
+func _refresh_squad_view() -> void:
+	var squad := SquadBuilder.auto_fill_squad(
+		state.army, _monsters, state.level, _equipment, state.inventory
+	)
+	var chosen := SquadBuilder.resolve_party(
+		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
+	)
+	squad_view.refresh(squad, state.active_party_ids, chosen)
 
 
 func _refresh_army_label() -> void:
@@ -1008,8 +1056,8 @@ func _refresh_nadir_panel() -> void:
 	var floor_n := state.nadir_current_floor()
 	var enemy_power := GameLogic.floor_power(floor_n)
 	var boss_tag := "  [BOSS FLOOR]" if Nadir.is_boss_floor(floor_n) else ""
-	var chosen := SquadBuilder.auto_fill_party(
-		state.army, _monsters, state.level, _equipment, state.inventory
+	var chosen := SquadBuilder.resolve_party(
+		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
 	)
 	var synergy_pct := int(round(_army_synergy_bonus(chosen) * 100.0))
 	nadir_info_label.text = (

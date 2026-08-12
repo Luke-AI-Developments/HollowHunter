@@ -197,3 +197,80 @@ func test_enrich_army_includes_locked_and_favorite() -> void:
 	var enriched := SquadBuilder.enrich_army([shadow], monsters, 10)
 	assert_true(enriched[0]["locked"])
 	assert_true(enriched[0]["favorite"])
+
+
+func _six_class_army() -> Array:
+	return [
+		_shadow("mon_tuskrend"),  # WARRIOR, base 350
+		_shadow("mon_carapax"),  # GUARDIAN, base 500
+		_shadow("mon_runtclaw"),  # ASSASSIN, base 200
+		_shadow("mon_cindergnat"),  # MAGE, base 150
+		_shadow("mon_snarlpack"),  # SUPPORT, base 1350
+	]
+
+
+func test_resolve_party_with_no_manual_pick_falls_back_to_auto_fill_party() -> void:
+	var army := _six_class_army()
+	var auto := SquadBuilder.auto_fill_party(army, monsters, 1)
+	var resolved := SquadBuilder.resolve_party(army, monsters, 1, [])
+	var auto_ids: Array = auto.map(func(m: Dictionary) -> String: return m["instance_id"])
+	var resolved_ids: Array = resolved.map(func(m: Dictionary) -> String: return m["instance_id"])
+	assert_eq(resolved_ids, auto_ids)
+
+
+func test_resolve_party_honors_a_full_manual_pick_in_order() -> void:
+	var army := _six_class_army()
+	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
+	# Pick the 3 weakest of the squad-of-6, in a specific order -- the
+	# opposite of what auto-pick-by-power would choose.
+	var by_power := squad.duplicate()
+	by_power.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] < b["power"])
+	var picks := [
+		by_power[0]["instance_id"], by_power[1]["instance_id"], by_power[2]["instance_id"]
+	]
+	var resolved := SquadBuilder.resolve_party(army, monsters, 1, picks)
+	var resolved_ids: Array = resolved.map(func(m: Dictionary) -> String: return m["instance_id"])
+	assert_eq(resolved_ids, picks)
+
+
+func test_resolve_party_backfills_a_partial_pick_with_the_strongest_remaining() -> void:
+	var army := _six_class_army()
+	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
+	var weakest := squad.duplicate()
+	weakest.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] < b["power"])
+	var one_pick := [weakest[0]["instance_id"]]
+	var resolved := SquadBuilder.resolve_party(army, monsters, 1, one_pick)
+	assert_eq(resolved.size(), 3)
+	assert_eq(resolved[0]["instance_id"], one_pick[0])
+	assert_true(resolved[1]["power"] >= resolved[2]["power"])
+	# every backfilled slot must actually be one of the squad's members
+	var squad_ids: Array = squad.map(func(m: Dictionary) -> String: return m["instance_id"])
+	for member: Dictionary in resolved:
+		assert_true(squad_ids.has(member["instance_id"]))
+
+
+func test_resolve_party_skips_a_stale_id_not_in_the_current_squad() -> void:
+	var army := _six_class_army()
+	var resolved := SquadBuilder.resolve_party(army, monsters, 1, ["not_a_real_shadow"])
+	assert_eq(resolved.size(), 3)
+	for member: Dictionary in resolved:
+		assert_ne(member["instance_id"], "not_a_real_shadow")
+
+
+func test_resolve_party_never_duplicates_a_shadow() -> void:
+	var army := _six_class_army()
+	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
+	var one_pick := [squad[0]["instance_id"]]
+	var resolved := SquadBuilder.resolve_party(army, monsters, 1, one_pick)
+	var seen := {}
+	for member: Dictionary in resolved:
+		assert_false(seen.has(member["instance_id"]))
+		seen[member["instance_id"]] = true
+
+
+func test_resolve_party_respects_a_custom_count() -> void:
+	var army := _six_class_army()
+	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
+	var picks := [squad[0]["instance_id"]]
+	var resolved := SquadBuilder.resolve_party(army, monsters, 1, picks, {}, [], 2)
+	assert_eq(resolved.size(), 2)

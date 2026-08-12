@@ -933,3 +933,52 @@ func test_last_gate_break_offer_round_trips_through_dict() -> void:
 func test_from_dict_defaults_last_gate_break_offer_to_zero() -> void:
 	var restored := HunterState.from_dict({})
 	assert_eq(restored.last_gate_break_offer, 0)
+
+
+func test_active_party_ids_round_trips_through_dict() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.active_party_ids = ["shadow_0", "shadow_2"]
+	var restored := HunterState.from_dict(s.to_dict())
+	assert_eq(restored.active_party_ids, ["shadow_0", "shadow_2"])
+
+
+func test_from_dict_defaults_active_party_ids_to_empty() -> void:
+	var restored := HunterState.from_dict({})
+	assert_eq(restored.active_party_ids, [])
+
+
+func test_new_default_has_no_active_party_ids() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_eq(s.active_party_ids, [])
+
+
+func test_toggle_party_member_adds_and_removes() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_true(s.toggle_party_member("shadow_0", true))
+	assert_eq(s.active_party_ids, ["shadow_0"])
+	assert_true(s.toggle_party_member("shadow_0", false))
+	assert_eq(s.active_party_ids, [])
+
+
+func test_toggle_party_member_rejects_a_4th_member() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.toggle_party_member("shadow_0", true)
+	s.toggle_party_member("shadow_1", true)
+	s.toggle_party_member("shadow_2", true)
+	assert_false(s.toggle_party_member("shadow_3", true))
+	assert_eq(s.active_party_ids.size(), 3)
+	assert_false(s.active_party_ids.has("shadow_3"))
+
+
+func test_toggle_party_member_adding_an_already_fielded_member_is_a_noop_success() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.toggle_party_member("shadow_0", true)
+	assert_true(s.toggle_party_member("shadow_0", true))
+	assert_eq(s.active_party_ids, ["shadow_0"])
+
+
+func test_toggle_party_member_respects_a_custom_max_size() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	s.toggle_party_member("shadow_0", true, 1)
+	assert_false(s.toggle_party_member("shadow_1", true, 1))
+	assert_eq(s.active_party_ids, ["shadow_0"])

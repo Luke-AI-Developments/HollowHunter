@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/map_view.gd" id="2"]
 [ext_resource type="Script" path="res://scenes/battle_view.gd" id="3"]
+[ext_resource type="Script" path="res://scenes/squad_view.gd" id="4"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -157,6 +158,14 @@ offset_right = 1320.0
 offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Use Ticket"
+
+[node name="SquadButton" type="Button" parent="GameUI"]
+offset_left = 1340.0
+offset_top = 370.0
+offset_right = 1480.0
+offset_bottom = 410.0
+theme_override_font_sizes/font_size = 18
+text = "Squad"
 
 [node name="ArmyLabel" type="Label" parent="GameUI"]
 offset_left = 40.0
@@ -317,6 +326,51 @@ offset_right = 2380.0
 offset_bottom = 900.0
 theme_override_font_sizes/font_size = 18
 text = "Active sets: (none)"
+
+[node name="SquadPanel" type="Node2D" parent="GameUI"]
+visible = false
+script = ExtResource("4")
+
+[node name="Bg" type="ColorRect" parent="GameUI/SquadPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.05, 0.05, 0.05, 0.95)
+
+[node name="Title" type="Label" parent="GameUI/SquadPanel"]
+offset_left = 40.0
+offset_top = 30.0
+offset_right = 1800.0
+offset_bottom = 80.0
+theme_override_font_sizes/font_size = 28
+text = "Squad -- pick 3 to field"
+
+[node name="CloseButton" type="Button" parent="GameUI/SquadPanel"]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 180.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Close"
+
+[node name="AutoFillButton" type="Button" parent="GameUI/SquadPanel"]
+offset_left = 200.0
+offset_top = 90.0
+offset_right = 460.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Auto-Fill Party"
+
+[node name="InfoLabel" type="Label" parent="GameUI/SquadPanel"]
+offset_left = 40.0
+offset_top = 160.0
+offset_right = 2380.0
+offset_bottom = 210.0
+theme_override_font_sizes/font_size = 20
+text = "Party: 0/3 chosen -- tap a squad member to field them"
+
+[node name="Rows" type="Node2D" parent="GameUI/SquadPanel"]
 
 [node name="NadirPanel" type="Node2D" parent="GameUI"]
 visible = false
