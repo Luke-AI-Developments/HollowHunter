@@ -63,6 +63,15 @@ func test_enemy_stats_from_a_high_base_power_boss() -> void:
 	assert_eq(stats["ATK"], 2100)
 
 
+func test_enemy_stats_speed_scales_with_base_power() -> void:
+	# No AGI-derived speed exists for enemies (§16 gap) -- derived from
+	# base_power like HP/ATK are.
+	var weak := CombatMath.enemy_stats(120)
+	var strong := CombatMath.enemy_stats(14000)
+	assert_true(strong["SPEED"] > weak["SPEED"])
+	assert_eq(weak["SPEED"], int(round(120 * CombatMath.ENEMY_SPEED_SCALE)))
+
+
 func test_resolve_damage_floors_at_1_when_def_overwhelms_the_hit() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1

@@ -23,6 +23,10 @@ const DAMAGE_VARIANCE_MAX := 1.1
 
 const ENEMY_HP_SCALE := 0.6  # §16: enemy_HP = base_power × 0.6
 const ENEMY_ATK_SCALE := 0.15  # §16: enemy_ATK = base_power × 0.15
+const ENEMY_SPEED_SCALE := 0.02  # invented v0, real gap: §16 never gives enemies a
+## speed stat at all (SPEED=AGI is only defined for the player/shadows) -- but the turn
+## queue needs everyone ordered, so this derives one from base_power the same way HP/ATK
+## are derived, landing enemy speed in roughly the same range as player/shadow AGI-speed.
 
 
 static func hp_from_stats(stats: Dictionary) -> int:
@@ -67,11 +71,13 @@ static func combat_stats(stats: Dictionary) -> Dictionary:
 ## Enemy combat stats derived straight from a monster's/floor's already-
 ## tuned base_power (§16: "nothing gets re-authored, it's just
 ## reinterpreted"). Enemies don't crit or split PATK/MATK in this v0 --
-## the source only defines a flat HP/ATK pair for them.
+## the source only defines a flat HP/ATK pair for them (SPEED is also
+## derived here, out of necessity -- see ENEMY_SPEED_SCALE above).
 static func enemy_stats(base_power: float) -> Dictionary:
 	return {
 		"HP": int(round(base_power * ENEMY_HP_SCALE)),
 		"ATK": int(round(base_power * ENEMY_ATK_SCALE)),
+		"SPEED": int(round(base_power * ENEMY_SPEED_SCALE)),
 	}
 
 
