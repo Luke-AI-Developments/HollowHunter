@@ -28,6 +28,11 @@ const ENEMY_SPEED_SCALE := 0.02  # invented v0, real gap: §16 never gives enemi
 ## queue needs everyone ordered, so this derives one from base_power the same way HP/ATK
 ## are derived, landing enemy speed in roughly the same range as player/shadow AGI-speed.
 
+const ARMY_SYNERGY_PCT_PER_10K := 0.01  # §16/§20's own number: "+1% ... per 10,000
+## total army_power"
+const ARMY_SYNERGY_CAP := 0.50  # §16/§20's own number: "capped at +50%"
+const ARMY_SYNERGY_POWER_UNIT := 10000.0
+
 
 static func hp_from_stats(stats: Dictionary) -> int:
 	return int(round(50.0 + float(stats.get("VIT", 0)) * 4.0 + float(stats.get("END", 0)) * 2.0))
@@ -101,6 +106,18 @@ static func resolve_damage(
 	var multiplier := CRIT_MULTIPLIER if is_crit else 1.0
 	var damage := maxf(1.0, base) * variance * multiplier
 	return {"damage": int(round(damage)), "crit": is_crit}
+
+
+## Army Synergy (§16/§20): raids/the Nadir only, gates get none. `bench_power`
+## is the total power of every owned shadow NOT in the fighting party of 3 --
+## the caller's job to compute (SquadBuilder already knows each shadow's
+## power). Returns a fraction (0.0-0.5) to add to 1.0 as a flat multiplier on
+## party HP/PATK/MATK/DEF -- crit chance and speed are untouched, since §16
+## only names those four stats.
+static func army_synergy_bonus(bench_power: float) -> float:
+	return minf(
+		ARMY_SYNERGY_CAP, (bench_power / ARMY_SYNERGY_POWER_UNIT) * ARMY_SYNERGY_PCT_PER_10K
+	)
 
 
 static func _randf_range(lo: float, hi: float, rng: RandomNumberGenerator) -> float:

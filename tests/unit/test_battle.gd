@@ -38,6 +38,35 @@ func test_combatant_display_name_defaults_to_id() -> void:
 	assert_eq(enemy["name"], "e1")
 
 
+func test_ally_combatant_with_no_synergy_bonus_is_unchanged() -> void:
+	var c := Battle.make_ally_combatant("x", "WARRIOR", 1, GameLogic.stats_from(1, "WARRIOR"))
+	assert_eq(c["hp"], 82)
+	assert_eq(c["patk"], 20.0)
+
+
+func test_ally_combatant_synergy_bonus_scales_hp_patk_matk_def() -> void:
+	var base := Battle.make_ally_combatant("x", "WARRIOR", 1, GameLogic.stats_from(1, "WARRIOR"))
+	var boosted := Battle.make_ally_combatant(
+		"x", "WARRIOR", 1, GameLogic.stats_from(1, "WARRIOR"), "", 0.5
+	)
+	assert_eq(boosted["hp"], int(round(base["hp"] * 1.5)))
+	assert_eq(boosted["max_hp"], boosted["hp"])
+	assert_eq(boosted["patk"], base["patk"] * 1.5)
+	assert_eq(boosted["matk"], base["matk"] * 1.5)
+	assert_eq(boosted["def"], base["def"] * 1.5)
+
+
+func test_ally_combatant_synergy_bonus_leaves_crit_and_speed_untouched() -> void:
+	var base := Battle.make_ally_combatant(
+		"x", "ASSASSIN", 10, GameLogic.stats_from(10, "ASSASSIN")
+	)
+	var boosted := Battle.make_ally_combatant(
+		"x", "ASSASSIN", 10, GameLogic.stats_from(10, "ASSASSIN"), "", 0.5
+	)
+	assert_eq(boosted["crit_chance"], base["crit_chance"])
+	assert_eq(boosted["speed"], base["speed"])
+
+
 func test_combatant_display_name_uses_the_given_name() -> void:
 	var enemy := Battle.make_enemy_combatant("e1", 100.0, false, "Grubmaw")
 	assert_eq(enemy["name"], "Grubmaw")

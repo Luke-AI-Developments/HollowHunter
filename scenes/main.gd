@@ -32,6 +32,10 @@ var _moves: Array = []  ## Phase 3/step 5: content/moves.json, loaded once (§16
 var _pending_battle_gate: Dictionary = {}  ## the gate a live BattlePanel fight will resolve into
 var _pending_battle_prefix: String = ""  ## "[Ticket]"/"[GATE BREAK]" label text, carried through
 var _pending_battle_is_break: bool = false  ## whether to apply GateBreak's bonus on a win
+var _pending_nadir_floor: int = -1  ## Phase 3/P3-Nadir: >=0 while a BattlePanel fight is
+## resolving a Nadir floor instead of a gate -- _on_battle_finished branches on this
+var _pending_nadir_is_boss: bool = false  ## whether that floor is a boss floor (§20)
+var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss monster id
 
 @onready var subclass_picker: Node2D = $SubclassPicker
 @onready var subclass_title_label: Label = $SubclassPicker/TitleLabel
@@ -438,13 +442,20 @@ func _current_gate_power() -> int:
 ## keyed to the shadow's own level + monster class instead of the
 ## hunter's -- no new formula, just a new application of the existing
 ## one. Gear-affecting-shadow-combat-stats is deferred, not forgotten.
-func _build_battle_party() -> Array:
-	var party := [
-		Battle.make_ally_combatant("player", state.subclass, state.level, state.stats(), "You")
-	]
+##
+## `apply_synergy` turns on Army Synergy (§16/§20) -- raids/the Nadir only,
+## per the doc's own "gates get no synergy bonus" line, so gate callers
+## leave this false (the default).
+func _build_battle_party(apply_synergy: bool = false) -> Array:
 	var chosen := SquadBuilder.auto_fill_party(
 		state.army, _monsters, state.level, _equipment, state.inventory
 	)
+	var synergy_bonus := _army_synergy_bonus(chosen) if apply_synergy else 0.0
+	var party := [
+		Battle.make_ally_combatant(
+			"player", state.subclass, state.level, state.stats(), "You", synergy_bonus
+		)
+	]
 	for member: Dictionary in chosen:
 		var shadow_stats := GameLogic.stats_from(int(member["level"]), String(member["clazz"]))
 		party.append(
@@ -453,10 +464,30 @@ func _build_battle_party() -> Array:
 				member["clazz"],
 				member["level"],
 				shadow_stats,
-				member["monster_name"]
+				member["monster_name"],
+				synergy_bonus
 			)
 		)
 	return party
+
+
+## Army Synergy (§16/§20): "your full army beyond the 3 in your active
+## party grants a passive stat bonus... scaling with total army_power".
+## Bench power = every owned shadow's power EXCEPT the `chosen` 3 that are
+## about to fight -- growing shadows that never enter the party of 4 still
+## matters, as a force-multiplier on the ones who do.
+func _army_synergy_bonus(chosen: Array) -> float:
+	var chosen_ids := {}
+	for member: Dictionary in chosen:
+		chosen_ids[member["instance_id"]] = true
+	var enriched := SquadBuilder.enrich_army(
+		state.army, _monsters, state.level, _equipment, state.inventory
+	)
+	var bench_power := 0
+	for e: Dictionary in enriched:
+		if not chosen_ids.has(e["instance_id"]):
+			bench_power += e["power"]
+	return CombatMath.army_synergy_bonus(bench_power)
 
 
 ## Phase 3/step 5: launches the real turn-based fight (§16) for any
@@ -478,11 +509,48 @@ func _start_gate_battle(gate: Dictionary, prefix: String = "", is_break: bool = 
 	battle_view.start_battle(_build_battle_party(), enemies, _moves, false)
 
 
+## Phase 3/P3-Nadir: launches the current Nadir floor (§20) as a real
+## fight, same BattlePanel every other encounter uses. Enemy stats derive
+## from floor_power via the same CombatMath.enemy_stats formula gates use
+## for monster base_power (§16's "derived from existing base_power /
+## floor_power, not re-authored"). Non-boss floors have no named monster
+## in the source at all (unlike gates, which always roll a real one), so
+## they use a generic placeholder name -- flagged, same spirit as every
+## other invented display-only label in this project. Boss floors reuse
+## Nadir.boss_monster_id's real monster for both its name and its combat
+## stats. Army Synergy (§16/§20) applies here, unlike gates.
+func _start_nadir_battle() -> void:
+	var floor_n := state.nadir_current_floor()
+	_pending_nadir_floor = floor_n
+	_pending_nadir_is_boss = Nadir.is_boss_floor(floor_n)
+	_pending_nadir_boss_id = (
+		Nadir.boss_monster_id(floor_n, _monsters) if _pending_nadir_is_boss else ""
+	)
+	var enemy_name := "Floor %d Sentinel" % floor_n  # invented v0 placeholder name --
+	## non-boss Nadir floors have no monster in the source to name them after
+	if _pending_nadir_is_boss and _pending_nadir_boss_id != "":
+		var boss_monster := Content.monster_by_id(_monsters, _pending_nadir_boss_id)
+		enemy_name = String(boss_monster.get("name", enemy_name))
+	var enemies := [
+		Battle.make_enemy_combatant(
+			"nadir_floor_%d" % floor_n,
+			GameLogic.floor_power(floor_n),
+			_pending_nadir_is_boss,
+			enemy_name
+		)
+	]
+	battle_view.start_battle(_build_battle_party(true), enemies, _moves, false)
+
+
 ## Fires once per fight, whether won or lost (§16: "loss... no penalty").
 ## Same CLAIM/loot/Essence reward shape _resolve_gate() used to apply
 ## synchronously -- claim flow itself is unchanged (§18: "claim flow
 ## unchanged -- still fires after winning a boss fight").
 func _on_battle_finished(won: bool) -> void:
+	if _pending_nadir_floor >= 0:
+		_apply_nadir_battle_result(won)
+		return
+
 	var gate := _pending_battle_gate
 	var is_break := _pending_battle_is_break
 	var msg := (
@@ -920,22 +988,6 @@ func _on_mass_convert_pressed() -> void:
 	label.text += "\n\nMass-converted %d shadow(s) -> +%d Essence" % [surplus.size(), gained]
 
 
-## Phase 2/P3 step 5: RAID_POWER (§16) -- personal power + the WHOLE army's
-## power (not just the squad, unlike gates -- "raids ignore the squad, they
-## auto-field your whole army", §17), via GameLogic.raid_power's
-## RAID_ARMY_WEIGHT (1.0). Reuses SquadBuilder.enrich_army's already-tested
-## per-shadow power (gear + armor sets included) rather than duplicating
-## that math through GameLogic.army_power's separate raw-field shape.
-func _current_raid_power() -> int:
-	var enriched := SquadBuilder.enrich_army(
-		state.army, _monsters, state.level, _equipment, state.inventory
-	)
-	var army_power_total := 0
-	for e: Dictionary in enriched:
-		army_power_total += e["power"]
-	return GameLogic.raid_power(state.personal_power(_equipment), army_power_total)
-
-
 func _on_nadir_button_pressed() -> void:
 	nadir_panel.visible = true
 	_refresh_nadir_panel()
@@ -945,22 +997,32 @@ func _on_nadir_close_pressed() -> void:
 	nadir_panel.visible = false
 
 
+## Phase 3/P3-Nadir status update: no longer shows a RAID_POWER-vs-target
+## comparison -- since the §16 combat overhaul that pairing no longer
+## decides anything (it's real combat now, not a power-check), so showing
+## it as if it still gated the outcome would be misleading. Shows the
+## floor's derived enemy power (informational, same spirit as a gate
+## preview naming its enemies, §18) and the current Army Synergy bonus
+## (§16/§20's actual new mechanic) instead.
 func _refresh_nadir_panel() -> void:
 	var floor_n := state.nadir_current_floor()
-	var target := GameLogic.floor_power(floor_n)
-	var raid_power := _current_raid_power()
+	var enemy_power := GameLogic.floor_power(floor_n)
 	var boss_tag := "  [BOSS FLOOR]" if Nadir.is_boss_floor(floor_n) else ""
+	var chosen := SquadBuilder.auto_fill_party(
+		state.army, _monsters, state.level, _equipment, state.inventory
+	)
+	var synergy_pct := int(round(_army_synergy_bonus(chosen) * 100.0))
 	nadir_info_label.text = (
 		(
-			"Deepest cleared: %d\n\nFloor %d%s\nTarget power: %d\nYour RAID_POWER: %d"
+			"Deepest cleared: %d\n\nFloor %d%s\nEnemy power: %d\nArmy Synergy: +%d%% party stats"
 			+ "\nEstimated Essence reward: %d\nGear rarity: %s"
 		)
 		% [
 			state.nadir_deepest_floor,
 			floor_n,
 			boss_tag,
-			target,
-			raid_power,
+			enemy_power,
+			synergy_pct,
 			Nadir.essence_for_floor(floor_n),
 			Nadir.rank_for_floor(floor_n),
 		]
@@ -968,20 +1030,35 @@ func _refresh_nadir_panel() -> void:
 	nadir_take_on_button.text = "Take on Floor %d" % floor_n
 
 
-## Phase 2/P3 step 5: resolves the current Nadir floor for real -- single
-## clear-check, permanent progress on a win, Essence + gear (+ boss CLAIM
-## on boss floors) rewards, nothing changes on a loss (§20's "floor stays;
-## come back stronger").
+## Phase 3/P3-Nadir status update: no longer resolves synchronously via a
+## single clear-check -- launches the real turn-based fight (§16/§20)
+## instead, same BattlePanel every other encounter uses. Rewards apply
+## once it finishes, via _apply_nadir_battle_result (_on_battle_finished's
+## Nadir branch).
 func _on_nadir_take_on_pressed() -> void:
-	var floor_n := state.nadir_current_floor()
-	var raid_power := _current_raid_power()
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var result := Nadir.attempt_floor(raid_power, floor_n, state.level, _monsters, rng)
+	_start_nadir_battle()
 
-	var msg := "\n\nNadir Floor %d: %s" % [floor_n, "CLEARED" if result["cleared"] else "LOST"]
-	if result["cleared"]:
+
+## Permanent progress + Essence/gear reward on a win, nothing on a loss
+## (§20: "floor stays; come back stronger") -- same reward shape
+## _on_nadir_take_on_pressed used to apply synchronously. Boss-floor CLAIM
+## reuses GameLogic.attempt_claim against the boss monster's own real
+## extract_chance, same pattern the gate flow already uses (§18: "claim
+## flow unchanged").
+func _apply_nadir_battle_result(won: bool) -> void:
+	var floor_n := _pending_nadir_floor
+	var is_boss := _pending_nadir_is_boss
+	var boss_id := _pending_nadir_boss_id
+	_pending_nadir_floor = -1
+	_pending_nadir_is_boss = false
+	_pending_nadir_boss_id = ""
+
+	var msg := "\n\nNadir Floor %d: %s" % [floor_n, "CLEARED" if won else "LOST"]
+	if won:
 		state.clear_nadir_floor(floor_n)
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+
 		var essence_gain := Nadir.essence_for_floor(floor_n)
 		state.essence += essence_gain
 		msg += "\nEssence +%d" % essence_gain
@@ -991,10 +1068,10 @@ func _on_nadir_take_on_pressed() -> void:
 			state.add_to_inventory(drop["id"])
 			msg += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
 
-		if result["is_boss"]:
-			if result["claimed"]:
-				state.claim_shadow(result["boss_monster_id"], Nadir.rank_for_floor(floor_n))
-				var boss_monster := Content.monster_by_id(_monsters, result["boss_monster_id"])
+		if is_boss and boss_id != "":
+			var boss_monster := Content.monster_by_id(_monsters, boss_id)
+			if GameLogic.attempt_claim(boss_monster.get("extract_chance", 0.0), state.level, rng):
+				state.claim_shadow(boss_id, Nadir.rank_for_floor(floor_n))
 				msg += "\nBOSS CLAIMED! %s joins your army." % boss_monster.get("name", "")
 			else:
 				msg += "\nBoss floor -- boss escaped (claim failed)."

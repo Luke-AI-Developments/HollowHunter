@@ -77,10 +77,22 @@ func _init(
 ## `display_name` is purely for the battle screen (§16b) -- falls back to
 ## `id` if not given, same convention as content dicts elsewhere in this
 ## project that default a missing display field to something non-empty.
+## `synergy_bonus` is the Army Synergy fraction (§16/§20, CombatMath.
+## army_synergy_bonus) -- 0.0 for gates (no synergy), the caller's computed
+## bench-power bonus for raids/the Nadir. Applied as a flat +X% multiplier
+## on HP/PATK/MATK/DEF only, per §16's own wording -- crit chance and speed
+## are untouched.
 static func make_ally_combatant(
-	id: String, clazz: String, level: int, stats: Dictionary, display_name: String = ""
+	id: String,
+	clazz: String,
+	level: int,
+	stats: Dictionary,
+	display_name: String = "",
+	synergy_bonus: float = 0.0
 ) -> Dictionary:
 	var combat := CombatMath.combat_stats(stats)
+	var mult := 1.0 + synergy_bonus
+	var hp := int(round(float(combat["HP"]) * mult))
 	return {
 		"id": id,
 		"name": display_name if display_name != "" else id,
@@ -88,11 +100,11 @@ static func make_ally_combatant(
 		"level": level,
 		"is_enemy": false,
 		"is_boss": false,
-		"hp": combat["HP"],
-		"max_hp": combat["HP"],
-		"patk": float(combat["PATK"]),
-		"matk": float(combat["MATK"]),
-		"def": combat["DEF"],
+		"hp": hp,
+		"max_hp": hp,
+		"patk": float(combat["PATK"]) * mult,
+		"matk": float(combat["MATK"]) * mult,
+		"def": float(combat["DEF"]) * mult,
 		"crit_chance": combat["CRIT_CHANCE"],
 		"speed": combat["SPEED"],
 		"cooldowns": {},

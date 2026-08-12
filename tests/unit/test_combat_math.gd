@@ -113,3 +113,17 @@ func test_resolve_damage_deterministic_with_same_seed() -> void:
 	var a := CombatMath.resolve_damage(1.3, 50.0, 5.0, 0.1, rng_a)
 	var b := CombatMath.resolve_damage(1.3, 50.0, 5.0, 0.1, rng_b)
 	assert_eq(a, b)
+
+
+func test_army_synergy_bonus_is_zero_with_no_bench() -> void:
+	assert_eq(CombatMath.army_synergy_bonus(0.0), 0.0)
+
+
+func test_army_synergy_bonus_is_1_pct_per_10000_power() -> void:
+	assert_eq(CombatMath.army_synergy_bonus(10000.0), 0.01)
+	assert_eq(CombatMath.army_synergy_bonus(50000.0), 0.05)
+
+
+func test_army_synergy_bonus_caps_at_50_pct() -> void:
+	assert_eq(CombatMath.army_synergy_bonus(500000.0), 0.5)
+	assert_eq(CombatMath.army_synergy_bonus(999999999.0), 0.5)

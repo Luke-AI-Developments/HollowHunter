@@ -10,6 +10,19 @@ class_name Nadir
 ## forward -- the caller just doesn't call HunterState.clear_nadir_floor()
 ## on a loss, per §20's "floor stays; come back stronger".
 ##
+## Phase 3/step 5 status update (§16/§20 combat overhaul): floor clearing
+## no longer runs through attempt_floor()'s resolve_clear() check --
+## scenes/main.gd now launches a real core/battle.gd Battle per floor
+## (enemy stats derived from floor_power via CombatMath.enemy_stats, same
+## formula gates use for monster base_power). attempt_floor() itself is
+## now dead code -- nothing in the live game calls it -- kept (not
+## deleted) since it's still correct and still tested, same treatment as
+## GateEncounter.run(). is_boss_floor(), boss_monster_id(),
+## essence_for_floor(), and rank_for_floor() are all still fully alive:
+## main.gd calls them directly to build the floor's enemy, apply rewards,
+## and run the post-win CLAIM roll (via GameLogic.attempt_claim, same
+## pattern the gate flow already uses -- see scenes/main.gd).
+##
 ## Rewards: §20 says a clear grants "loot (Essence, gear, EXP) scaling with
 ## depth" -- EXP dropped per an explicit user call: it directly contradicts
 ## §26's "hard line" that hunter EXP is exercise-only and can never be
@@ -51,6 +64,7 @@ static func boss_monster_id(floor_n: int, monsters: Array) -> String:
 
 ## Resolves a floor attempt: the clear-check, plus (only if cleared and
 ## it's a boss floor) a CLAIM attempt on that floor's stand-in boss.
+## DEAD CODE as of the §16/§20 combat overhaul -- see the class doc comment.
 static func attempt_floor(
 	raid_power: float,
 	floor_n: int,
