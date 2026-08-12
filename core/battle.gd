@@ -74,12 +74,16 @@ func _init(
 ## A ready-to-fight ally combatant from a raw STR/AGI/VIT/END/SEN dict
 ## (GameLogic.stats_from() or a shadow's gear-merged effective stats) --
 ## the shared entry point for both the player and every chosen shadow.
+## `display_name` is purely for the battle screen (§16b) -- falls back to
+## `id` if not given, same convention as content dicts elsewhere in this
+## project that default a missing display field to something non-empty.
 static func make_ally_combatant(
-	id: String, clazz: String, level: int, stats: Dictionary
+	id: String, clazz: String, level: int, stats: Dictionary, display_name: String = ""
 ) -> Dictionary:
 	var combat := CombatMath.combat_stats(stats)
 	return {
 		"id": id,
+		"name": display_name if display_name != "" else id,
 		"class": clazz,
 		"level": level,
 		"is_enemy": false,
@@ -110,11 +114,12 @@ static func make_ally_combatant(
 ## inventing a defense number the source never gave them. No crit either
 ## (CombatMath.enemy_stats' own docstring already covers that).
 static func make_enemy_combatant(
-	id: String, base_power: float, is_boss: bool = false
+	id: String, base_power: float, is_boss: bool = false, display_name: String = ""
 ) -> Dictionary:
 	var combat := CombatMath.enemy_stats(base_power)
 	return {
 		"id": id,
+		"name": display_name if display_name != "" else id,
 		"class": "",
 		"level": 1,
 		"is_enemy": true,
@@ -203,6 +208,20 @@ func resolve_player_action(move_id: String, target_id: String) -> Dictionary:
 	if actor.is_empty() or actor["hp"] <= 0:
 		return _finish_check()
 	return _apply_move(actor, move_id, target_id)
+
+
+## Resolves the CURRENTLY-PENDING player turn via ShadowAI, same as any
+## auto-controlled ally -- for when Auto-battle gets toggled on while
+## step() is already paused waiting on the player specifically. Calling
+## step() again in that situation would just advance the queue past the
+## player's pending turn without ever resolving it (that turn's queue
+## slot was already consumed the first time step() returned
+## waiting_for_player).
+func resolve_pending_player_turn_via_ai() -> Dictionary:
+	var actor := _combatant_by_id(player_id)
+	if actor.is_empty() or actor["hp"] <= 0:
+		return _finish_check()
+	return _resolve_ai_turn(actor)
 
 
 ## Loops step() to completion -- Auto-battle/Skip (§16) are both just

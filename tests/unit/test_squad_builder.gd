@@ -74,6 +74,39 @@ func test_auto_fill_squad_with_one_shadow_returns_one() -> void:
 	assert_eq(squad[0]["monster_id"], "mon_grubmaw")
 
 
+func test_auto_fill_party_returns_the_strongest_3_of_the_squad() -> void:
+	var army := [
+		_shadow("mon_tuskrend"),  # WARRIOR, base 350
+		_shadow("mon_carapax"),  # GUARDIAN, base 500
+		_shadow("mon_runtclaw"),  # ASSASSIN, base 200
+		_shadow("mon_cindergnat"),  # MAGE, base 150
+		_shadow("mon_snarlpack"),  # SUPPORT, base 1350 -- strongest
+	]
+	var party := SquadBuilder.auto_fill_party(army, monsters, 1)
+	assert_eq(party.size(), 3)
+	assert_eq(party[0]["monster_id"], "mon_snarlpack")  # strongest first
+	for i in range(1, party.size()):
+		assert_true(party[i - 1]["power"] >= party[i]["power"])
+
+
+func test_auto_fill_party_with_fewer_than_3_shadows_returns_all() -> void:
+	var army := [_shadow("mon_grubmaw"), _shadow("mon_tuskrend")]
+	var party := SquadBuilder.auto_fill_party(army, monsters, 1)
+	assert_eq(party.size(), 2)
+
+
+func test_auto_fill_party_respects_a_custom_count() -> void:
+	var army := [
+		_shadow("mon_tuskrend"),
+		_shadow("mon_carapax"),
+		_shadow("mon_runtclaw"),
+		_shadow("mon_cindergnat"),
+		_shadow("mon_snarlpack"),
+	]
+	var party := SquadBuilder.auto_fill_party(army, monsters, 1, {}, [], 2)
+	assert_eq(party.size(), 2)
+
+
 func test_enrich_army_gear_raises_shadow_power() -> void:
 	var equipment := Content.load_equipment()
 	var inventory := [

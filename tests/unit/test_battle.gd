@@ -29,6 +29,20 @@ func test_make_enemy_combatant_derives_from_base_power() -> void:
 	assert_false(c["is_boss"])
 
 
+func test_combatant_display_name_defaults_to_id() -> void:
+	var ally := Battle.make_ally_combatant(
+		"x", "WARRIOR", 1, {"STR": 1, "AGI": 1, "VIT": 1, "END": 1, "SEN": 1}
+	)
+	assert_eq(ally["name"], "x")
+	var enemy := Battle.make_enemy_combatant("e1", 100.0)
+	assert_eq(enemy["name"], "e1")
+
+
+func test_combatant_display_name_uses_the_given_name() -> void:
+	var enemy := Battle.make_enemy_combatant("e1", 100.0, false, "Grubmaw")
+	assert_eq(enemy["name"], "Grubmaw")
+
+
 # --- Turn order ---
 
 
@@ -95,6 +109,23 @@ func test_run_to_completion_stops_and_waits_in_manual_mode() -> void:
 	var battle := Battle.new([player], [enemy], moves, false)
 	var result := battle.run_to_completion()
 	assert_false(result["battle_over"])
+
+
+func test_resolve_pending_player_turn_via_ai_resolves_a_real_action() -> void:
+	# Simulates toggling Auto-battle on while step() is already paused on
+	# the player's turn -- must resolve THAT turn via AI, not skip it.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var player := Battle.make_ally_combatant(
+		"player", "WARRIOR", 1, {"STR": 50, "AGI": 100, "VIT": 10, "END": 10, "SEN": 10}
+	)
+	var enemy := Battle.make_enemy_combatant("e1", 200.0)
+	var battle := Battle.new([player], [enemy], moves, false, rng)
+	var paused := battle.step()
+	assert_true(paused.get("waiting_for_player", false))
+	var hp_before: int = battle.enemies[0]["hp"]
+	battle.resolve_pending_player_turn_via_ai()
+	assert_true(battle.enemies[0]["hp"] < hp_before)
 
 
 # --- Cooldowns ---

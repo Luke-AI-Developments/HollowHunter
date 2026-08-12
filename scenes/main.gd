@@ -28,6 +28,10 @@ var _has_location := false  ## Phase 2/P7 step 1: whether _last_lat/_last_lon ar
 var _last_lat: float = 0.0  ## most recent GPS fix -- §8a's ticket gate spawns "where you are"
 var _last_lon: float = 0.0
 var _pending_break_gate: Dictionary = {}  ## Phase 2/P8: the offered-but-not-yet-answered §8b gate
+var _moves: Array = []  ## Phase 3/step 5: content/moves.json, loaded once (§16 combat overhaul)
+var _pending_battle_gate: Dictionary = {}  ## the gate a live BattlePanel fight will resolve into
+var _pending_battle_prefix: String = ""  ## "[Ticket]"/"[GATE BREAK]" label text, carried through
+var _pending_battle_is_break: bool = false  ## whether to apply GateBreak's bonus on a win
 
 @onready var subclass_picker: Node2D = $SubclassPicker
 @onready var subclass_title_label: Label = $SubclassPicker/TitleLabel
@@ -76,11 +80,14 @@ var _pending_break_gate: Dictionary = {}  ## Phase 2/P8: the offered-but-not-yet
 @onready var gate_break_accept_button: Button = $GameUI/GateBreakPanel/AcceptButton
 @onready var gate_break_dismiss_button: Button = $GameUI/GateBreakPanel/DismissButton
 @onready var gate_break_timer: Timer = $GateBreakTimer
+@onready var battle_view: BattleView = $GameUI/BattlePanel
 
 
 func _ready() -> void:
 	_monsters = Content.load_monsters()
 	_equipment = Content.load_equipment()
+	_moves = Content.load_moves()
+	battle_view.battle_finished.connect(_on_battle_finished)
 
 	# Phase 2/P10: whether GPS/Health permissions get requested below THIS
 	# _ready() call, or deferred until after onboarding (§25 -- "value
@@ -419,46 +426,95 @@ func _current_gate_power() -> int:
 	return GameLogic.gate_power(personal, squad_power)
 
 
-## Runs the fight + rewards for any already-spawned gate dict (map gate,
-## ticket gate, or break gate -- same shape either way) -- CLAIM/loot/
-## Essence rolls, saves, refreshes the army/inventory/main labels, and
-## returns the result text to append to `label`. Extracted from
-## _on_enter_gate_pressed (Phase 2/P7 step 1) so the ticket gate (§8a) and
-## break gate (§8b) don't duplicate this whole flow. `is_break` applies
-## GateBreak's boosted Essence + bonus ticket on a clear ("bigger breaks
-## give bigger rewards").
-func _resolve_gate(gate: Dictionary, is_break: bool = false) -> String:
-	var total_power := _current_gate_power()
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var result := GateEncounter.run(total_power, gate, state.level, rng)
-
-	var msg := (
-		"\n\n%s gate (%s): %s"
-		% [gate["rank"], gate["monster_name"], "CLEARED" if result["cleared"] else "LOST"]
+## Phase 3/step 5: this hunter's + auto-picked 3 shadows' Battle
+## combatants (§16's party of 4) for a real fight. Shadow gear is NOT
+## folded into combat stats here -- a real, flagged gap: §16 defines the
+## player's combat stats via stats_from()+class profile, and gear already
+## feeds personal_power() the same way, but shadows have never had a
+## STR/AGI/VIT/END/SEN breakdown at all (only the single aggregate
+## shadow_power() scalar, used for army-power/Stronghold/etc. elsewhere
+## and left untouched here). The least-invented, most-consistent v0 fill:
+## reuse the SAME stats_from(level, class) pipeline the player uses,
+## keyed to the shadow's own level + monster class instead of the
+## hunter's -- no new formula, just a new application of the existing
+## one. Gear-affecting-shadow-combat-stats is deferred, not forgotten.
+func _build_battle_party() -> Array:
+	var party := [
+		Battle.make_ally_combatant("player", state.subclass, state.level, state.stats(), "You")
+	]
+	var chosen := SquadBuilder.auto_fill_party(
+		state.army, _monsters, state.level, _equipment, state.inventory
 	)
-	if result["cleared"] and result["claimed"]:
-		state.claim_shadow(gate["monster_id"], gate["rank"])
-		msg += "\nCLAIMED! %s joins your army." % gate["monster_name"]
-	elif result["cleared"]:
-		msg += "\nBoss escaped (claim failed)."
+	for member: Dictionary in chosen:
+		var shadow_stats := GameLogic.stats_from(int(member["level"]), String(member["clazz"]))
+		party.append(
+			Battle.make_ally_combatant(
+				member["instance_id"],
+				member["clazz"],
+				member["level"],
+				shadow_stats,
+				member["monster_name"]
+			)
+		)
+	return party
 
-	if result["cleared"]:
+
+## Phase 3/step 5: launches the real turn-based fight (§16) for any
+## already-spawned gate dict (map gate, ticket gate, or break gate --
+## same shape either way). Rewards apply once BattlePanel's
+## battle_finished signal fires (_on_battle_finished) -- battles are no
+## longer resolved synchronously like the old power-check was, so this
+## can't just return a result string the way _resolve_gate() used to.
+## `prefix`/`is_break` are only remembered to shape that later message.
+func _start_gate_battle(gate: Dictionary, prefix: String = "", is_break: bool = false) -> void:
+	_pending_battle_gate = gate
+	_pending_battle_prefix = prefix
+	_pending_battle_is_break = is_break
+	var enemies := [
+		Battle.make_enemy_combatant(
+			gate["monster_id"], gate["monster_base_power"], true, gate["monster_name"]
+		)
+	]
+	battle_view.start_battle(_build_battle_party(), enemies, _moves, false)
+
+
+## Fires once per fight, whether won or lost (§16: "loss... no penalty").
+## Same CLAIM/loot/Essence reward shape _resolve_gate() used to apply
+## synchronously -- claim flow itself is unchanged (§18: "claim flow
+## unchanged -- still fires after winning a boss fight").
+func _on_battle_finished(won: bool) -> void:
+	var gate := _pending_battle_gate
+	var is_break := _pending_battle_is_break
+	var msg := (
+		_pending_battle_prefix
+		+ (
+			"\n\n%s gate (%s): %s"
+			% [gate["rank"], gate["monster_name"], "CLEARED" if won else "LOST"]
+		)
+	)
+	_pending_battle_gate = {}
+	_pending_battle_prefix = ""
+	_pending_battle_is_break = false
+
+	if won:
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		if GameLogic.attempt_claim(gate.get("monster_extract_chance", 0.0), state.level, rng):
+			state.claim_shadow(gate["monster_id"], gate["rank"])
+			msg += "\nCLAIMED! %s joins your army." % gate["monster_name"]
+		else:
+			msg += "\nBoss escaped (claim failed)."
+
 		var drop := Loot.roll_drop(gate["rank"], _equipment, rng)
 		if not drop.is_empty():
 			state.add_to_inventory(drop["id"])
 			msg += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
-		# Essence on every clear regardless of claim (§14b/§26) -- same
-		# trigger as the loot roll above.
 		var essence_gain := GameLogic.essence_for_gate(gate["rank"])
 		if is_break:
 			essence_gain = GateBreak.bonus_essence(essence_gain)
 			state.gate_tickets += GateBreak.BREAK_TICKET_BONUS
 			msg += "\n+%d Gate Ticket(s) (Gate Break bonus)" % GateBreak.BREAK_TICKET_BONUS
 		elif gate.get("incursion_bonus", false):
-			# Phase 2/P9: incursion gates carry this flag from
-			# GateSpawner.spawn_incursion_gates() -- §19's "boosted...
-			# drops" for the zone's family.
 			essence_gain = Incursion.bonus_essence(essence_gain)
 			msg += "\n(Incursion bonus)"
 		state.essence += essence_gain
@@ -468,13 +524,7 @@ func _resolve_gate(gate: Dictionary, is_break: bool = false) -> String:
 	_refresh_label()
 	_refresh_army_label()
 	_refresh_inventory_label()
-	print(
-		(
-			"PHASE1_GATE: rank=%s rounds=%s cleared=%s claimed=%s"
-			% [gate["rank"], result["rounds"], result["cleared"], result["claimed"]]
-		)
-	)
-	return msg
+	label.text += msg
 
 
 func _on_enter_gate_pressed() -> void:
@@ -484,7 +534,7 @@ func _on_enter_gate_pressed() -> void:
 		return
 	var gate := map_view.get_gate(idx)
 	map_view.remove_gate(idx)
-	label.text += _resolve_gate(gate)
+	_start_gate_battle(gate)
 
 
 ## Phase 2/P8: probabilistic Gate Break offer (§8b), checked on a timer
@@ -525,7 +575,7 @@ func _on_gate_break_accept_pressed() -> void:
 	var gate := _pending_break_gate
 	_pending_break_gate = {}
 	gate_break_panel.visible = false
-	label.text += "\n\n[GATE BREAK]" + _resolve_gate(gate, true)
+	_start_gate_battle(gate, "\n\n[GATE BREAK]", true)
 
 
 ## No penalty for ignoring a break (§8b: "just a missed reward") -- the
@@ -560,7 +610,7 @@ func _on_use_ticket_pressed() -> void:
 		state.gate_tickets += 1
 		label.text += "\n\nTicket gate failed to spawn -- ticket refunded"
 		return
-	label.text += "\n\n[Ticket]" + _resolve_gate(gate)
+	_start_gate_battle(gate, "\n\n[Ticket]")
 
 
 func _refresh_army_label() -> void:

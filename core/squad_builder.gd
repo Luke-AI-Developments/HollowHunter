@@ -96,6 +96,26 @@ static func auto_fill_squad(
 	return squad
 
 
+## Phase 3/step 5: the strongest `count` (default 3, §16's party size) of
+## the auto-filled squad-of-6 -- the auto-pick default for which 3
+## shadows join a fight, until step 6 adds a manual picker letting the
+## player choose their own 3 of the 6. Simplest reasonable interpretation
+## of "auto-optimize" extended to a smaller party -- the source doesn't
+## say HOW the 3 should be auto-chosen once a manual picker also exists,
+## only that they can be.
+static func auto_fill_party(
+	army: Array,
+	monsters: Array,
+	hunter_level: int,
+	equipment: Dictionary = {},
+	inventory: Array = [],
+	count: int = 3
+) -> Array:
+	var squad := auto_fill_squad(army, monsters, hunter_level, equipment, inventory)
+	squad.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] > b["power"])
+	return squad.slice(0, count)
+
+
 ## Phase 2/P2 step 4: the `count` weakest (lowest power) owned shadows that
 ## AREN'T in the auto-filled squad -- a "surplus" selection for mass-convert
 ## (§17). No formal definition of "surplus" is given in the source;
