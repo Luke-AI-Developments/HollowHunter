@@ -19,9 +19,20 @@ class_name RankAssessment
 ## cosmetic)" with no number given -- invented v0, flagged: flat Essence
 ## scaled by the target rank's position on the ladder, so S-rank's reward
 ## dwarfs D-rank's.
+##
+## Phase 4/shop step 1: also grants a small flat Crystal bonus -- §26 names
+## rank-up-style milestones as Crystals' "slow trickle from play/
+## achievements" source (the only in-game Crystal income implemented so
+## far; real-money purchase is a separate, out-of-scope native-plugin
+## integration, see core/hunter_state.gd's crystals field). Not the
+## "signature cosmetic" the source also floats -- a per-rank cosmetic
+## reward would mean pre-authoring 5 more cosmetic content entries with no
+## art to show for them yet (this project is still placeholder-art
+## throughout); Crystals are the smaller, honest v0 instead.
 
 const TRIAL_POWER_MULTIPLIER := 1.2
 const REWARD_PER_RANK_TIER := 500
+const CRYSTAL_REWARD_PER_RANK_TIER := 10
 
 
 ## The next rank the hunter is eligible to attempt, given their level and
@@ -58,6 +69,11 @@ static func trial_target_power(target_rank: String, monsters: Array) -> int:
 static func essence_reward(target_rank: String) -> int:
 	var idx := GameLogic.RANK_ORDER.find(target_rank)
 	return REWARD_PER_RANK_TIER * maxi(idx, 1)
+
+
+static func crystal_reward(target_rank: String) -> int:
+	var idx := GameLogic.RANK_ORDER.find(target_rank)
+	return CRYSTAL_REWARD_PER_RANK_TIER * maxi(idx, 1)
 
 
 ## Resolves an attempt at `target_rank`'s Trial: best-of-3 vs the Trial

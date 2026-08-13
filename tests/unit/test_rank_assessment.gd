@@ -46,6 +46,14 @@ func test_essence_reward_scales_with_rank_tier() -> void:
 	assert_true(RankAssessment.essence_reward("S") > RankAssessment.essence_reward("D"))
 
 
+func test_crystal_reward_scales_with_rank_tier() -> void:
+	assert_true(RankAssessment.crystal_reward("S") > RankAssessment.crystal_reward("D"))
+
+
+func test_crystal_reward_matches_the_per_tier_constant() -> void:
+	assert_eq(RankAssessment.crystal_reward("D"), RankAssessment.CRYSTAL_REWARD_PER_RANK_TIER)
+
+
 func test_attempt_overwhelming_power_clears_reliably() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1

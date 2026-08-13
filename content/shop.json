@@ -1,0 +1,32 @@
+{
+  "_comment": "§14/§26: Crystals are the premium currency, spent on Essence, gate tickets, and cosmetics -- 'buys build/pace, never hunter level'. The source names WHAT Crystals buy but gives zero prices anywhere. Every crystal_cost below is invented v0, not sourced from the design bible: bundle costs scale roughly with what they grant (bigger grant = proportionally pricier, not a flat per-unit rate, so bigger bundles are a modest discount -- standard shop-bundle shape), and cosmetics are priced near the middle Essence bundle since they're pure vanity with no power value. All tunable.",
+  "ticket_bundles": [
+    { "id": "shop_tickets_1", "tickets": 1, "crystal_cost": 20 },
+    { "id": "shop_tickets_5", "tickets": 5, "crystal_cost": 90 }
+  ],
+  "essence_bundles": [
+    { "id": "shop_essence_small", "essence": 500, "crystal_cost": 50 },
+    { "id": "shop_essence_medium", "essence": 2000, "crystal_cost": 180 },
+    { "id": "shop_essence_large", "essence": 6000, "crystal_cost": 500 }
+  ],
+  "cosmetics": [
+    {
+      "id": "cosmetic_frost_aura",
+      "name": "Frost Aura",
+      "description": "A wisp of cyan frost trails the hunter. Purely cosmetic -- no combat effect. (Placeholder-art era: ownership tracked now, visual swap-in comes with the real art pass, §9b/§23.)",
+      "crystal_cost": 150
+    },
+    {
+      "id": "cosmetic_ember_cloak",
+      "name": "Ember Cloak",
+      "description": "A tattered cloak that catches embers as you walk. Purely cosmetic -- no combat effect. (Placeholder-art era: ownership tracked now, visual swap-in comes with the real art pass, §9b/§23.)",
+      "crystal_cost": 150
+    },
+    {
+      "id": "cosmetic_void_eyes",
+      "name": "Void Eyes",
+      "description": "Eyes that glow a deeper black-violet instead of cyan. Purely cosmetic -- no combat effect. (Placeholder-art era: ownership tracked now, visual swap-in comes with the real art pass, §9b/§23.)",
+      "crystal_cost": 200
+    }
+  ]
+}

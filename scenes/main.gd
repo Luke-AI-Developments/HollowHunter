@@ -29,6 +29,7 @@ var _last_lat: float = 0.0  ## most recent GPS fix -- §8a's ticket gate spawns 
 var _last_lon: float = 0.0
 var _pending_break_gate: Dictionary = {}  ## Phase 2/P8: the offered-but-not-yet-answered §8b gate
 var _moves: Array = []  ## Phase 3/step 5: content/moves.json, loaded once (§16 combat overhaul)
+var _shop_catalog: Dictionary = {}  ## Phase 4/shop step 1: content/shop.json, loaded once
 var _pending_battle_gate: Dictionary = {}  ## the gate a live BattlePanel fight will resolve into
 var _pending_battle_prefix: String = ""  ## "[Ticket]"/"[GATE BREAK]" label text, carried through
 var _pending_battle_is_break: bool = false  ## whether to apply GateBreak's bonus on a win
@@ -81,6 +82,8 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var use_ticket_button: Button = $GameUI/UseTicketButton
 @onready var squad_button: Button = $GameUI/SquadButton
 @onready var squad_view: SquadView = $GameUI/SquadPanel
+@onready var shop_button: Button = $GameUI/ShopButton
+@onready var shop_view: ShopView = $GameUI/ShopPanel
 @onready var gate_break_panel: Node2D = $GameUI/GateBreakPanel
 @onready var gate_break_info_label: Label = $GameUI/GateBreakPanel/InfoLabel
 @onready var gate_break_accept_button: Button = $GameUI/GateBreakPanel/AcceptButton
@@ -93,6 +96,8 @@ func _ready() -> void:
 	_monsters = Content.load_monsters()
 	_equipment = Content.load_equipment()
 	_moves = Content.load_moves()
+	_shop_catalog = Content.load_shop()
+	shop_view.setup(_shop_catalog)
 	battle_view.battle_finished.connect(_on_battle_finished)
 
 	# Phase 2/P10: whether GPS/Health permissions get requested below THIS
@@ -261,6 +266,11 @@ func _setup_gear_panels() -> void:
 		squad_view.close_requested.connect(func() -> void: squad_view.visible = false)
 		squad_view.auto_fill_requested.connect(_on_squad_auto_fill_requested)
 		squad_view.toggle_requested.connect(_on_squad_toggle_requested)
+		shop_button.pressed.connect(_on_shop_button_pressed)
+		shop_view.close_requested.connect(func() -> void: shop_view.visible = false)
+		shop_view.buy_ticket_bundle_requested.connect(_on_buy_ticket_bundle_requested)
+		shop_view.buy_essence_bundle_requested.connect(_on_buy_essence_bundle_requested)
+		shop_view.buy_cosmetic_requested.connect(_on_buy_cosmetic_requested)
 		gate_break_accept_button.pressed.connect(_on_gate_break_accept_pressed)
 		gate_break_dismiss_button.pressed.connect(_on_gate_break_dismiss_pressed)
 		gate_break_timer.timeout.connect(_maybe_offer_gate_break)
@@ -443,17 +453,10 @@ func _current_gate_power() -> int:
 ## falls back to the same auto-pick-strongest-3 as before that panel
 ## existed.
 ##
-## Balance-fix status update: shadow combat stats now use
-## GameLogic.shadow_combat_stats(base_power, level, class), not a bare
-## stats_from(level, class) -- see that function's own doc comment for the
-## real gap this fixes (grade/base_power previously had zero effect on a
-## shadow's combat stats, so e.g. a level-1 Duskdrake and a level-1
-## Grublet fought identically). Gear is still NOT folded into combat
-## stats here -- a real, still-open gap: gear already feeds
-## personal_power() and shadow_power() (the aggregate, used for army-
-## power/Stronghold/squad-ranking elsewhere), but shadow_combat_stats()
-## doesn't yet take a gear_stat_bonus the way personal_power()/
-## shadow_power() do. Deferred, not forgotten.
+## Shadow combat stats use GameLogic.shadow_combat_stats(base_power,
+## level, class) -- see its own doc comment for why (grade now matters).
+## Gear is still NOT folded into combat stats -- a real, open gap,
+## deferred not forgotten.
 ##
 ## `apply_synergy` turns on Army Synergy (§16/§20) -- raids/the Nadir only,
 ## per the doc's own "gates get no synergy bonus" line, so gate callers
@@ -525,14 +528,10 @@ func _start_gate_battle(gate: Dictionary, prefix: String = "", is_break: bool = 
 
 ## Phase 3/P3-Nadir: launches the current Nadir floor (§20) as a real
 ## fight, same BattlePanel every other encounter uses. Enemy stats derive
-## from floor_power via the same CombatMath.enemy_stats formula gates use
-## for monster base_power (§16's "derived from existing base_power /
-## floor_power, not re-authored"). Non-boss floors have no named monster
-## in the source at all (unlike gates, which always roll a real one), so
-## they use a generic placeholder name -- flagged, same spirit as every
-## other invented display-only label in this project. Boss floors reuse
-## Nadir.boss_monster_id's real monster for both its name and its combat
-## stats. Army Synergy (§16/§20) applies here, unlike gates.
+## from floor_power (§16's "derived from existing base_power/floor_power").
+## Non-boss floors have no named monster in the source, so they use an
+## invented placeholder name; boss floors reuse Nadir.boss_monster_id's
+## real monster. Army Synergy applies here, unlike gates.
 func _start_nadir_battle() -> void:
 	var floor_n := state.nadir_current_floor()
 	_pending_nadir_floor = floor_n
@@ -700,9 +699,7 @@ func _on_squad_button_pressed() -> void:
 	_refresh_squad_view()
 
 
-## Clears the manual pick -- back to auto-picking the strongest 3 of the
-## squad-of-6 every fight (SquadBuilder.resolve_party's fallback), same as
-## before this panel existed.
+## Clears the manual pick -- back to auto-picking the strongest 3.
 func _on_squad_auto_fill_requested() -> void:
 	state.active_party_ids = []
 	SaveService.save(state)
@@ -718,11 +715,9 @@ func _on_squad_toggle_requested(instance_id: String) -> void:
 	_refresh_squad_view()
 
 
-## Phase 3/step 6: feeds SquadView the class-slotted squad-of-6 (§17,
-## unchanged SquadBuilder.auto_fill_squad), which of them are manually
-## fielded (state.active_party_ids), and the actually-resolved party
-## (SquadBuilder.resolve_party, including any auto-backfilled slots) --
-## SquadView owns all the row/label display logic itself.
+## Feeds SquadView the squad-of-6, which are manually fielded, and the
+## actually-resolved party (incl. auto-backfilled slots) -- SquadView owns
+## the row/label display itself.
 func _refresh_squad_view() -> void:
 	var squad := SquadBuilder.auto_fill_squad(
 		state.army, _monsters, state.level, _equipment, state.inventory
@@ -731,6 +726,52 @@ func _refresh_squad_view() -> void:
 		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
 	)
 	squad_view.refresh(squad, state.active_party_ids, chosen)
+
+
+func _on_shop_button_pressed() -> void:
+	shop_view.visible = true
+	_refresh_shop_view()
+
+
+func _on_buy_ticket_bundle_requested(id: String) -> void:
+	var bundle := Content.shop_item_by_id(_shop_catalog.get("ticket_bundles", []), id)
+	if not _spend_on_shop_item(bundle):
+		return
+	state.gate_tickets += int(bundle.get("tickets", 0))
+	SaveService.save(state)
+	_refresh_shop_view()
+	_refresh_label()
+
+
+func _on_buy_essence_bundle_requested(id: String) -> void:
+	var bundle := Content.shop_item_by_id(_shop_catalog.get("essence_bundles", []), id)
+	if not _spend_on_shop_item(bundle):
+		return
+	state.essence += int(bundle.get("essence", 0))
+	SaveService.save(state)
+	_refresh_shop_view()
+	_refresh_label()
+
+
+## No visual effect yet (§9b placeholder-art era) -- just records ownership.
+func _on_buy_cosmetic_requested(id: String) -> void:
+	var cosmetic := Content.shop_item_by_id(_shop_catalog.get("cosmetics", []), id)
+	if state.owned_cosmetics.has(id) or not _spend_on_shop_item(cosmetic):
+		return
+	state.unlock_cosmetic(id)
+	SaveService.save(state)
+	_refresh_shop_view()
+
+
+## Shared afford-then-spend step for every shop purchase kind.
+func _spend_on_shop_item(item: Dictionary) -> bool:
+	if item.is_empty():
+		return false
+	return state.spend_crystals(int(item.get("crystal_cost", 0)))
+
+
+func _refresh_shop_view() -> void:
+	shop_view.refresh(state.crystals, state.owned_cosmetics)
 
 
 func _refresh_army_label() -> void:
@@ -806,7 +847,7 @@ func _refresh_label() -> void:
 	var stats := state.stats()
 	label.text = (
 		(
-			"Lv %d %s\nEXP: %d / %d\nEssence: %d  Tickets: %d\n"
+			"Lv %d %s\nEXP: %d / %d\nEssence: %d  Tickets: %d  Crystals: %d\n"
 			+ "STR %d AGI %d VIT %d END %d SEN %d\nPower: %d"
 		)
 		% [
@@ -816,6 +857,7 @@ func _refresh_label() -> void:
 			GameLogic.exp_to_next(state.level),
 			state.essence,
 			state.gate_tickets,
+			state.crystals,
 			stats["STR"],
 			stats["AGI"],
 			stats["VIT"],
@@ -1049,13 +1091,10 @@ func _on_nadir_close_pressed() -> void:
 	nadir_panel.visible = false
 
 
-## Phase 3/P3-Nadir status update: no longer shows a RAID_POWER-vs-target
-## comparison -- since the §16 combat overhaul that pairing no longer
-## decides anything (it's real combat now, not a power-check), so showing
-## it as if it still gated the outcome would be misleading. Shows the
-## floor's derived enemy power (informational, same spirit as a gate
-## preview naming its enemies, §18) and the current Army Synergy bonus
-## (§16/§20's actual new mechanic) instead.
+## No longer shows a RAID_POWER-vs-target comparison -- real combat
+## decides the outcome now, not a power-check, so that pairing would be
+## misleading. Shows the floor's derived enemy power (informational) and
+## the current Army Synergy bonus instead.
 func _refresh_nadir_panel() -> void:
 	var floor_n := state.nadir_current_floor()
 	var enemy_power := GameLogic.floor_power(floor_n)
@@ -1349,7 +1388,12 @@ func _on_character_trial_pressed() -> void:
 		state.pass_assessment(target_rank)
 		var reward := RankAssessment.essence_reward(target_rank)
 		state.essence += reward
-		msg += "\nPromoted to Rank %s! +%d Essence" % [target_rank, reward]
+		var crystal_reward := RankAssessment.crystal_reward(target_rank)
+		state.crystals += crystal_reward
+		msg += (
+			"\nPromoted to Rank %s! +%d Essence, +%d Crystals"
+			% [target_rank, reward, crystal_reward]
+		)
 	else:
 		msg += "\nFree retry any time -- train up and come back."
 

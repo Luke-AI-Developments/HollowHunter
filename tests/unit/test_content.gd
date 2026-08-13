@@ -99,3 +99,24 @@ func test_unlocked_moves_is_sorted_by_unlock_level() -> void:
 		# time, to match that existing convention.
 		levels.append(int(m["unlock_level"]))
 	assert_eq(levels, [1, 4, 8, 12, 16])
+
+
+func test_load_shop_has_all_three_sections() -> void:
+	var shop := Content.load_shop()
+	assert_true(shop.has("ticket_bundles"))
+	assert_true(shop.has("essence_bundles"))
+	assert_true(shop.has("cosmetics"))
+	assert_true(shop["ticket_bundles"].size() > 0)
+	assert_true(shop["essence_bundles"].size() > 0)
+	assert_true(shop["cosmetics"].size() > 0)
+
+
+func test_shop_item_by_id_finds_a_real_entry() -> void:
+	var shop := Content.load_shop()
+	var item := Content.shop_item_by_id(shop["essence_bundles"], "shop_essence_small")
+	assert_eq(int(item["essence"]), 500)  # JSON numbers parse as float, cast at assertion
+
+
+func test_shop_item_by_id_unknown_id_is_empty() -> void:
+	var shop := Content.load_shop()
+	assert_eq(Content.shop_item_by_id(shop["cosmetics"], "cosmetic_does_not_exist"), {})

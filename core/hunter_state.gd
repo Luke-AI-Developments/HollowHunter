@@ -62,6 +62,15 @@ var active_party_ids: Array = []  ## Phase 3/step 6: up to 3 gate-squad (§17) s
 ## §16). Empty = no manual pick yet -- SquadBuilder.resolve_party() falls back to
 ## auto-picking the strongest 3, the same behavior as before this field existed, so old
 ## saves (and anyone who never opens the Squad panel) are unaffected.
+var crystals: int = 0  ## Phase 4/shop step 1: the premium currency (§14/§26) -- spent on
+## Essence/ticket bundles and cosmetics via the Shop panel. Real-money acquisition (Google
+## Play Billing) is NOT built (a separate native-plugin integration, out of scope for this
+## patch); the one source implemented so far is RankAssessment's rank-up milestone reward
+## (§26's "slow trickle from play/achievements").
+var owned_cosmetics: Array = []  ## Phase 4/shop step 1: cosmetic ids (content/shop.json)
+## the player has purchased. No visual effect yet -- this project is still placeholder-art
+## throughout (§9b); ownership is tracked now so the real art pass can swap sprites in by
+## data later without touching this system again.
 
 
 static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
@@ -84,6 +93,8 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.hunter_rank = "E"
 	s.last_gate_break_offer = 0
 	s.active_party_ids = []
+	s.crystals = 0
+	s.owned_cosmetics = []
 	return s
 
 
@@ -617,6 +628,30 @@ func spend_gate_ticket() -> bool:
 	return true
 
 
+## Phase 4/shop step 1: spends Crystals on a shop bundle/cosmetic (§14).
+## False (no change) if the balance is short -- same afford-then-mutate
+## pattern as spend_gate_ticket()/enhance_item(); the caller (scenes/
+## main.gd) checks this before applying whatever the purchase actually
+## grants (tickets/Essence/a cosmetic unlock), same as every other reward
+## flow in this project.
+func spend_crystals(amount: int) -> bool:
+	if crystals < amount:
+		return false
+	crystals -= amount
+	return true
+
+
+## True if the cosmetic wasn't already owned (and is now). Duplicate
+## purchases of an already-owned cosmetic should be blocked by the shop UI
+## itself (nothing left to buy), but this stays idempotent/safe either way
+## rather than assuming the caller always checks first.
+func unlock_cosmetic(cosmetic_id: String) -> bool:
+	if owned_cosmetics.has(cosmetic_id):
+		return false
+	owned_cosmetics.append(cosmetic_id)
+	return true
+
+
 func to_dict() -> Dictionary:
 	return {
 		"level": level,
@@ -637,6 +672,8 @@ func to_dict() -> Dictionary:
 		"hunter_rank": hunter_rank,
 		"last_gate_break_offer": last_gate_break_offer,
 		"active_party_ids": active_party_ids,
+		"crystals": crystals,
+		"owned_cosmetics": owned_cosmetics,
 	}
 
 
@@ -660,6 +697,8 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.hunter_rank = String(d.get("hunter_rank", "E"))
 	s.last_gate_break_offer = int(d.get("last_gate_break_offer", 0))
 	s.active_party_ids = d.get("active_party_ids", [])
+	s.crystals = int(d.get("crystals", 0))
+	s.owned_cosmetics = d.get("owned_cosmetics", [])
 	return s
 
 

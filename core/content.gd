@@ -87,3 +87,24 @@ static func unlocked_moves(moves: Array, clazz: String, level: int) -> Array:
 			return int(a.get("unlock_level", 1)) < int(b.get("unlock_level", 1))
 	)
 	return result
+
+
+## The item shop's catalog (§14/§26, content/shop.json): {ticket_bundles,
+## essence_bundles, cosmetics}, each an Array of Dictionaries. See that
+## file's own _comment for what's the source's own text (what Crystals
+## buy) vs. invented v0 (every crystal_cost number).
+static func load_shop(path: String = "res://content/shop.json") -> Dictionary:
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if data == null:
+		return {"ticket_bundles": [], "essence_bundles": [], "cosmetics": []}
+	return data
+
+
+## Looks up one entry by id within a single shop catalog section (e.g.
+## `shop["cosmetics"]`) -- same {} -not-found convention as monster_by_id/
+## move_by_id/equipment_by_id.
+static func shop_item_by_id(section: Array, id: String) -> Dictionary:
+	for item: Dictionary in section:
+		if item.get("id") == id:
+			return item
+	return {}
