@@ -63,6 +63,8 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var squad_view: SquadView = $GameUI/SquadPanel
 @onready var shop_button: Button = $GameUI/ShopButton
 @onready var shop_view: ShopView = $GameUI/ShopPanel
+@onready var leaderboard_button: Button = $GameUI/LeaderboardButton
+@onready var leaderboard_view: LeaderboardView = $GameUI/LeaderboardPanel
 @onready var gate_break_panel: Node2D = $GameUI/GateBreakPanel
 @onready var gate_break_info_label: Label = $GameUI/GateBreakPanel/InfoLabel
 @onready var gate_break_accept_button: Button = $GameUI/GateBreakPanel/AcceptButton
@@ -182,6 +184,7 @@ func _start_game() -> void:
 	shadow_gear_view.bind(state, _equipment, _monsters)
 	stronghold_view.bind(state)
 	character_view.bind(state, _equipment, _monsters)
+	leaderboard_view.bind(state, _equipment)
 	_setup_gear_panels()
 
 
@@ -219,6 +222,7 @@ func _setup_gear_panels() -> void:
 		shop_view.buy_ticket_bundle_requested.connect(_on_buy_ticket_bundle_requested)
 		shop_view.buy_essence_bundle_requested.connect(_on_buy_essence_bundle_requested)
 		shop_view.buy_cosmetic_requested.connect(_on_buy_cosmetic_requested)
+		leaderboard_button.pressed.connect(func() -> void: leaderboard_view.open())
 		gate_break_accept_button.pressed.connect(_on_gate_break_accept_pressed)
 		gate_break_dismiss_button.pressed.connect(_on_gate_break_dismiss_pressed)
 		gate_break_timer.timeout.connect(_maybe_offer_gate_break)

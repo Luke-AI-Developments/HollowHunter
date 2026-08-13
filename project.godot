@@ -17,6 +17,7 @@ run/main_scene="res://scenes/main.tscn"
 [autoload]
 
 SaveService="*res://autoload/save_service.gd"
+BackendService="*res://autoload/backend_service.gd"
 
 [editor_plugins]
 
