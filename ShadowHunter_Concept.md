@@ -1729,15 +1729,16 @@ Only the aggregates §27 already named leave the device — no raw health data, 
 - **Pure logic split out to `core/`** the same way every other system in this project is: a pure function building the upsert payload dict from a `HunterState`, and one parsing a leaderboard row response into display data — both unit-testable with GUT, no network needed. Only the actual `HTTPRequest` call stays in the autoload (engine-dependent), same separation as `GpsHealthBridge`.
 - **New `LeaderboardView`** panel/controller script, following the per-screen-controller pattern (§17/§21/§22's controllers) established when `main.gd` was split — not another few hundred lines back in `main.gd`.
 
-### Phased build order
-- **P7a — buildable now, no live Supabase project needed:** the pure payload-building/parsing `core/` functions + `BackendService` written against a swappable HTTP layer, fully unit-tested. Doesn't produce a real leaderboard yet — proves the shape and logic before there's a real server to hit.
-- **P7b — needs a real Supabase project:** wire `BackendService` to real HTTP calls (URL + anon key from the user's own Supabase project — an account/billing surface, so this step is the user's to create, not something done on their behalf), live-verify sync + the Leaderboard screen on device.
-- **P7c — later patches:** friends scope, regional scope (with its own explicit §27-style privacy note), optional anonymous→permanent account linking, real server-side anti-cheat.
+### Account linking (decided: build it now, not deferred)
+Unlike the P7a-recommended default, the call was to build linking alongside the base sync rather than defer it — no player should lose their rank to a reinstall. **Method: email + password**, via Supabase's anonymous-session `updateUser({email, password})` call, which upgrades the SAME anonymous UID in place (no migration, no new row) rather than OAuth — OAuth (Google/Apple sign-in) needs per-platform client IDs and store-side setup that's real extra scope for a first pass; email/password is the smallest linking flow that still solves "don't lose your rank." Supabase's default flow emails a confirmation link; the account is linked (and recoverable) once confirmed. A "Link Account" action lives on the Leaderboard screen — the only new UI surface this adds: an email field, a password field, and a confirmation-pending state. `is_anonymous` isn't duplicated into the `leaderboard` table — it's already a native column on Supabase's own `auth.users`, so the client reads it from its local session, not a query.
 
-### What's still a real decision (not yet made)
-1. **Anonymous-only v1, or build the optional "link an account to back up your rank" flow now too?** Recommended: anonymous-only first (P7a/P7b), linking as a P7c follow-up — but flagging since losing a leaderboard entry on reinstall is a real, visible downside some players will hit.
-2. **Global-only v1 (recommended above), or try to ship friends/regional in the same patch?** Recommended: global-only, per the "smallest slice" reasoning above.
-3. **Who creates the Supabase project?** This needs a real account (and eventually possibly billing, though free tier covers launch) — the user's to create; I can drive the dashboard via browser tools if wanted, but sign-up/consent/payment steps stay in their hands either way.
+### Leaderboard scope (decided: global only for v1)
+Friends and regional stay explicitly out of this patch — both are real additional scope (a social graph; a new location-signal-to-backend privacy call §27 hasn't made yet), not smaller variants of the global board. Their own future patches, per §24's roadmap.
+
+### Phased build order
+- **P7a — built this session, no live Supabase project needed:** the pure payload-building/parsing `core/` functions, the `BackendService` autoload (HTTP layer written and ready, pointed at placeholder URL/key constants), and the `LeaderboardView` panel (list + Link Account form) — all buildable and unit-testable without a live server. Live device verification of real sync isn't possible yet at this stage — only that the UI opens, takes input, and doesn't crash.
+- **P7b — needs the user's real Supabase project:** the user creates the project and hands over the URL + anon key; `BackendService`'s placeholder constants get replaced, then a real live-verification pass (sync a real hunter, see a real leaderboard row, link a real account) happens on device.
+- **P7c — later patches:** friends scope, regional scope (with its own explicit §27-style privacy note), real server-side anti-cheat beyond the CHECK-constraint floor.
 
 ---
 
