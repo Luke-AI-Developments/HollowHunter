@@ -33,6 +33,44 @@ func test_new_hunter_personal_power_is_145():
 	assert_eq(GameLogic.personal_power(s, 1, 0), 145)
 
 
+func test_shadow_combat_stats_higher_base_power_beats_lower_at_same_level_class():
+	var weak := GameLogic.shadow_combat_stats(120, 1, "WARRIOR")  # Grubmaw-tier (E)
+	var strong := GameLogic.shadow_combat_stats(2650, 1, "WARRIOR")  # Duskdrake-tier (B)
+	assert_true(strong["STR"] > weak["STR"])
+	assert_true(strong["VIT"] > weak["VIT"])
+
+
+func test_shadow_combat_stats_scales_up_with_level_at_same_base_power():
+	var low_level := GameLogic.shadow_combat_stats(1000, 1, "MAGE")
+	var high_level := GameLogic.shadow_combat_stats(1000, 20, "MAGE")
+	assert_true(high_level["SEN"] > low_level["SEN"])
+
+
+func test_shadow_combat_stats_preserves_the_class_profile_shape():
+	# A Warrior's grade/level scaling is a uniform multiplier -- it doesn't
+	# change which stat the class profile favors.
+	var stats := GameLogic.shadow_combat_stats(5000, 15, "WARRIOR")
+	assert_true(stats["STR"] > stats["SEN"])
+
+
+func test_shadow_combat_stats_matches_the_documented_multiplier():
+	var level := 10
+	var clazz := "ASSASSIN"
+	var base_power := 2650
+	var raw := GameLogic.stats_from(level, clazz)
+	var baseline := GameLogic.personal_power(raw, level, 0)
+	var grade_scale := GameLogic.shadow_power(base_power, level, 0)
+	var multiplier := float(grade_scale) / float(baseline)
+	var scaled := GameLogic.shadow_combat_stats(base_power, level, clazz)
+	for stat in raw.keys():
+		assert_eq(scaled[stat], int(round(float(raw[stat]) * multiplier)))
+
+
+func test_shadow_combat_stats_handles_level_zero_without_dividing_by_zero():
+	var stats := GameLogic.shadow_combat_stats(1000, 0, "WARRIOR")
+	assert_eq(stats.keys().size(), 5)
+
+
 func test_clear_probability_is_even_at_ratio_one():
 	assert_almost_eq(GameLogic.clear_probability(1000, 1000), 0.5, 0.001)
 

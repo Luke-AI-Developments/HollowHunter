@@ -53,6 +53,7 @@ static func enrich_army(
 					"grade_name": GameLogic.grade_name(shadow.get("grade", "")),
 					"level": shadow.get("level", 1),
 					"clazz": monster.get("clazz", ""),
+					"base_power": monster.get("base_power", 0),
 					"power": power,
 					"locked": shadow.get("locked", false),
 					"favorite": shadow.get("favorite", false),

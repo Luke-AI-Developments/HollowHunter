@@ -441,17 +441,19 @@ func _current_gate_power() -> int:
 ## SquadBuilder.resolve_party() -- honors the player's manual Squad-panel
 ## pick (state.active_party_ids, §17 step 6) when there is one, otherwise
 ## falls back to the same auto-pick-strongest-3 as before that panel
-## existed. Shadow gear is NOT folded into combat stats here -- a real,
-## flagged gap: §16 defines the player's combat stats via
-## stats_from()+class profile, and gear already feeds personal_power() the
-## same way, but shadows have never had a STR/AGI/VIT/END/SEN breakdown at
-## all (only the single aggregate shadow_power() scalar, used for
-## army-power/Stronghold/etc. elsewhere and left untouched here). The
-## least-invented, most-consistent v0 fill: reuse the SAME
-## stats_from(level, class) pipeline the player uses, keyed to the
-## shadow's own level + monster class instead of the hunter's -- no new
-## formula, just a new application of the existing one.
-## Gear-affecting-shadow-combat-stats is deferred, not forgotten.
+## existed.
+##
+## Balance-fix status update: shadow combat stats now use
+## GameLogic.shadow_combat_stats(base_power, level, class), not a bare
+## stats_from(level, class) -- see that function's own doc comment for the
+## real gap this fixes (grade/base_power previously had zero effect on a
+## shadow's combat stats, so e.g. a level-1 Duskdrake and a level-1
+## Grublet fought identically). Gear is still NOT folded into combat
+## stats here -- a real, still-open gap: gear already feeds
+## personal_power() and shadow_power() (the aggregate, used for army-
+## power/Stronghold/squad-ranking elsewhere), but shadow_combat_stats()
+## doesn't yet take a gear_stat_bonus the way personal_power()/
+## shadow_power() do. Deferred, not forgotten.
 ##
 ## `apply_synergy` turns on Army Synergy (§16/§20) -- raids/the Nadir only,
 ## per the doc's own "gates get no synergy bonus" line, so gate callers
@@ -467,7 +469,9 @@ func _build_battle_party(apply_synergy: bool = false) -> Array:
 		)
 	]
 	for member: Dictionary in chosen:
-		var shadow_stats := GameLogic.stats_from(int(member["level"]), String(member["clazz"]))
+		var shadow_stats := GameLogic.shadow_combat_stats(
+			int(member["base_power"]), int(member["level"]), String(member["clazz"])
+		)
 		party.append(
 			Battle.make_ally_combatant(
 				member["instance_id"],

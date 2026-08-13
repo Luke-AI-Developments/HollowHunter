@@ -143,6 +143,47 @@ static func shadow_power(
 	return int(round(core * (1.0 + MONARCH_SCALE * hunter_level)))
 
 
+# --- Shadow combat stats (§16 combat overhaul, balance fix) ---
+# Real gap found live-testing the combat overhaul: scenes/main.gd was
+# deriving a shadow's combat STR/AGI/VIT/END/SEN purely via stats_from(
+# shadow.level, class) -- the same pipeline as the player -- which never
+# once referenced the shadow's own base_power/grade. A level-1 Duskdrake
+# (General·B, base_power 2650) and a level-1 Grublet (Wraith·E, base_power
+# ~120) came out with IDENTICAL combat stats, despite grade being the
+# entire point of the shadow-collection game.
+#
+# §16's own "still fully alive" list already names the fix, in the same
+# phrasing it uses for enemies ("floor_power (now feeds Nadir enemy stat
+# derivation)"): "shadow_power's base_power/level scaling (now a shadow's
+# own HP/ATK)". Chosen reading (confirmed with the user over the
+# alternative literal enemy-style HP/ATK-only reading): BLEND, not
+# replace -- keep stats_from's STR/AGI/VIT/END/SEN split (so a shadow's
+# class identity/flavor -- crit, speed, DEF -- survives), and scale the
+# result by how much stronger/weaker than a same-level trained hunter
+# this shadow's species is, using shadow_power's OWN existing
+# SHADOW_BASE_SCALE/SHADOW_LEVEL_SCALE constants (no new numbers
+# invented) as the ratio's numerator, and personal_power's own STAT_
+# WEIGHT/LEVEL_WEIGHT as its denominator (both formulas were already
+# designed to be commensurable -- that's how the old GATE_POWER/
+# RAID_POWER system added them together as one pool). hunter_level is
+# deliberately NOT part of this -- shadow_power's MONARCH_SCALE bonus was
+# "the whole army benefits from the hunter's level", which the combat
+# overhaul already replaced with an explicit mechanic (Army Synergy,
+# CombatMath.army_synergy_bonus) rather than baking hunter-progression
+# into an individual shadow's own base stats.
+static func shadow_combat_stats(base_power: int, shadow_level: int, clazz: String) -> Dictionary:
+	var raw := stats_from(shadow_level, clazz)
+	var baseline := personal_power(raw, shadow_level)
+	if baseline <= 0:
+		return raw
+	var grade_scale := shadow_power(base_power, shadow_level, 0)
+	var multiplier := float(grade_scale) / float(baseline)
+	var scaled := {}
+	for stat in raw.keys():
+		scaled[stat] = int(round(float(raw[stat]) * multiplier))
+	return scaled
+
+
 # --- Armor-set power%% bonus (§15 patch 3): applied as a straight multiplier
 # on an already-computed power number. Where in the formula a set's "N%
 # power" applies isn't specified in the source -- multiplying the final

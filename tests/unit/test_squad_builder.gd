@@ -21,6 +21,13 @@ func test_enrich_army_looks_up_name_class_and_power() -> void:
 	assert_true(enriched[0]["power"] > 0)
 
 
+func test_enrich_army_includes_the_monster_base_power():
+	var army := [_shadow("mon_ashen_warden")]
+	var enriched := SquadBuilder.enrich_army(army, monsters, 10)
+	var monster := Content.monster_by_id(monsters, "mon_ashen_warden")
+	assert_eq(enriched[0]["base_power"], monster["base_power"])
+
+
 func test_enrich_army_skips_unknown_monster_ids() -> void:
 	var army := [_shadow("mon_does_not_exist")]
 	assert_eq(SquadBuilder.enrich_army(army, monsters, 10), [])
