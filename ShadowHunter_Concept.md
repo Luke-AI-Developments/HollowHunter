@@ -1495,7 +1495,7 @@ This is §11's MVP kernel, now the target for a first playable you'd actually en
 - **P4 — Stationary play** (§8): gate tickets + gate-breaks — accessibility + at-home retention.
 - **P5 — Stronghold** (§22): idle economy — a second job for the collection.
 - **P6 — Incursions** (§19): the living, changing world.
-- **P7 — Backend + rankings** (§9): accounts + leaderboards (first real server cost/complexity).
+- **P7 — Backend + rankings** (§9, implementation plan in §31): accounts + leaderboards (first real server cost/complexity).
 - **P8 — Shop & cosmetics** (§14): tickets + cosmetic monetization.
 
 ### Ongoing tracks (parallel, later)
@@ -1675,6 +1675,69 @@ Plugging real numbers into the clear check (`P = r^k/(r^k+1)`, k=3; §5) for a *
 - **S-rank squad depth** — S own-rank shows 68% only because stacking six S-tier shadows is hard; a bit of extra bite at the very top is fine, or tune squad/gear assumptions.
 
 **Caveat:** rests on v0 gear/squad estimates — real tuning happens in-engine. But the curve behaves as intended.
+
+---
+
+## 31. Backend architecture — rankings implementation plan (P7 scope)
+
+§9 named the *what* (a leaderboard, friends/regional/global scopes, backend + accounts). This is the *how* — concrete enough to build from, decided instead of left as "Supabase/Firebase via REST" (§10). **Not yet built** — this is the scoping pass; see "What's still a real decision" below for what needs a call before code starts.
+
+### Chosen service: Supabase
+§10 already leaned this way; confirmed current (2026) numbers make it an easy call: **Free tier — 50,000 MAU, 500 MB Postgres, 5 GB egress, unlimited API requests, native anonymous auth included.** That comfortably covers this project through and past the "first real wall" §19 already identified (~1,000–5,000 MAU) — the leaderboard doesn't add a new cost tier, it rides the same one the map's cost analysis already accounted for. Postgres + Row Level Security is also a more natural fit than Firebase's NoSQL model for "one row per hunter, sorted a few ways."
+
+### Identity: anonymous auth, no forced sign-up
+Supabase's **anonymous sign-in** issues a stable user ID + JWT with zero UI friction (no email/password screen blocking the core loop) — matches §9's "bragging board, not a fairness-critical system" framing. First app launch (alongside subclass pick) silently creates one anonymous identity, stored in Godot's `user://` local storage. A player picks a **display name** (free text, no verification) the first time they open the leaderboard.
+
+**Real, flagged gap:** an anonymous identity is tied to the install. Uninstalling, or switching devices, loses the leaderboard entry (though never save data — that's separate, on-device). Supabase supports upgrading an anonymous identity to a permanent one (email or OAuth) without losing the row, so this can be added later as an *optional* "back up your rank" flow rather than a v1 requirement. Flagged under "still a real decision" below.
+
+### Schema (v0 — one table)
+```sql
+create table public.leaderboard (
+  user_id uuid primary key references auth.users(id),
+  display_name text not null default 'Hunter',
+  hunter_rank text not null,          -- E..S (§28)
+  hunter_level int not null,
+  personal_power int not null,        -- GATE_POWER's personal half (§16)
+  deepest_nadir_floor int not null,   -- §20
+  updated_at timestamptz not null default now(),
+  constraint sane_level check (hunter_level between 1 and 500),
+  constraint sane_power check (personal_power >= 0),
+  constraint sane_floor check (deepest_nadir_floor >= 0)
+);
+
+alter table public.leaderboard enable row level security;
+create policy "leaderboard is publicly readable" on public.leaderboard
+  for select using (true);
+create policy "a hunter can only write their own row" on public.leaderboard
+  for insert with check (auth.uid() = user_id);
+create policy "a hunter can only update their own row" on public.leaderboard
+  for update using (auth.uid() = user_id);
+```
+Only the aggregates §27 already named leave the device — no raw health data, no precise location. The `sane_*` CHECK constraints are the cheap, real anti-cheat this patch actually builds (garbage/malicious payloads get rejected by Postgres itself, no server code needed) — genuine server-side validation (recomputing a hunter's power from their real save state, rate-limiting, mock-location detection) stays future work, per §19's own "anti-cheat: trust-based for v1."
+
+### Sync flow
+- **Push:** after any event that changes a synced field (level up, rank up, Nadir floor clear), upsert the hunter's own row via a REST `POST .../rest/v1/leaderboard` with the anon JWT — debounced to once per app session (or every few minutes), not on every single mutation, to keep this cheap and simple rather than hammering the API on every EXP tick.
+- **Pull:** the Leaderboard screen `GET`s the top N rows for each board (§9: total power, deepest Nadir floor, optionally hunter level), plus a query for "your row" if you're outside the visible top N. Boards are grouped by rank tier (§28's "standings grouped by rank... you compete within your rank") via a `WHERE hunter_rank = ...` filter, not a separate table.
+
+### Scopes — v1 ships global only (recommended, needs confirming)
+§9 names three scopes: friends, regional, global. **Recommended: build global only for the first backend patch**, same "smallest slice first" discipline as everything else in this project (§11/§24) — the other two are real additional scope, not smaller variants of the same table:
+- **Friends** needs a social graph (a `friends`/`friend_requests` table, an add-friend flow, a friends-only query) — a genuinely separate feature, not a query-param toggle.
+- **Regional** needs *some* location signal reaching the backend for the first time in this project — even coarse (a country/region code, never precise GPS) it's a new category §27's privacy work should explicitly cover before it ships, not silently piggyback on the "aggregates only" rule.
+
+### Godot client implementation plan
+- **`autoload/backend_service.gd`** (new, matches `SaveService`'s existing autoload pattern) — wraps `HTTPRequest` calls to Supabase's REST endpoints. Holds the project's Supabase URL + anon public API key as constants; the anon key is *meant* to be client-embedded (that's the Supabase model) — RLS above is the actual security boundary, not key secrecy.
+- **Pure logic split out to `core/`** the same way every other system in this project is: a pure function building the upsert payload dict from a `HunterState`, and one parsing a leaderboard row response into display data — both unit-testable with GUT, no network needed. Only the actual `HTTPRequest` call stays in the autoload (engine-dependent), same separation as `GpsHealthBridge`.
+- **New `LeaderboardView`** panel/controller script, following the per-screen-controller pattern (§17/§21/§22's controllers) established when `main.gd` was split — not another few hundred lines back in `main.gd`.
+
+### Phased build order
+- **P7a — buildable now, no live Supabase project needed:** the pure payload-building/parsing `core/` functions + `BackendService` written against a swappable HTTP layer, fully unit-tested. Doesn't produce a real leaderboard yet — proves the shape and logic before there's a real server to hit.
+- **P7b — needs a real Supabase project:** wire `BackendService` to real HTTP calls (URL + anon key from the user's own Supabase project — an account/billing surface, so this step is the user's to create, not something done on their behalf), live-verify sync + the Leaderboard screen on device.
+- **P7c — later patches:** friends scope, regional scope (with its own explicit §27-style privacy note), optional anonymous→permanent account linking, real server-side anti-cheat.
+
+### What's still a real decision (not yet made)
+1. **Anonymous-only v1, or build the optional "link an account to back up your rank" flow now too?** Recommended: anonymous-only first (P7a/P7b), linking as a P7c follow-up — but flagging since losing a leaderboard entry on reinstall is a real, visible downside some players will hit.
+2. **Global-only v1 (recommended above), or try to ship friends/regional in the same patch?** Recommended: global-only, per the "smallest slice" reasoning above.
+3. **Who creates the Supabase project?** This needs a real account (and eventually possibly billing, though free tier covers launch) — the user's to create; I can drive the dashboard via browser tools if wanted, but sign-up/consent/payment steps stay in their hands either way.
 
 ---
 
