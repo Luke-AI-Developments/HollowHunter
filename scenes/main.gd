@@ -21,9 +21,6 @@ var _workouts_json: String = ""
 var _health_applied := false
 var _gps_status := "Requesting..."  ## Phase 2/P5 step 2: §21's "health connection" status line
 var _health_status := "Requesting..."
-var _hunter_gear_rows: Array = []  ## Array[Dictionary]: {slot, label, equip_btn, unequip_btn}
-var _shadow_gear_rows: Array = []  ## same shape, for whichever shadow is selected
-var _shadow_gear_index: int = 0  ## index into state.army for the Shadow Gear panel
 var _has_location := false  ## Phase 2/P7 step 1: whether _last_lat/_last_lon are real yet
 var _last_lat: float = 0.0  ## most recent GPS fix -- §8a's ticket gate spawns "where you are"
 var _last_lon: float = 0.0
@@ -49,36 +46,18 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var army_label: Label = $GameUI/ArmyLabel
 @onready var inventory_label: Label = $GameUI/InventoryLabel
 @onready var hunter_gear_button: Button = $GameUI/HunterGearButton
+@onready var hunter_gear_view: HunterGearView = $GameUI/HunterGearPanel
 @onready var shadow_gear_button: Button = $GameUI/ShadowGearButton
-@onready var hunter_gear_panel: Node2D = $GameUI/HunterGearPanel
-@onready var shadow_gear_panel: Node2D = $GameUI/ShadowGearPanel
-@onready var shadow_gear_title: Label = $GameUI/ShadowGearPanel/Title
-@onready var hunter_sets_label: Label = $GameUI/HunterGearPanel/SetsLabel
-@onready var shadow_sets_label: Label = $GameUI/ShadowGearPanel/SetsLabel
+@onready var shadow_gear_view: ShadowGearView = $GameUI/ShadowGearPanel
 @onready var mass_convert_button: Button = $GameUI/MassConvertButton
-@onready var shadow_level_up_button: Button = $GameUI/ShadowGearPanel/LevelUpButton
-@onready var shadow_fuse_button: Button = $GameUI/ShadowGearPanel/FuseButton
-@onready var shadow_convert_button: Button = $GameUI/ShadowGearPanel/ConvertButton
-@onready var shadow_lock_button: Button = $GameUI/ShadowGearPanel/LockButton
-@onready var shadow_favorite_button: Button = $GameUI/ShadowGearPanel/FavoriteButton
 @onready var nadir_button: Button = $GameUI/NadirButton
 @onready var nadir_panel: Node2D = $GameUI/NadirPanel
 @onready var nadir_info_label: Label = $GameUI/NadirPanel/InfoLabel
 @onready var nadir_take_on_button: Button = $GameUI/NadirPanel/TakeOnButton
 @onready var stronghold_button: Button = $GameUI/StrongholdButton
-@onready var stronghold_panel: Node2D = $GameUI/StrongholdPanel
-@onready var stronghold_info_label: Label = $GameUI/StrongholdPanel/InfoLabel
-@onready var stronghold_facility_labels: Dictionary = {
-	Stronghold.RELIQUARY: $GameUI/StrongholdPanel/ReliquaryLabel,
-	Stronghold.TRAINING_YARD: $GameUI/StrongholdPanel/TrainingYardLabel,
-	Stronghold.GATE_WATCH: $GameUI/StrongholdPanel/GateWatchLabel,
-}
+@onready var stronghold_view: StrongholdView = $GameUI/StrongholdPanel
 @onready var character_button: Button = $GameUI/CharacterButton
-@onready var character_panel: Node2D = $GameUI/CharacterPanel
-@onready var character_info_label: Label = $GameUI/CharacterPanel/InfoLabel
-@onready var character_fitness_label: Label = $GameUI/CharacterPanel/FitnessLabel
-@onready var character_health_label: Label = $GameUI/CharacterPanel/HealthStatusLabel
-@onready var character_trial_button: Button = $GameUI/CharacterPanel/TrialButton
+@onready var character_view: CharacterView = $GameUI/CharacterPanel
 @onready var use_ticket_button: Button = $GameUI/UseTicketButton
 @onready var squad_button: Button = $GameUI/SquadButton
 @onready var squad_view: SquadView = $GameUI/SquadPanel
@@ -199,68 +178,37 @@ func _start_game() -> void:
 	_refresh_inventory_label()
 	if not enter_gate_button.pressed.is_connected(_on_enter_gate_pressed):
 		enter_gate_button.pressed.connect(_on_enter_gate_pressed)
+	hunter_gear_view.bind(state, _equipment)
+	shadow_gear_view.bind(state, _equipment, _monsters)
+	stronghold_view.bind(state)
+	character_view.bind(state, _equipment, _monsters)
 	_setup_gear_panels()
 
 
-## Phase 2 patch 1 step 4: builds the 7 slot rows for both gear panels at
-## runtime (rather than hand-authoring 7x3 nodes per panel in the .tscn) and
-## wires every button once. Idempotency guards mirror the enter_gate_button
-## pattern above -- _start_game() can run again (e.g. after picking a
-## subclass) without double-connecting.
+## Wires every button once. Idempotency guard (mirrors enter_gate_button
+## above) -- _start_game() can run again (e.g. after picking a subclass)
+## without double-connecting. Per-panel row-building/button-wiring now
+## lives in each panel's own controller script (HunterGearView etc.) --
+## this only wires the OPEN buttons and the cross-panel signals those
+## controllers emit (state_changed for the shared HUD, plus the couple of
+## one-off messages -- Stronghold's collect summary, a Trial result --
+## that still need the shared main label).
 func _setup_gear_panels() -> void:
-	if _hunter_gear_rows.is_empty():
-		_hunter_gear_rows = _build_gear_rows($GameUI/HunterGearPanel/Rows, 180.0)
-		for row: Dictionary in _hunter_gear_rows:
-			var slot: String = row["slot"]
-			row["equip_btn"].pressed.connect(_on_hunter_equip_best_pressed.bind(slot))
-			row["unequip_btn"].pressed.connect(_on_hunter_unequip_pressed.bind(slot))
-			row["enhance_btn"].pressed.connect(_on_hunter_enhance_pressed.bind(slot))
-	if _shadow_gear_rows.is_empty():
-		_shadow_gear_rows = _build_gear_rows($GameUI/ShadowGearPanel/Rows, 180.0)
-		for row: Dictionary in _shadow_gear_rows:
-			var slot: String = row["slot"]
-			row["equip_btn"].pressed.connect(_on_shadow_equip_best_pressed.bind(slot))
-			row["unequip_btn"].pressed.connect(_on_shadow_unequip_pressed.bind(slot))
-			row["enhance_btn"].pressed.connect(_on_shadow_enhance_pressed.bind(slot))
-
 	if not hunter_gear_button.pressed.is_connected(_on_hunter_gear_button_pressed):
 		hunter_gear_button.pressed.connect(_on_hunter_gear_button_pressed)
-		$GameUI/HunterGearPanel/AutoEquipButton.pressed.connect(_on_hunter_auto_equip_pressed)
-		$GameUI/HunterGearPanel/CloseButton.pressed.connect(_on_hunter_gear_close_pressed)
+		hunter_gear_view.state_changed.connect(_on_state_changed)
 		shadow_gear_button.pressed.connect(_on_shadow_gear_button_pressed)
-		$GameUI/ShadowGearPanel/AutoEquipButton.pressed.connect(_on_shadow_auto_equip_pressed)
-		$GameUI/ShadowGearPanel/CloseButton.pressed.connect(_on_shadow_gear_close_pressed)
-		$GameUI/ShadowGearPanel/PrevButton.pressed.connect(_on_shadow_gear_prev_pressed)
-		$GameUI/ShadowGearPanel/NextButton.pressed.connect(_on_shadow_gear_next_pressed)
-		shadow_level_up_button.pressed.connect(_on_shadow_level_up_pressed)
-		shadow_fuse_button.pressed.connect(_on_shadow_fuse_pressed)
-		shadow_convert_button.pressed.connect(_on_shadow_convert_pressed)
-		shadow_lock_button.pressed.connect(_on_shadow_lock_pressed)
-		shadow_favorite_button.pressed.connect(_on_shadow_favorite_pressed)
+		shadow_gear_view.state_changed.connect(_on_state_changed)
 		mass_convert_button.pressed.connect(_on_mass_convert_pressed)
 		nadir_button.pressed.connect(_on_nadir_button_pressed)
 		$GameUI/NadirPanel/CloseButton.pressed.connect(_on_nadir_close_pressed)
 		nadir_take_on_button.pressed.connect(_on_nadir_take_on_pressed)
-		stronghold_button.pressed.connect(_on_stronghold_button_pressed)
-		$GameUI/StrongholdPanel/CloseButton.pressed.connect(_on_stronghold_close_pressed)
-		$GameUI/StrongholdPanel/CollectButton.pressed.connect(_on_stronghold_collect_pressed)
-		$GameUI/StrongholdPanel/UpgradeStrongholdButton.pressed.connect(
-			_on_stronghold_upgrade_pressed
-		)
-		for facility_id in Stronghold.FACILITY_IDS:
-			var node_prefix := _stronghold_node_prefix(facility_id)
-			$GameUI/StrongholdPanel.get_node(node_prefix + "AssignButton").pressed.connect(
-				_on_stronghold_assign_pressed.bind(facility_id)
-			)
-			$GameUI/StrongholdPanel.get_node(node_prefix + "UnassignButton").pressed.connect(
-				_on_stronghold_unassign_pressed.bind(facility_id)
-			)
-			$GameUI/StrongholdPanel.get_node(node_prefix + "UpgradeButton").pressed.connect(
-				_on_stronghold_facility_upgrade_pressed.bind(facility_id)
-			)
+		stronghold_button.pressed.connect(func() -> void: stronghold_view.open())
+		stronghold_view.state_changed.connect(_on_state_changed)
+		stronghold_view.collected.connect(func(msg: String) -> void: label.text += msg)
 		character_button.pressed.connect(_on_character_button_pressed)
-		$GameUI/CharacterPanel/CloseButton.pressed.connect(_on_character_close_pressed)
-		character_trial_button.pressed.connect(_on_character_trial_pressed)
+		character_view.state_changed.connect(_on_state_changed)
+		character_view.trial_result.connect(_on_character_trial_result)
 		use_ticket_button.pressed.connect(_on_use_ticket_pressed)
 		squad_button.pressed.connect(_on_squad_button_pressed)
 		squad_view.close_requested.connect(func() -> void: squad_view.visible = false)
@@ -274,53 +222,6 @@ func _setup_gear_panels() -> void:
 		gate_break_accept_button.pressed.connect(_on_gate_break_accept_pressed)
 		gate_break_dismiss_button.pressed.connect(_on_gate_break_dismiss_pressed)
 		gate_break_timer.timeout.connect(_maybe_offer_gate_break)
-
-
-## Creates one row (slot label + Equip Best + Unequip + Enhance buttons) per
-## Equip.SLOTS under `parent`, stacked from `y_start`. Placeholder art --
-## plain Label/Button, no icons/paper-doll art yet.
-func _build_gear_rows(parent: Node2D, y_start: float) -> Array:
-	var rows := []
-	var y := y_start
-	for slot in Equip.SLOTS:
-		var row_label := Label.new()
-		row_label.position = Vector2(40, y)
-		row_label.size = Vector2(600, 40)
-		row_label.add_theme_font_size_override("font_size", 20)
-		parent.add_child(row_label)
-
-		var equip_btn := Button.new()
-		equip_btn.position = Vector2(660, y)
-		equip_btn.size = Vector2(150, 40)
-		equip_btn.text = "Equip Best"
-		parent.add_child(equip_btn)
-
-		var unequip_btn := Button.new()
-		unequip_btn.position = Vector2(820, y)
-		unequip_btn.size = Vector2(130, 40)
-		unequip_btn.text = "Unequip"
-		parent.add_child(unequip_btn)
-
-		var enhance_btn := Button.new()
-		enhance_btn.position = Vector2(960, y)
-		enhance_btn.size = Vector2(160, 40)
-		enhance_btn.text = "Enhance"
-		parent.add_child(enhance_btn)
-
-		(
-			rows
-			. append(
-				{
-					"slot": slot,
-					"label": row_label,
-					"equip_btn": equip_btn,
-					"unequip_btn": unequip_btn,
-					"enhance_btn": enhance_btn,
-				}
-			)
-		)
-		y += 50
-	return rows
 
 
 func _on_location_permission_result(granted: bool) -> void:
@@ -369,15 +270,15 @@ func _on_steps_result(count: int) -> void:
 	# Code-review fix: the Character panel only rendered once, on open --
 	# if it's already open when this (async, permission-gated) signal
 	# lands, it'd be stuck showing stale/placeholder data all session.
-	if character_panel.visible:
-		_refresh_character_panel()
+	if character_view.visible:
+		character_view.refresh(_steps, _workouts_json, _gps_status, _health_status)
 
 
 func _on_workouts_result(workouts_json: String) -> void:
 	_workouts_json = workouts_json
 	_maybe_apply_daily_exp()
-	if character_panel.visible:
-		_refresh_character_panel()
+	if character_view.visible:
+		character_view.refresh(_steps, _workouts_json, _gps_status, _health_status)
 
 
 ## Both signals arrive independently and in either order; wait for both
@@ -429,21 +330,6 @@ func _maybe_apply_daily_exp() -> void:
 			% [_steps, _workouts_json, exp, levels_gained]
 		)
 	)
-
-
-## GATE_POWER (§16): personal power + the auto-filled SQUAD's power (not the
-## whole army, unlike raids -- gates weight the squad at GATE_ARMY_WEIGHT).
-## Shared by gates and Rank-Up Assessment Trials, which the source says
-## also "uses GATE_POWER (you + squad)" (§28).
-func _current_gate_power() -> int:
-	var squad := SquadBuilder.auto_fill_squad(
-		state.army, _monsters, state.level, _equipment, state.inventory
-	)
-	var squad_power := 0
-	for member: Dictionary in squad:
-		squad_power += member["power"]
-	var personal := state.personal_power(_equipment)
-	return GameLogic.gate_power(personal, squad_power)
 
 
 ## Phase 3/step 5 (extended step 6): this hunter's + fielded 3 shadows'
@@ -869,200 +755,12 @@ func _refresh_label() -> void:
 
 
 func _on_hunter_gear_button_pressed() -> void:
-	hunter_gear_panel.visible = true
-	_refresh_hunter_gear_panel()
-
-
-func _on_hunter_gear_close_pressed() -> void:
-	hunter_gear_panel.visible = false
-
-
-func _on_hunter_equip_best_pressed(slot: String) -> void:
-	state.equip_best_to_hunter(slot, _equipment)
-	SaveService.save(state)
-	_refresh_hunter_gear_panel()
-	_refresh_label()
-	_refresh_inventory_label()
-
-
-func _on_hunter_unequip_pressed(slot: String) -> void:
-	state.unequip_from_hunter(slot)
-	SaveService.save(state)
-	_refresh_hunter_gear_panel()
-	_refresh_label()
-	_refresh_inventory_label()
-
-
-func _on_hunter_auto_equip_pressed() -> void:
-	state.auto_equip_hunter(_equipment)
-	SaveService.save(state)
-	_refresh_hunter_gear_panel()
-	_refresh_label()
-	_refresh_inventory_label()
-
-
-## Phase 2 patch 1 step 5: enhances whatever the hunter has equipped in
-## `slot` (no-op if the slot's empty, already maxed, or Essence is short --
-## enhance_item() reports which via its bool, but there's no separate error
-## UI yet, same placeholder-simplicity as the other gear actions).
-func _on_hunter_enhance_pressed(slot: String) -> void:
-	var instance_id: String = state.equipped.get(slot, "")
-	if instance_id == "":
-		return
-	state.enhance_item(instance_id)
-	SaveService.save(state)
-	_refresh_hunter_gear_panel()
-	_refresh_label()
-	_refresh_inventory_label()
-
-
-func _refresh_hunter_gear_panel() -> void:
-	for row: Dictionary in _hunter_gear_rows:
-		var slot: String = row["slot"]
-		var instance_id: String = state.equipped.get(slot, "")
-		row["label"].text = "%s: %s" % [slot, _equipped_item_display(instance_id)]
-	hunter_sets_label.text = _active_sets_display(state.equipped)
+	hunter_gear_view.open()
 
 
 func _on_shadow_gear_button_pressed() -> void:
-	if state.army.is_empty():
+	if not shadow_gear_view.open():
 		label.text += "\n\nNo shadows yet"
-		return
-	_shadow_gear_index = clampi(_shadow_gear_index, 0, state.army.size() - 1)
-	shadow_gear_panel.visible = true
-	_refresh_shadow_gear_panel()
-
-
-func _on_shadow_gear_close_pressed() -> void:
-	shadow_gear_panel.visible = false
-
-
-func _on_shadow_gear_prev_pressed() -> void:
-	if state.army.is_empty():
-		return
-	_shadow_gear_index = (_shadow_gear_index - 1 + state.army.size()) % state.army.size()
-	_refresh_shadow_gear_panel()
-
-
-func _on_shadow_gear_next_pressed() -> void:
-	if state.army.is_empty():
-		return
-	_shadow_gear_index = (_shadow_gear_index + 1) % state.army.size()
-	_refresh_shadow_gear_panel()
-
-
-func _current_shadow_instance_id() -> String:
-	if state.army.is_empty() or _shadow_gear_index >= state.army.size():
-		return ""
-	return state.army[_shadow_gear_index]["instance_id"]
-
-
-func _on_shadow_equip_best_pressed(slot: String) -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	state.equip_best_to_shadow(shadow_id, slot, _equipment, _monsters)
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
-	_refresh_army_label()
-	_refresh_inventory_label()
-
-
-func _on_shadow_unequip_pressed(slot: String) -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	state.unequip_from_shadow(shadow_id, slot)
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
-	_refresh_army_label()
-	_refresh_inventory_label()
-
-
-func _on_shadow_auto_equip_pressed() -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	state.auto_equip_shadow(shadow_id, _equipment, _monsters)
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
-	_refresh_army_label()
-	_refresh_inventory_label()
-
-
-## Phase 2/P2 step 5: spends Essence to level the currently-viewed shadow
-## up by 1. No-op (no error UI yet, same placeholder-simplicity as the gear
-## buttons) if there's no shadow, it's capped, or Essence is short.
-func _on_shadow_level_up_pressed() -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	state.level_up_shadow(shadow_id)
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
-	_refresh_army_label()
-	_refresh_label()
-
-
-## Fuses the first owned duplicate of the currently-viewed shadow into it
-## (HunterState.find_duplicate_of picks which one -- no picker UI to choose
-## a specific duplicate when more than one is owned). No-op if there's no
-## shadow, no duplicate owned, it's capped, or Essence is short.
-func _on_shadow_fuse_pressed() -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	var duplicate_id := state.find_duplicate_of(shadow_id)
-	if duplicate_id == "":
-		return
-	state.fuse_shadow(shadow_id, duplicate_id)
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
-	_refresh_army_label()
-	_refresh_label()
-
-
-## Converts the currently-viewed shadow straight to Essence and removes it
-## from the army. Immediate, no confirmation prompt (placeholder UI).
-func _on_shadow_convert_pressed() -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	state.convert_shadow(shadow_id)
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
-	_refresh_army_label()
-	_refresh_label()
-
-
-## Phase 2/P2 gap closure: toggles the currently-viewed shadow's locked flag
-## (protects it from Mass-Convert Weakest, §17).
-func _on_shadow_lock_pressed() -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	var idx: int = state.army.find_custom(
-		func(s: Dictionary) -> bool: return s["instance_id"] == shadow_id
-	)
-	if idx < 0:
-		return
-	state.set_shadow_locked(shadow_id, not state.army[idx].get("locked", false))
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
-
-
-func _on_shadow_favorite_pressed() -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	var idx: int = state.army.find_custom(
-		func(s: Dictionary) -> bool: return s["instance_id"] == shadow_id
-	)
-	if idx < 0:
-		return
-	state.set_shadow_favorite(shadow_id, not state.army[idx].get("favorite", false))
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
 
 
 ## Phase 2/P2 step 4: mass-converts the MASS_CONVERT_COUNT weakest shadows
@@ -1175,326 +873,21 @@ func _apply_nadir_battle_result(won: bool) -> void:
 	label.text += msg
 
 
-## Phase 2/P4 step 5: Stronghold panel (§22). Node names for each facility
-## follow "<Prefix><Suffix>Button" (e.g. ReliquaryAssignButton) -- this maps
-## a facility id to its prefix once instead of a lookup table per button.
-func _stronghold_node_prefix(facility_id: String) -> String:
-	match facility_id:
-		Stronghold.RELIQUARY:
-			return "Reliquary"
-		Stronghold.TRAINING_YARD:
-			return "TrainingYard"
-		Stronghold.GATE_WATCH:
-			return "GateWatch"
-	return ""
-
-
-func _on_stronghold_button_pressed() -> void:
-	if state.stronghold_last_collected == 0:
-		state.stronghold_last_collected = Time.get_unix_time_from_system()
-	stronghold_panel.visible = true
-	_refresh_stronghold_panel()
-
-
-func _on_stronghold_close_pressed() -> void:
-	stronghold_panel.visible = false
-
-
-func _refresh_stronghold_panel() -> void:
-	stronghold_info_label.text = (
-		"Stronghold Lv%d/%d -- Army roster: %d/%d"
-		% [
-			state.stronghold_level,
-			Stronghold.STRONGHOLD_LEVEL_CAP,
-			state.army.size(),
-			Stronghold.army_capacity(state.stronghold_level),
-		]
-	)
-	for facility_id in Stronghold.FACILITY_IDS:
-		var facility: Dictionary = state.stronghold_facilities[facility_id]
-		var level: int = facility["level"]
-		var assigned: Array = facility["assigned"]
-		stronghold_facility_labels[facility_id].text = (
-			"%s Lv%d/%d (%d/%d slots)"
-			% [
-				_stronghold_node_prefix(facility_id),
-				level,
-				Stronghold.FACILITY_LEVEL_CAP,
-				assigned.size(),
-				Stronghold.slots_for_level(level),
-			]
-		)
-
-
-## Assigns the first owned shadow not already busy elsewhere. No picker UI
-## for choosing a specific shadow -- same auto-pick convention as
-## Equip Best/Fuse Duplicate elsewhere in this project.
-func _on_stronghold_assign_pressed(facility_id: String) -> void:
-	for shadow: Dictionary in state.army:
-		var shadow_id: String = shadow["instance_id"]
-		if not state.is_shadow_assigned(shadow_id):
-			if state.assign_shadow_to_facility(facility_id, shadow_id):
-				SaveService.save(state)
-				_refresh_stronghold_panel()
-			return
-
-
-func _on_stronghold_unassign_pressed(facility_id: String) -> void:
-	var assigned: Array = state.stronghold_facilities[facility_id]["assigned"].duplicate()
-	for shadow_id in assigned:
-		state.unassign_shadow(shadow_id)
-	SaveService.save(state)
-	_refresh_stronghold_panel()
-
-
-func _on_stronghold_facility_upgrade_pressed(facility_id: String) -> void:
-	state.upgrade_facility(facility_id)
-	SaveService.save(state)
-	_refresh_stronghold_panel()
-	_refresh_label()
-
-
-func _on_stronghold_upgrade_pressed() -> void:
-	state.upgrade_stronghold()
-	SaveService.save(state)
-	_refresh_stronghold_panel()
-	_refresh_label()
-
-
-## Collects everything accrued since the last visit, banking Essence/
-## tickets and applying Training Yard level-ups, then shows a summary.
-func _on_stronghold_collect_pressed() -> void:
-	var result := state.collect_stronghold(Time.get_unix_time_from_system())
-	SaveService.save(state)
-	_refresh_stronghold_panel()
-	_refresh_army_label()
-	_refresh_label()
-
-	var msg := (
-		"\n\nStronghold collected: +%d Essence, +%d Gate Tickets"
-		% [result["essence_gained"], result["tickets_gained"]]
-	)
-	var shadow_levels_gained: Dictionary = result["shadow_levels_gained"]
-	if not shadow_levels_gained.is_empty():
-		msg += "\n%d shadow(s) leveled up from idle training" % shadow_levels_gained.size()
-	label.text += msg
-
-
 func _on_character_button_pressed() -> void:
-	character_panel.visible = true
-	_refresh_character_panel()
+	character_view.open(_steps, _workouts_json, _gps_status, _health_status)
 
 
-func _on_character_close_pressed() -> void:
-	character_panel.visible = false
-
-
-## Phase 2/P5 step 2: the Hunter/character screen (§21). Identity/stats/
-## rank/GATE_POWER + today's fitness breakdown (steps/workout minutes/
-## signature match/streak, reusing DailyExp's existing pure functions on
-## the already-fetched _steps/_workouts_json -- no new state needed) +
-## a persistent health-connection status line. No hunter render/rank-glow
-## art -- text only, same placeholder-art convention as the rest of this
-## project's UI.
-func _refresh_character_panel() -> void:
-	var stats := state.stats()
-	var exp_needed := GameLogic.exp_to_next(state.level)
-	var pct := 0.0
-	if exp_needed > 0:
-		pct = float(state.exp_into_level) / float(exp_needed) * 100.0
-	var filled := int(round(pct / 10.0))
-	var bar := "[%s%s] %d%%" % ["=".repeat(filled), "-".repeat(10 - filled), int(pct)]
-
-	# §28: Rank is EARNED (state.hunter_rank), not auto-derived from level.
-	var next_rank := RankAssessment.next_assessment_rank(state.level, state.hunter_rank)
-	var assessment_text: String
-	if next_rank != "":
-		assessment_text = "Assessment available: %s Trial!" % next_rank
-		character_trial_button.disabled = false
-	elif state.hunter_rank == GameLogic.RANK_ORDER[GameLogic.RANK_ORDER.size() - 1]:
-		assessment_text = "Rank maxed (Sovereign)"
-		character_trial_button.disabled = true
-	else:
-		var tier_idx := GameLogic.RANK_ORDER.find(state.hunter_rank) + 1
-		var next_tier: String = GameLogic.RANK_ORDER[tier_idx]
-		var need_level: int = GameLogic.RANK_LEVEL.get(next_tier, 0)
-		assessment_text = "Next Trial (%s) unlocks at Level %d" % [next_tier, need_level]
-		character_trial_button.disabled = true
-
-	character_info_label.text = (
-		(
-			"Necromancer -- %s subclass\nLevel %d   Rank %s (earned)\nEXP: %d / %d  %s"
-			+ "\n\nSTR %d  AGI %d  VIT %d  END %d  SEN %d\n\nGATE_POWER: %d\n\n%s"
-		)
-		% [
-			state.subclass,
-			state.level,
-			state.hunter_rank,
-			state.exp_into_level,
-			exp_needed,
-			bar,
-			stats["STR"],
-			stats["AGI"],
-			stats["VIT"],
-			stats["END"],
-			stats["SEN"],
-			state.personal_power(_equipment),
-			assessment_text,
-		]
-	)
-
-	# Code-review fix: compute workout_minutes/matched once here and reuse
-	# them for today_exp via GameLogic.daily_exp() directly, instead of
-	# calling DailyExp.exp_for_today() (which would re-parse _workouts_json
-	# from scratch).
-	var workouts := DailyExp.parse_workouts(_workouts_json)
-	var workout_minutes := DailyExp.total_workout_minutes(workouts)
-	var matched := DailyExp.matches_signature_training(workouts, state.subclass)
-	var steps_display := "%d" % _steps if _steps >= 0 else "Fetching..."
-	var today_exp := 0
-	if _steps >= 0 and not _workouts_json.is_empty():
-		today_exp = GameLogic.daily_exp(_steps, 0, workout_minutes, matched)
-
-	character_fitness_label.text = (
-		"Today: %s steps, %d workout min%s\nEXP earned today: %d\nStreak: %d day(s)"
-		% [
-			steps_display,
-			workout_minutes,
-			"  (1.5x signature!)" if matched else "  (1x)",
-			today_exp,
-			state.current_streak,
-		]
-	)
-
-	character_health_label.text = "GPS: %s\nHealth Connect: %s" % [_gps_status, _health_status]
-
-
-## Phase 2/P6: attempts the currently-unlocked Rank-Up Assessment Trial
-## (§28). No-op if none is available (button is disabled in that state
-## too, but this guards direct calls). Not claimable -- no CLAIM roll on
-## a clear, unlike gates.
-func _on_character_trial_pressed() -> void:
-	var target_rank := RankAssessment.next_assessment_rank(state.level, state.hunter_rank)
-	if target_rank == "":
-		return
-
-	var gate_power := _current_gate_power()
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var result := RankAssessment.attempt(gate_power, target_rank, _monsters, rng)
-
-	var msg := "\n\n%s Rank Trial: %s" % [target_rank, "PASSED" if result["cleared"] else "FAILED"]
-	if result["cleared"]:
-		state.pass_assessment(target_rank)
-		var reward := RankAssessment.essence_reward(target_rank)
-		state.essence += reward
-		var crystal_reward := RankAssessment.crystal_reward(target_rank)
-		state.crystals += crystal_reward
-		msg += (
-			"\nPromoted to Rank %s! +%d Essence, +%d Crystals"
-			% [target_rank, reward, crystal_reward]
-		)
-	else:
-		msg += "\nFree retry any time -- train up and come back."
-
-	SaveService.save(state)
-	_refresh_character_panel()
+## The one handler every panel controller's state_changed signal connects
+## to -- refreshes the shared HUD (Essence/Tickets/Crystals/army/
+## inventory). Always refreshing all three regardless of which panel fired
+## is deliberately simple (cheap string formatting, not a perf concern)
+## rather than tracking which specific label actually needs updating.
+func _on_state_changed() -> void:
 	_refresh_label()
-	label.text += msg
-
-
-## Enhances whatever the selected shadow has equipped in `slot`. The item
-## itself (not the wearer) holds enhancement_level, so this is the same
-## HunterState.enhance_item() call as the hunter's -- just reading the
-## instance_id from the shadow's own equipped dict instead.
-func _on_shadow_enhance_pressed(slot: String) -> void:
-	var shadow_id := _current_shadow_instance_id()
-	if shadow_id == "":
-		return
-	var shadow_idx := state.army.find_custom(
-		func(s: Dictionary) -> bool: return s["instance_id"] == shadow_id
-	)
-	if shadow_idx < 0:
-		return
-	var shadow_equipped: Dictionary = state.army[shadow_idx].get("equipped", {})
-	var instance_id: String = shadow_equipped.get(slot, "")
-	if instance_id == "":
-		return
-	state.enhance_item(instance_id)
-	SaveService.save(state)
-	_refresh_shadow_gear_panel()
 	_refresh_army_label()
 	_refresh_inventory_label()
 
 
-func _refresh_shadow_gear_panel() -> void:
-	if state.army.is_empty():
-		shadow_gear_title.text = "No shadows yet"
-		for row: Dictionary in _shadow_gear_rows:
-			row["label"].text = "%s: --" % row["slot"]
-		shadow_sets_label.text = "Active sets: (none)"
-		return
-
-	_shadow_gear_index = clampi(_shadow_gear_index, 0, state.army.size() - 1)
-	var shadow: Dictionary = state.army[_shadow_gear_index]
-	var monster := Content.monster_by_id(_monsters, shadow.get("monster_id", ""))
-	var locked: bool = shadow.get("locked", false)
-	var favorite: bool = shadow.get("favorite", false)
-	shadow_gear_title.text = (
-		"%s%s%s (%s·%s Lv%d/%d %s)  [%d/%d]"
-		% [
-			"★" if favorite else "",
-			"🔒" if locked else "",
-			monster.get("name", "?"),
-			GameLogic.grade_name(shadow.get("grade", "")),
-			shadow.get("grade", ""),
-			shadow.get("level", 1),
-			ShadowLeveling.LEVEL_CAP,
-			monster.get("clazz", "?"),
-			_shadow_gear_index + 1,
-			state.army.size(),
-		]
-	)
-	shadow_lock_button.text = "Unlock" if locked else "Lock"
-	shadow_favorite_button.text = "Unfavorite" if favorite else "Favorite"
-	var shadow_equipped: Dictionary = shadow.get("equipped", {})
-	for row: Dictionary in _shadow_gear_rows:
-		var slot: String = row["slot"]
-		var instance_id: String = shadow_equipped.get(slot, "")
-		row["label"].text = "%s: %s" % [slot, _equipped_item_display(instance_id)]
-	shadow_sets_label.text = _active_sets_display(shadow_equipped)
-
-
-## Phase 2 patch 3: renders ArmorSets.active_set_bonuses() for whichever
-## equipped dict (hunter's or the selected shadow's) into display text.
-## bonus_2pc/4pc text is shown verbatim -- see core/armor_sets.gd for which
-## parts of it are actually mechanical (stat text + any "N% power" token)
-## vs pure flavor (everything else in bonus_4pc).
-func _active_sets_display(equipped: Dictionary) -> String:
-	var active := ArmorSets.active_set_bonuses(equipped, state.inventory, _equipment)
-	if active.is_empty():
-		return "Active sets: (none)"
-	var lines := ["Active sets:"]
-	for set_bonus: Dictionary in active:
-		var pieces: int = set_bonus["pieces_equipped"]
-		lines.append(" - %s (%d/4 pieces)" % [set_bonus["name"], pieces])
-		lines.append("     2pc: %s" % set_bonus["bonus_2pc_text"])
-		if set_bonus["active_4pc"]:
-			lines.append("     4pc: %s" % set_bonus["bonus_4pc_text"])
-	return "\n".join(lines)
-
-
-## Shared by both gear panels: resolves an inventory instance_id to a
-## display string via state.inventory + _equipment, same lookup pattern as
-## _refresh_inventory_label().
-func _equipped_item_display(instance_id: String) -> String:
-	if instance_id == "":
-		return "(empty)"
-	for item: Dictionary in state.inventory:
-		if item.get("instance_id", "") == instance_id:
-			var def := Content.equipment_by_id(_equipment, item.get("equipment_def_id", ""))
-			if not def.is_empty():
-				var level: int = item.get("enhancement_level", 0)
-				var effective := Equip.enhanced_def(def, level)
-				return "%s +%d (Lv%d)" % [def["name"], effective["power_bonus"], level]
-	return "(unknown)"
+func _on_character_trial_result(msg: String) -> void:
+	character_view.refresh(_steps, _workouts_json, _gps_status, _health_status)
+	label.text += msg
