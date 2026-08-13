@@ -1737,7 +1737,10 @@ Friends and regional stay explicitly out of this patch — both are real additio
 
 ### Phased build order
 - **P7a — built this session, no live Supabase project needed:** the pure payload-building/parsing `core/` functions, the `BackendService` autoload (HTTP layer written and ready, pointed at placeholder URL/key constants), and the `LeaderboardView` panel (list + Link Account form) — all buildable and unit-testable without a live server. Live device verification of real sync isn't possible yet at this stage — only that the UI opens, takes input, and doesn't crash.
-- **P7b — needs the user's real Supabase project:** the user creates the project and hands over the URL + anon key; `BackendService`'s placeholder constants get replaced, then a real live-verification pass (sync a real hunter, see a real leaderboard row, link a real account) happens on device.
+- **P7b — in progress:** the user's real Supabase project exists and its URL + publishable key are wired into `BackendService` (verified live with curl first — both header patterns work correctly against Supabase's newer `sb_publishable_`/`sb_secret_` key format, confirmed rather than assumed). Two dashboard-only setup steps remain before a real live-verification pass can happen, neither doable with just the publishable key:
+  1. **Enable Anonymous Sign-Ins** — Authentication → Sign In / Providers → Anonymous Sign-Ins (off by default on a new project; confirmed via a live 422 `anonymous_provider_disabled` response, not assumed).
+  2. **Run the schema SQL** (this section's own `create table public.leaderboard...` block above) in the SQL Editor — confirmed via a live 404 `Could not find the table 'public.leaderboard'` response.
+  Once both are done: a real live-verification pass (sync a real hunter, see a real leaderboard row, link a real account) on device.
 - **P7c — later patches:** friends scope, regional scope (with its own explicit §27-style privacy note), real server-side anti-cheat beyond the CHECK-constraint floor.
 
 ---

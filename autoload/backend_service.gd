@@ -7,14 +7,17 @@ extends Node
 ## and persists it to disk (same "only place that touches this kind of
 ## I/O" convention as SaveService for save data).
 ##
-## PLACEHOLDER CREDENTIALS (§31 P7a/P7b split): SUPABASE_URL/
-## SUPABASE_ANON_KEY are empty until the user creates their own Supabase
-## project and hands them over. is_configured() is false until then, and
-## every public method below no-ops (emitting a failure signal) rather
-## than firing a request at an empty URL. This file is otherwise
-## complete and ready to use the moment real credentials are filled in --
-## it just hasn't been live-verified against a real project yet (that's
-## P7b, not this patch).
+## §31 P7b status: SUPABASE_URL/SUPABASE_ANON_KEY are now the user's real
+## project (filled in once they created it and handed the credentials
+## over). is_configured() is true. Two real project-setup steps still
+## needed on the Supabase dashboard side before this actually works end
+## to end -- neither is doable with just the publishable key (confirmed
+## live, not assumed): Anonymous Sign-Ins must be turned on
+## (Authentication -> Sign In / Providers), and the `leaderboard` table +
+## RLS policies from §31's schema must be run in the SQL Editor. Until
+## both are done, ensure_session()/fetch_leaderboard() will fail with a
+## real (not placeholder) error from Supabase itself -- is_configured()
+## being true doesn't mean the project is fully set up yet.
 ##
 ## One request in flight at a time (Godot's HTTPRequest can't run
 ## concurrent requests on one node) -- a second call while `_busy` fails
@@ -28,10 +31,17 @@ signal account_link_result(success: bool, message: String)
 
 enum Op { NONE, SIGN_UP, REFRESH, UPSERT, SELECT, LINK_ACCOUNT }
 
-const SUPABASE_URL := ""  ## e.g. "https://xxxx.supabase.co" -- fill in once the
-## project exists (§31)
-const SUPABASE_ANON_KEY := ""  ## the project's public anon key -- safe to embed client-side,
-## Row Level Security is the real access boundary (§31's schema), not key secrecy
+const SUPABASE_URL := "https://jpuqhnedwgbgxpmddspt.supabase.co"  ## §31 P7b: the user's
+## real project
+const SUPABASE_ANON_KEY := "sb_publishable_XqKXehGCIckCnpnUDjrf7g_Zlrd6fKU"  ## the project's
+## public/publishable key -- safe to embed client-side (and to commit), Row Level Security is
+## the real access boundary (§31's schema), not key secrecy. Verified live against the real
+## project with curl before wiring this in: both the apikey-only header (anonymous calls) and
+## apikey+Authorization:Bearer<same key> (public reads) came back with clean PostgREST/GoTrue
+## errors ("anonymous sign-ins disabled", "table not found") rather than a key-format
+## rejection, confirming the header handling below is correct for Supabase's newer
+## sb_publishable_/sb_secret_ key format (which can't go in Authorization: Bearer UNLESS it's
+## the exact same value as apikey -- a real, easy-to-get-wrong nuance, not assumed here).
 const SESSION_PATH := "user://backend_session.json"
 
 var _busy := false
