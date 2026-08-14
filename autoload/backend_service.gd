@@ -7,17 +7,15 @@ extends Node
 ## and persists it to disk (same "only place that touches this kind of
 ## I/O" convention as SaveService for save data).
 ##
-## §31 P7b status: SUPABASE_URL/SUPABASE_ANON_KEY are now the user's real
-## project (filled in once they created it and handed the credentials
-## over). is_configured() is true. Two real project-setup steps still
-## needed on the Supabase dashboard side before this actually works end
-## to end -- neither is doable with just the publishable key (confirmed
-## live, not assumed): Anonymous Sign-Ins must be turned on
-## (Authentication -> Sign In / Providers), and the `leaderboard` table +
-## RLS policies from §31's schema must be run in the SQL Editor. Until
-## both are done, ensure_session()/fetch_leaderboard() will fail with a
-## real (not placeholder) error from Supabase itself -- is_configured()
-## being true doesn't mean the project is fully set up yet.
+## §31 P7b status: DONE, live-verified end to end against the user's real
+## Supabase project -- a real on-device anonymous sign-in, a real synced
+## leaderboard row visible on the live board, and the account-link
+## endpoint confirmed live (via a disposable curl session, not the
+## device's own persistent identity -- see §31 for what that confirmed).
+## Required an Android permission fix alongside this file
+## (export_presets.cfg was missing `permissions/internet` -- nothing
+## before this patch needed real network access) -- see §31's P7b entry
+## for the full story, not repeated here.
 ##
 ## One request in flight at a time (Godot's HTTPRequest can't run
 ## concurrent requests on one node) -- a second call while `_busy` fails
