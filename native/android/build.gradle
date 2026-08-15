@@ -1,4 +1,4 @@
-// Root Gradle build file for ShadowHunter's native Android plugin(s).
+// Root Gradle build file for HollowHunter's native Android plugin(s).
 buildscript {
     ext.kotlin_version = "1.9.22"
     repositories {

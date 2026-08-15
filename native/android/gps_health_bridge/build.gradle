@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace 'com.shadowhunter.gpshealthbridge'
+    namespace 'com.hollowhunter.gpshealthbridge'
     compileSdk 34
 
     defaultConfig {

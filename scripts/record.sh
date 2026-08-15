@@ -21,7 +21,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TODAY="$(date +%Y-%m-%d)"
 OUT_DIR="$PROJECT_ROOT/devmedia/$TODAY"
 OUT_FILE="$OUT_DIR/${TODAY}_${FEATURE_NAME}.mp4"
-DEVICE_FILE="/sdcard/shadowhunter_rec.mp4"
+DEVICE_FILE="/sdcard/hollowhunter_rec.mp4"
 
 mkdir -p "$OUT_DIR"
 

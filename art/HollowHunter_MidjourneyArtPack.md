@@ -1,4 +1,4 @@
-# SHADOW HUNTER — Midjourney Art Production Pack
+# HOLLOW HUNTER — Midjourney Art Production Pack
 *Goal: subscribe to Midjourney for ONE month, generate EVERYTHING in a tight blitz, download it all, cancel. All the thinking is done here for free — the paid month is pure execution.*
 
 ---
@@ -395,18 +395,18 @@ Swap `<RANK>` for **E, D, C, B, A, S** → filenames [ui_rank_e] … [ui_rank_s]
 ## 8. Download + organise (as you go)
 
 Folders (the Art Drop Tool creates these automatically as you drop images in):
-- `ShadowHunter/art/hero` — 3 hero formats
-- `ShadowHunter/art/promo` — 4 social variants
-- `ShadowHunter/art/presets` — 12 preset hunter portraits, `preset_hunter_<id>.png`
-- `ShadowHunter/art/monsters` — 61 portraits, `por_<id>.png`
-- `ShadowHunter/art/equipment` — 50 item icons, `spr_<id>.png`
-- `ShadowHunter/art/sets` — 15 set showcases, `<id>.png`
-- `ShadowHunter/art/ui` — 14 store/UI assets, `<id>.png`
+- `HollowHunter/art/hero` — 3 hero formats
+- `HollowHunter/art/promo` — 4 social variants
+- `HollowHunter/art/presets` — 12 preset hunter portraits, `preset_hunter_<id>.png`
+- `HollowHunter/art/monsters` — 61 portraits, `por_<id>.png`
+- `HollowHunter/art/equipment` — 50 item icons, `spr_<id>.png`
+- `HollowHunter/art/sets` — 15 set showcases, `<id>.png`
+- `HollowHunter/art/ui` — 14 store/UI assets, `<id>.png`
 
 All these filenames match the ids already in **monsters.json** / **equipment.json**, so wiring the final art into the game later is drag-and-drop, no renaming.
 
 - Upscale the keeper before downloading (MJ's Upscale = higher res).
-- Use the **ShadowHunter_ArtDropTool.html** to drag each download onto its labeled slot — it auto-saves with the correct filename into the correct folder.
+- Use the **HollowHunter_ArtDropTool.html** to drag each download onto its labeled slot — it auto-saves with the correct filename into the correct folder.
 - On the MJ web app you can also bulk-select your creations and download in batches if you'd rather sort after.
 
 ---

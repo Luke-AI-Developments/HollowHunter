@@ -20,7 +20,7 @@ native/android/
     ├── build.gradle
     └── src/main/
         ├── AndroidManifest.xml
-        └── java/com/shadowhunter/gpshealthbridge/GpsHealthBridgePlugin.kt
+        └── java/com/hollowhunter/gpshealthbridge/GpsHealthBridgePlugin.kt
 ```
 
 Written against Godot's documented v2 Android plugin API
@@ -61,7 +61,7 @@ folder's README for exact filenames and the GDScript calling convention.
 
 GPS and Health Connect both no-op in the Android emulator. Build an APK
 (Project > Export, Gradle Build enabled), install via
-`adb install -r shadowhunter.apk` on a physical device with USB debugging on,
+`adb install -r hollowhunter.apk` on a physical device with USB debugging on,
 and watch `adb logcat` while exercising the singleton from a test scene.
 
 ## Checkpoint 2 gotchas (hello-world round trip)

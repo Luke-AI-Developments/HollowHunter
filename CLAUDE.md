@@ -1,4 +1,4 @@
-# ShadowHunter — Conventions
+# HollowHunter — Conventions
 
 Godot 4 mobile game. Android first, foreground-only GPS, native Health Connect
 + GPS plugins. No game code before the environment/plugin setup checklist

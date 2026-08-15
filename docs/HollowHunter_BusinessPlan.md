@@ -1,4 +1,4 @@
-# SHADOW HUNTER — Business & Go-to-Market Plan
+# HOLLOW HUNTER — Business & Go-to-Market Plan
 *Living plan, maintained by "the CEO." Sits alongside the design bible. Not financial or legal advice — where flagged, get a real professional.*
 
 ---

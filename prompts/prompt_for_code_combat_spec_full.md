@@ -1,6 +1,6 @@
 Note on the last two prompts: the file paths I gave you don't exist on this machine — my mistake, not a third party. I was pointing at an internal path from my own session that isn't accessible locally. Ignore those; here's the actual spec content, inline, so there's no file-path dependency at all.
 
-Please **replace the following sections of `ShadowHunter_Concept.md`** with the text below (matching by section number/heading), then proceed with the build order at the bottom of this file.
+Please **replace the following sections of `HollowHunter_Concept.md`** with the text below (matching by section number/heading), then proceed with the build order at the bottom of this file.
 
 ---
 

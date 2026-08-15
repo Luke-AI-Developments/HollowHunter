@@ -20,7 +20,7 @@
              registry. Without this, Engine.has_singleton() never finds it. -->
         <meta-data
             android:name="org.godotengine.plugin.v2.GpsHealthBridge"
-            android:value="com.shadowhunter.gpshealthbridge.GpsHealthBridgePlugin" />
+            android:value="com.hollowhunter.gpshealthbridge.GpsHealthBridgePlugin" />
     </application>
 
 </manifest>

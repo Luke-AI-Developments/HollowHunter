@@ -1,2 +1,2 @@
-rootProject.name = "shadowhunter-native"
+rootProject.name = "hollowhunter-native"
 include ':gps_health_bridge'

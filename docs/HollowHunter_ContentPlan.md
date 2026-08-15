@@ -1,4 +1,4 @@
-# SHADOW HUNTER — Build-in-Public Content Plan
+# HOLLOW HUNTER — Build-in-Public Content Plan
 *The longest-lead marketing task. Goal: grow an audience NOW so launch hits real installs, not silence. Zero-cost, solo-friendly.*
 
 ---
@@ -60,7 +60,7 @@ Focus effort on **TikTok + Shorts + X**. One recording → all three.
 - End with a soft CTA: "follow to watch me build it."
 
 ## Setup checklist (do this first)
-- [ ] Grab handles on TikTok / YT / IG / X (username-squat now, even before posting). Note: "Shadow Hunter" is a generic/possibly-taken name — grab a variant (e.g. play/dev prefix), and remember the title itself may change (trademark check pending).
+- [ ] Grab handles on TikTok / YT / IG / X (username-squat now, even before posting) under the current title, "Hollow Hunter" — trademark/name check already came back clear.
 - [ ] Set a consistent profile pic (the placeholder icon works) + one-line bio with the hook.
 - [ ] Record + post **Post #1 (the pitch)** — even today, rough.
 - [ ] Add link-in-bio once the waitlist page is live.

@@ -1,4 +1,4 @@
-Big one: implement the combat system overhaul. Before starting, read **§16 (Combat system)**, **§16b (Battle screen — UI layout)**, and the updated **§17, §18, §20**, plus the superseded-note at the top of **§30**, in `ShadowHunter_Concept.md`. That's the full spec — this prompt is the build plan, not a re-explanation, so don't guess at mechanics that are already written there.
+Big one: implement the combat system overhaul. Before starting, read **§16 (Combat system)**, **§16b (Battle screen — UI layout)**, and the updated **§17, §18, §20**, plus the superseded-note at the top of **§30**, in `HollowHunter_Concept.md`. That's the full spec — this prompt is the build plan, not a re-explanation, so don't guess at mechanics that are already written there.
 
 **What's changing, in one sentence:** the fight-resolution mechanic for every encounter (gates, gate-breaks, Nadir floors) moves from a single power-check + RNG roll (`GATE_POWER`/`RAID_POWER`/`clear_probability`/`resolve_clear`) to real turn-based party combat — you + 3 chosen shadows vs. a variable number of enemies, DQ/JRPG-style.
 

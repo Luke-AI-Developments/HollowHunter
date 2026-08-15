@@ -1,5 +1,5 @@
 class_name GameLogic
-## Pure, engine-independent game logic for Shadow Hunter.
+## Pure, engine-independent game logic for Hollow Hunter.
 ## Every function is static and side-effect free — unit-testable with GUT,
 ## no scene/device needed. Numbers are v0 from the design bible
 ## (§3/§4/§5/§16/§18/§20/§26/§28/§29/§30) — all tunable knobs.

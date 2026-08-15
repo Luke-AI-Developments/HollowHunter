@@ -19,7 +19,8 @@ func _exit_tree() -> void:
 	export_plugin = null
 
 
-class AndroidExportPlugin extends EditorExportPlugin:
+class AndroidExportPlugin:
+	extends EditorExportPlugin
 	var _plugin_name := "GpsHealthBridge"
 
 	func _supports_platform(platform: EditorExportPlatform) -> bool:
@@ -36,14 +37,18 @@ class AndroidExportPlugin extends EditorExportPlugin:
 	# real coordinate would -- so the plugin's own dependencies have to be
 	# declared here too, or classes it references throw NoClassDefFoundError
 	# at runtime even though the plugin's own class loads fine.
-	func _get_android_dependencies(platform: EditorExportPlatform, debug: bool) -> PackedStringArray:
-		return PackedStringArray([
-			"com.google.android.gms:play-services-location:21.3.0",
-			"androidx.health.connect:connect-client:1.1.0-alpha07",
-			"androidx.core:core-ktx:1.13.1",
-			"androidx.activity:activity-ktx:1.9.0",
-			"org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0",
-		])
+	func _get_android_dependencies(
+		platform: EditorExportPlatform, debug: bool
+	) -> PackedStringArray:
+		return PackedStringArray(
+			[
+				"com.google.android.gms:play-services-location:21.3.0",
+				"androidx.health.connect:connect-client:1.1.0-alpha07",
+				"androidx.core:core-ktx:1.13.1",
+				"androidx.activity:activity-ktx:1.9.0",
+				"org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0",
+			]
+		)
 
 	func _get_name() -> String:
 		return _plugin_name
@@ -52,7 +57,9 @@ class AndroidExportPlugin extends EditorExportPlugin:
 	# AndroidManifest.xml (native/android/gps_health_bridge/src/main/) is
 	# never merged, so its <uses-permission>/<queries> entries are dead too.
 	# Re-declared here for GPS (checkpoint 3) and Health Connect (checkpoint 4).
-	func _get_android_manifest_element_contents(platform: EditorExportPlatform, debug: bool) -> String:
+	func _get_android_manifest_element_contents(
+		platform: EditorExportPlatform, debug: bool
+	) -> String:
 		return """
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -74,9 +81,11 @@ class AndroidExportPlugin extends EditorExportPlugin:
 	# IllegalStateException even when the permission itself is granted.
 	# Points at Godot's own activity as a placeholder -- swap for a real
 	# rationale screen before shipping.
-	func _get_android_manifest_application_element_contents(platform: EditorExportPlatform, debug: bool) -> String:
+	func _get_android_manifest_application_element_contents(
+		platform: EditorExportPlatform, debug: bool
+	) -> String:
 		return """
-<meta-data android:name="org.godotengine.plugin.v2.GpsHealthBridge" android:value="com.shadowhunter.gpshealthbridge.GpsHealthBridgePlugin" />
+<meta-data android:name="org.godotengine.plugin.v2.GpsHealthBridge" android:value="com.hollowhunter.gpshealthbridge.GpsHealthBridgePlugin" />
 <activity-alias
 	android:name=".HealthConnectPermissionsRationaleActivity"
 	android:exported="true"

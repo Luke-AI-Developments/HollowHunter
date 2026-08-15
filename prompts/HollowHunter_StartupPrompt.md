@@ -1,12 +1,12 @@
-# SHADOW HUNTER — project kickoff prompt
+# HOLLOW HUNTER — project kickoff prompt
 
 Paste into Claude Code AFTER the setup prompt has finished and the project is scaffolded.
-First: copy `ShadowHunter_Concept.md` into the project repo so Claude Code can read it.
+First: copy `HollowHunter_Concept.md` into the project repo so Claude Code can read it.
 
 ---
 
-We're building "Shadow Hunter" (working title) — a Godot 4 Android fitness RPG.
-The full design bible is in ShadowHunter_Concept.md in this repo — read it, and
+We're building "Hollow Hunter" (working title) — a Godot 4 Android fitness RPG.
+The full design bible is in HollowHunter_Concept.md in this repo — read it, and
 treat it as the source of truth (especially §11c, §4, §16).
 
 Quick summary: real workouts (steps + Health Connect) earn EXP → level up a hunter

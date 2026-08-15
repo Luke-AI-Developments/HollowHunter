@@ -1,4 +1,4 @@
-package com.shadowhunter.gpshealthbridge
+package com.hollowhunter.gpshealthbridge
 
 import android.Manifest
 import android.content.pm.PackageManager

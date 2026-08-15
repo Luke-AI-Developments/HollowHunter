@@ -1,4 +1,4 @@
-SHADOW HUNTER — Claude Code setup prompt
+HOLLOW HUNTER — Claude Code setup prompt
 Paste this into Claude Code when you're ready to start (before writing any game code).
 ====================================================================================
 

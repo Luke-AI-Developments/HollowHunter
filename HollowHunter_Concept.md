@@ -1,4 +1,4 @@
-# SHADOW HUNTER — Concept & Design Doc
+# HOLLOW HUNTER — Concept & Design Doc
 *Working title. A GPS fitness-RPG where your real workouts level a hunter who clears monster gates and builds a shadow army.*
 
 ---
@@ -580,7 +580,7 @@ This keeps **content and logic fully separate**: adding a creature is authoring 
 - **The Ascendancy** — the in-fiction leveling force (replaces the "System"). Grants levels, stats, and the extraction power.
 - **CLAIM** — the extraction command/moment when you bind a defeated monster into a shadow (replaces the placeholder "Arise" wording used earlier in the doc).
 - **The Umbral Host** — collective name for your shadow army; individual soldiers are **Wraiths**.
-- **Working title:** "Shadow Hunter" is a placeholder — run a trademark/name check before launch (many games use it).
+- **Title:** "Hollow Hunter" — renamed from the earlier working title "Hollow Hunter" after a trademark/name check came back clear.
 
 ### Creature families by rank (original archetypes)
 | Rank | Family | Flavor |
@@ -1500,7 +1500,7 @@ This is §11's MVP kernel, now the target for a first playable you'd actually en
 
 ### Ongoing tracks (parallel, later)
 - **Art pass** (§23): replace placeholders — real sprites, shadow shader, VFX, UI kit.
-  - **Full art blitz (Midjourney), one focused paid month — 147 images:** hero key art (3 formats) + 4 promo/social variants + all 61 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 14 UI/store assets (app icon, feature graphic, class icons, rank badges). Style locked: frost-cyan, near-total darkness, silhouette-first, crisp linework (`--style raw`), one shared `--sref` code for consistency. Full prompt pack in **ShadowHunter_MidjourneyArtPack.md**; save/organize via **ShadowHunter_ArtDropTool.html** (auto-renames + files into `/hero /promo /monsters /equipment /sets /ui`, matching monsters.json/equipment.json ids — drops straight into the game later). Subscribe → blitz in Relax mode → cancel. Reference images are **written descriptions only** — no copyrighted frames used as input (IP safety; UK CDPA s.9(3) gives us authorship of computer-generated work since we make the creative arrangements — see note below).
+  - **Full art blitz (Midjourney), one focused paid month — 147 images:** hero key art (3 formats) + 4 promo/social variants + all 61 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 14 UI/store assets (app icon, feature graphic, class icons, rank badges). Style locked: frost-cyan, near-total darkness, silhouette-first, crisp linework (`--style raw`), one shared `--sref` code for consistency. Full prompt pack in **HollowHunter_MidjourneyArtPack.md**; save/organize via **HollowHunter_ArtDropTool.html** (auto-renames + files into `/hero /promo /monsters /equipment /sets /ui`, matching monsters.json/equipment.json ids — drops straight into the game later). Subscribe → blitz in Relax mode → cancel. Reference images are **written descriptions only** — no copyrighted frames used as input (IP safety; UK CDPA s.9(3) gives us authorship of computer-generated work since we make the creative arrangements — see note below).
 - **Polish**: onboarding/first-run, wellbeing (rest-day framing, no overtraining nudges), safety, accessibility.
 - **iOS port**: HealthKit + CoreLocation plugins, once Android is solid.
 
