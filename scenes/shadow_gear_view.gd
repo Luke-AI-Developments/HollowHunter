@@ -74,6 +74,16 @@ func _on_next_pressed() -> void:
 	refresh()
 
 
+## Jumps directly to a known army index (e.g. from ArmyView's roster tap,
+## which knows exactly which shadow was pressed) rather than only stepping
+## via Prev/Next. Clamped the same way open()/refresh() already are.
+func jump_to_index(index: int) -> void:
+	if _state.army.is_empty():
+		return
+	_index = clampi(index, 0, _state.army.size() - 1)
+	refresh()
+
+
 func _current_shadow_instance_id() -> String:
 	if _state.army.is_empty() or _index >= _state.army.size():
 		return ""

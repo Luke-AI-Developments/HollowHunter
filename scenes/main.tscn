@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scenes/stronghold_view.gd" id="8"]
 [ext_resource type="Script" path="res://scenes/character_view.gd" id="9"]
 [ext_resource type="Script" path="res://scenes/leaderboard_view.gd" id="10"]
+[ext_resource type="Script" path="res://scenes/army_view.gd" id="11"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -360,18 +361,88 @@ theme_override_font_sizes/font_size = 16
 autowrap_mode = 3
 text = ""
 
-[node name="SquadPanel" type="Node2D" parent="GameUI"]
+[node name="ArmyPanel" type="Node2D" parent="GameUI"]
 visible = false
-script = ExtResource("4")
+script = ExtResource("11")
 
-[node name="Bg" type="ColorRect" parent="GameUI/SquadPanel"]
+[node name="Bg" type="ColorRect" parent="GameUI/ArmyPanel"]
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 2424.0
 offset_bottom = 1080.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
-[node name="Title" type="Label" parent="GameUI/SquadPanel"]
+[node name="RosterTabButton" type="Button" parent="GameUI/ArmyPanel"]
+offset_left = 40.0
+offset_top = 20.0
+offset_right = 260.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 20
+text = "Roster"
+
+[node name="SquadTabButton" type="Button" parent="GameUI/ArmyPanel"]
+offset_left = 280.0
+offset_top = 20.0
+offset_right = 500.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 20
+text = "Squad"
+
+[node name="CloseButton" type="Button" parent="GameUI/ArmyPanel"]
+offset_left = 2260.0
+offset_top = 20.0
+offset_right = 2380.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 20
+text = "Close"
+
+[node name="RosterTab" type="Node2D" parent="GameUI/ArmyPanel"]
+
+[node name="FilterBar" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
+position = Vector2(0, 90)
+
+[node name="GradeFilterButton" type="Button" parent="GameUI/ArmyPanel/RosterTab/FilterBar"]
+offset_left = 40.0
+offset_top = 0.0
+offset_right = 260.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 18
+text = "Grade: ALL"
+
+[node name="SortButton" type="Button" parent="GameUI/ArmyPanel/RosterTab/FilterBar"]
+offset_left = 280.0
+offset_top = 0.0
+offset_right = 500.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 18
+text = "Sort: Power"
+
+[node name="Sections" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
+position = Vector2(0, 160)
+
+[node name="BulkBar" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
+position = Vector2(0, 900)
+
+[node name="MassConvertButton" type="Button" parent="GameUI/ArmyPanel/RosterTab/BulkBar"]
+offset_left = 40.0
+offset_top = 0.0
+offset_right = 460.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 18
+text = "Mass-Convert Weakest 3"
+
+[node name="SquadTab" type="Node2D" parent="GameUI/ArmyPanel"]
+visible = false
+script = ExtResource("4")
+
+[node name="Bg" type="ColorRect" parent="GameUI/ArmyPanel/SquadTab"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.05, 0.05, 0.05, 0.95)
+
+[node name="Title" type="Label" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 40.0
 offset_top = 30.0
 offset_right = 1800.0
@@ -379,7 +450,7 @@ offset_bottom = 80.0
 theme_override_font_sizes/font_size = 28
 text = "Squad -- pick 3 to field"
 
-[node name="CloseButton" type="Button" parent="GameUI/SquadPanel"]
+[node name="CloseButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 40.0
 offset_top = 90.0
 offset_right = 180.0
@@ -387,7 +458,7 @@ offset_bottom = 140.0
 theme_override_font_sizes/font_size = 20
 text = "Close"
 
-[node name="AutoFillButton" type="Button" parent="GameUI/SquadPanel"]
+[node name="AutoFillButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 200.0
 offset_top = 90.0
 offset_right = 460.0
@@ -395,7 +466,7 @@ offset_bottom = 140.0
 theme_override_font_sizes/font_size = 20
 text = "Auto-Fill Party"
 
-[node name="AutoEquipSquadButton" type="Button" parent="GameUI/SquadPanel"]
+[node name="AutoEquipSquadButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 480.0
 offset_top = 90.0
 offset_right = 700.0
@@ -403,7 +474,7 @@ offset_bottom = 140.0
 theme_override_font_sizes/font_size = 18
 text = "Auto-Equip Squad"
 
-[node name="InfoLabel" type="Label" parent="GameUI/SquadPanel"]
+[node name="InfoLabel" type="Label" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 40.0
 offset_top = 160.0
 offset_right = 2380.0
@@ -411,7 +482,7 @@ offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
 text = "Party: 0/3 chosen -- tap a squad member to field them"
 
-[node name="Rows" type="Node2D" parent="GameUI/SquadPanel"]
+[node name="Rows" type="Node2D" parent="GameUI/ArmyPanel/SquadTab"]
 
 [node name="ShopPanel" type="Node2D" parent="GameUI"]
 visible = false
