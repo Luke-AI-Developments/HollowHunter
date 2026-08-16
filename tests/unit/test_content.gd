@@ -17,6 +17,11 @@ func test_all_57_monsters_load() -> void:
 	assert_eq(monsters.size(), 57)
 
 
+func test_every_monster_has_lore_text() -> void:
+	for m: Dictionary in monsters:
+		assert_true(String(m.get("lore", "")).length() > 0, "missing lore: %s" % m.get("id", "?"))
+
+
 func test_equipment_loads_50_base_60_set_pieces_15_sets() -> void:
 	# 50 non-set base pieces + 60 armor-set pieces (4/slot x 15 sets, §15
 	# patch 3) = 110 base_equipment entries.
