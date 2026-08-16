@@ -8,20 +8,20 @@
 **The whole point:** the subscription clock only matters while you're generating. Every prompt is pre-written below, so you paste → generate → upscale → download, with zero thinking time. Do it over 2–3 focused sessions in one month, then cancel.
 
 **Which tier:**
-- **Standard (~$30/mo)** is the right pick for a bulk blitz, because it includes **unlimited "Relax" generations** (slow queue, but you're not paying per image). 61 monsters × a few rolls each = hundreds of jobs — Relax mode makes that effectively free within the month.
+- **Standard (~$30/mo)** is the right pick for a bulk blitz, because it includes **unlimited "Relax" generations** (slow queue, but you're not paying per image). 57 monsters × a few rolls each = hundreds of jobs — Relax mode makes that effectively free within the month.
 - **Basic (~$10/mo)** only gives ~3.3 "fast hours" and **no Relax mode**. You'd burn through it before finishing the monsters. Only worth it if you're doing *just* the hero art.
 - *(Check current pricing/tier names when you subscribe — Midjourney changes these.)*
 
 **Recommendation:** one month of **Standard**, do everything in Relax mode, cancel. Even at $30 that's your entire game's art for the price of two takeaways.
 
-**Full scope, one pass:** hero key art (3) + promotional variants (4) + 12 preset playable-hunter portraits + 36 rank-progression variants (12 presets × 3 stages) + all 61 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 15 UI/store assets (incl. the System UI frame, §9c) = **196 images total.** All prompts below — nothing left to decide mid-session.
+**Full scope, one pass:** hero key art (3) + promotional variants (4) + 12 preset playable-hunter portraits + 36 rank-progression variants (12 presets × 3 stages) + all 57 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 15 UI/store assets (incl. the System UI frame, §9c) = **192 images total.** All prompts below — nothing left to decide mid-session.
 
 **Order of work in the paid month:**
 1. Lock the **style anchor** (§2) — 30 min, gets you an `--sref` code that makes everything look like one cohesive game.
 2. **Hero key art + promo variants** (§3) — the flagship + social-content variety, 7 images.
 3. **12 preset hunter portraits** (§3b) — the playable characters, face-visible, 6F/6M.
 4. **36 rank-progression variants** (§3c) — same 12 presets, 3 power-stages each.
-5. **All 61 monsters** (§4) — the big batch, in Relax.
+5. **All 57 monsters** (§4) — the big batch, in Relax.
 6. **All 50 equipment pieces** (§5) — icon-style, in Relax.
 7. **All 15 armor sets** (§6) — full-set showcases, in Relax.
 8. **UI / store assets** (§7) — app icon, store banner, class icons, rank badges.
@@ -52,7 +52,7 @@ Generate this once, pick the version whose *look* you love most, then grab its s
 dark fantasy creature concept art, a single monstrous creature centered on a plain near-black background, frost-cyan and icy-white glow, electric cyan energy accents, deep blacks, dramatic cyan rim lighting, high contrast, crisp clean linework, anime dark-fantasy illustration, Solo Leveling and Octopath Traveler mood, ominous --style raw --ar 1:1 --no text, watermark, signature, blur
 ```
 
-**Then:** upscale your favourite → click it → **"..." / Use → Style Reference**, or copy its job and note the `--sref` number MJ assigns. From here on, **append `--sref <that code>` to every monster prompt.** That's what keeps all 61 looking like one game.
+**Then:** upscale your favourite → click it → **"..." / Use → Style Reference**, or copy its job and note the `--sref` number MJ assigns. From here on, **append `--sref <that code>` to every monster prompt.** That's what keeps all 57 looking like one game.
 
 *(If you'd rather not use --sref, MJ 6+ is consistent enough from the shared style text alone — but --sref is stronger.)*
 
@@ -158,7 +158,7 @@ dark fantasy near-future hunter character portrait, bust / three-quarter view, f
 
 ---
 
-## 4. THE 61 MONSTERS (paste subject + MASTER SUFFIX)
+## 4. THE 57 MONSTERS (paste subject + MASTER SUFFIX)
 
 **Power should read visually, not just in the name.** Rank escalation is already baked into every subject line below — small/weak (E) → hulking/armored (D) → elite (C) → towering/regal/named (B) → grand/imposing (A) → colossal/epic (S). Keep those size and presence words when you paste; don't trim them for length. That's what makes a C-rank actually *look* weaker than an S-rank in the finished image, not just read that way on paper. Two extra techniques that help scale come through in a single square icon: for S-rank, add "vast scale, dwarfing everything" if it feels too tame after generating; for E-rank, it's fine if the creature reads small/tucked in the frame rather than filling it.
 
@@ -191,51 +191,47 @@ Grouped by rank. Filename each download to match: **`por_<id>.png`** (id shown i
 22. **Gnollpike** [mon_gnollpike] — a gaunt gnoll-beast warrior wielding a crude pike, grave-scavenger.
 23. **Grimhound** [mon_grimhound] — a lean spectral hound assassin, smoke-wreathed, glowing cyan eyes.
 
-### C-rank — elites (15)
+### C-rank — elites (12)
 24. **Ashen Warden** [mon_ashen_warden] — an elite undead warden in full ashen plate with a greatsword, hollow cyan gaze, warrior.
-25. **Sporecrawler** [mon_sporecrawler] — a large fungal brood-crawler mage, bristling with glowing cyan spore-stalks.
-26. **Bonegnasher** [mon_bonegnasher] — a hunched bone-armored grave-fiend assassin with elongated jaws and claws.
-27. **Glacewisp** [mon_glacewisp] — a crystalline ice-sylph mage, floating shards of pale-blue frost, cyan glow.
-28. **Ashwing** [mon_ashwing] — a sleek cinder-drake assassin with cold cyan flame trailing its wings.
-29. **Dreadmaw** [mon_dreadmaw] — an abyssal fiend assassin, dark sinewy body, too many teeth, void-cyan glow.
-30. **Sporelord** [mon_sporelord] — a towering fungal brood-lord mage crowned with cyan spore-caps.
-31. **Broodlancer** [mon_broodlancer] — a chitinous insectoid assassin with bladed lance-limbs, hollow brood.
-32. **Direwarden** [mon_direwarden] — a massive ashen warden warrior in heavy plate with a warhammer.
-33. **Snarlpack Alpha** [mon_snarlpack] — an alpha grave-beast pack-leader howling, support commander, cyan war-aura.
-34. **Frostbite Sylph** [mon_frostbite_sylph] — an elegant ice-sylph mage wreathed in freezing cyan mist.
-35. **Glimmerhound** [mon_glimmerhound] — a crystalline frost-hound assassin, glinting icy body, cyan eyes.
-36. **Emberling** [mon_emberling] — a lithe cinder-drake assassin whelp with cyan-hot flame claws.
-37. **Grinlet** [mon_grinlet] — a grinning abyssal imp-mage, wide manic grin, void-cyan energy.
-38. **Cindercreep** [mon_cindercreep] — a creeping abyssal fiend mage of dark tendrils and cold cyan embers.
+25. **Bonegnasher** [mon_bonegnasher] — a hunched bone-armored grave-fiend assassin with elongated jaws and claws.
+26. **Glacewisp** [mon_glacewisp] — a crystalline ice-sylph mage, floating shards of pale-blue frost, cyan glow.
+27. **Ashwing** [mon_ashwing] — a sleek cinder-drake assassin with cold cyan flame trailing its wings.
+28. **Sporelord** [mon_sporelord] — a towering fungal brood-lord mage crowned with cyan spore-caps.
+29. **Broodlancer** [mon_broodlancer] — a chitinous insectoid assassin with bladed lance-limbs, hollow brood.
+30. **Direwarden** [mon_direwarden] — a massive ashen warden warrior in heavy plate with a warhammer.
+31. **Snarlpack Alpha** [mon_snarlpack] — an alpha grave-beast pack-leader howling, support commander, cyan war-aura.
+32. **Frostbite Sylph** [mon_frostbite_sylph] — an elegant ice-sylph mage wreathed in freezing cyan mist.
+33. **Emberling** [mon_emberling] — a lithe cinder-drake assassin whelp with cyan-hot flame claws.
+34. **Grinlet** [mon_grinlet] — a grinning abyssal imp-mage, wide manic grin, void-cyan energy.
+35. **Cindercreep** [mon_cindercreep] — a creeping abyssal fiend mage of dark tendrils and cold cyan embers.
 
-### B-rank — formidable named (11)
-39. **Frostquill** [mon_frostquill] — a bladed ice-sylph assassin bristling with frozen cyan quills.
-40. **Hivewarden** [mon_hivewarden] — a towering armored brood-warrior guarding a hive, thick chitin, cyan cracks.
-41. **Warhowl** [mon_warhowl] — a colossal armored dire-bear war-chief rearing mid-roar, shaggy matted fur over a bone-and-iron war harness, thick clawed forelimbs, broad fanged muzzle, support commander, cyan battle-aura.
-42. **Sepulcher Knight** [mon_sepulcher_knight] — a grand undead guardian in ornate ashen tomb-armor with a tower shield.
-43. **Cindermaw Drake** [mon_cindermaw_drake] — a large cinder-drake mage breathing cold cyan fire, ash-scaled.
-44. **Hollowhorn** [mon_hollowhorn] — a massive horned abyssal guardian, dark hide, glowing cyan hollow eyes.
-45. **Broodqueen Vassal** [mon_broodqueen_vassal] — a regal insectoid brood-matron support, elegant chitin, cyan glow.
-46. **Ashen Cataphract** [mon_ashen_cataphract] — a heavily armored undead cavalry guardian in full ashen barding.
-47. **Glacial Revenant** [mon_glacial_revenant] — a frozen undead warrior revenant encased in cracked cyan ice.
-48. **Duskdrake** [mon_duskdrake] — a swift shadow-scaled drake assassin with cyan-lit wing membranes.
-49. **Fiendlord** [mon_fiendlord] — a commanding abyssal fiend mage, dark regal horns, void-cyan corona.
+### B-rank — formidable named (10)
+36. **Frostquill** [mon_frostquill] — a bladed ice-sylph assassin bristling with frozen cyan quills.
+37. **Hivewarden** [mon_hivewarden] — a towering armored brood-warrior guarding a hive, thick chitin, cyan cracks.
+38. **Warhowl** [mon_warhowl] — a colossal armored dire-bear war-chief rearing mid-roar, shaggy matted fur over a bone-and-iron war harness, thick clawed forelimbs, broad fanged muzzle, support commander, cyan battle-aura.
+39. **Sepulcher Knight** [mon_sepulcher_knight] — a grand undead guardian in ornate ashen tomb-armor with a tower shield.
+40. **Cindermaw Drake** [mon_cindermaw_drake] — a large cinder-drake mage breathing cold cyan fire, ash-scaled.
+41. **Hollowhorn** [mon_hollowhorn] — a massive horned abyssal guardian, dark hide, glowing cyan hollow eyes.
+42. **Broodqueen Vassal** [mon_broodqueen_vassal] — a regal insectoid brood-matron support, elegant chitin, cyan glow.
+43. **Ashen Cataphract** [mon_ashen_cataphract] — a heavily armored undead cavalry guardian in full ashen barding.
+44. **Glacial Revenant** [mon_glacial_revenant] — a frozen undead warrior revenant encased in cracked cyan ice.
+45. **Fiendlord** [mon_fiendlord] — a commanding abyssal fiend mage, dark regal horns, void-cyan corona.
 
 ### A-rank — grand mini-bosses, named (7)
-50. **Cindervane** [mon_cindervane] — an imposing elite cinder-drake assassin, sweeping ash wings, cold cyan flame, grand and menacing.
-51. **Hoarfrost Matron** [mon_hoarfrost_matron] — a towering regal ice-sylph mage-queen wreathed in a blizzard of cyan frost, ornate crystalline crown.
-52. **Kaeric, the First Warden** [mon_kaeric] — a legendary ashen warden-lord warrior in ancient ornate plate with a massive blade, hollow cyan eyes, heroic scale.
-53. **Voidcaller** [mon_voidcaller] — a sinister abyssal fiend mage tearing open void-rifts, dark robes, void-cyan energy, grand.
-54. **Broodmother** [mon_broodmother] — a colossal insectoid brood-matron support, swollen chitin throne-body, radiant cyan glow.
-55. **Rimewarden Sovereign** [mon_rimewarden_sovereign] — a majestic ice-sylph sovereign mage on a throne of frost, cyan crystalline regalia.
-56. **Ashen Lord Commander** [mon_ashen_lord_commander] — a commanding undead ashen war-lord support raising a banner, cyan command-aura, regal armor.
+46. **Cindervane** [mon_cindervane] — an imposing elite cinder-drake assassin, sweeping ash wings, cold cyan flame, grand and menacing.
+47. **Hoarfrost Matron** [mon_hoarfrost_matron] — a towering regal ice-sylph mage-queen wreathed in a blizzard of cyan frost, ornate crystalline crown.
+48. **Kaeric, the First Warden** [mon_kaeric] — a legendary ashen warden-lord warrior in ancient ornate plate with a massive blade, hollow cyan eyes, heroic scale.
+49. **Voidcaller** [mon_voidcaller] — a sinister abyssal fiend mage tearing open void-rifts, dark robes, void-cyan energy, grand.
+50. **Broodmother** [mon_broodmother] — a colossal insectoid brood-matron support, swollen chitin throne-body, radiant cyan glow.
+51. **Rimewarden Sovereign** [mon_rimewarden_sovereign] — a majestic ice-sylph sovereign mage on a throne of frost, cyan crystalline regalia.
+52. **Ashen Lord Commander** [mon_ashen_lord_commander] — a commanding undead ashen war-lord support raising a banner, cyan command-aura, regal armor.
 
 ### S-rank — colossal bosses, epic (5)
-57. **Xir'Vok, Brood Sovereign** [mon_xirvok] — a regal insectoid hive-monarch, crowned chitin skull, spined crest, four bladed limbs, tattered royal shroud, orbiting drones, immense cyan glow, terrifying boss scale, epic key-art quality.
-58. **Vharun, the Cinder Wyrm** [mon_vharun] — a colossal serpentine cinder-wyrm dragon exhaling cold cyan fire, vast ash-scaled coils, epic boss, cinematic.
-59. **The Pale Sovereign** [mon_pale_sovereign] — a towering pale crowned abyssal demon-king wreathed in cold cyan flame, hollow radiant eyes, throne of the abyss, epic final-boss grandeur, cinematic.
-60. **Ur-Grakh, the Bonemarch King** [mon_ur_grakh] — a giant bone-armored grave-warlord king warrior with a colossal cleaver, crown of tusks, mountainous, epic boss.
-61. **Nyxaris, the Hollow Star** [mon_nyxaris] — a vast cosmic-horror abyssal entity of dark matter and a collapsing cyan star-core, countless glowing eyes, void tendrils, epic apocalyptic boss, cinematic.
+53. **Xir'Vok, Brood Sovereign** [mon_xirvok] — a regal insectoid hive-monarch, crowned chitin skull, spined crest, four bladed limbs, tattered royal shroud, orbiting drones, immense cyan glow, terrifying boss scale, epic key-art quality.
+54. **Vharun, the Cinder Wyrm** [mon_vharun] — a colossal serpentine cinder-wyrm dragon exhaling cold cyan fire, vast ash-scaled coils, epic boss, cinematic.
+55. **The Pale Sovereign** [mon_pale_sovereign] — a towering pale crowned abyssal demon-king wreathed in cold cyan flame, hollow radiant eyes, throne of the abyss, epic final-boss grandeur, cinematic.
+56. **Ur-Grakh, the Bonemarch King** [mon_ur_grakh] — a giant bone-armored grave-warlord king warrior with a colossal cleaver, crown of tusks, mountainous, epic boss.
+57. **Nyxaris, the Hollow Star** [mon_nyxaris] — a vast cosmic-horror abyssal entity of dark matter and a collapsing cyan star-core, countless glowing eyes, void tendrils, epic apocalyptic boss, cinematic.
 
 ---
 
@@ -398,7 +394,7 @@ Folders (the Art Drop Tool creates these automatically as you drop images in):
 - `HollowHunter/art/hero` — 3 hero formats
 - `HollowHunter/art/promo` — 4 social variants
 - `HollowHunter/art/presets` — 12 preset hunter portraits, `preset_hunter_<id>.png`
-- `HollowHunter/art/monsters` — 61 portraits, `por_<id>.png`
+- `HollowHunter/art/monsters` — 57 portraits, `por_<id>.png`
 - `HollowHunter/art/equipment` — 50 item icons, `spr_<id>.png`
 - `HollowHunter/art/sets` — 15 set showcases, `<id>.png`
 - `HollowHunter/art/ui` — 14 store/UI assets, `<id>.png`

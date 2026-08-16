@@ -621,11 +621,11 @@ Every monster — and therefore its shadow — has a **class**. **Classes matter
 
 Data: `MonsterDef.clazz` and `ShadowInstance` (inherits from its `MonsterDef`) carry the class; `EquipmentDef.allowed_classes` gates what fits. **The hunter** is a **Necromancer** (base shadow-commander class) with a freely-chosen, permanent **subclass** = one of these same five — it gates the hunter's own 7-slot gear, sets their stat profile (§16), and defines their 1.5× signature training (§4). Full detail in §21.
 
-**Class assignments (all ~61):**
+**Class assignments (all 57):**
 - **Warrior (16):** Grubmaw, Ashen Warden, Tuskrend, Hivewarden, Kaeric, Gravemarch Footman, Tarling, Grublet, Mudtusk, Nipclaw, Rotknight, Boartusk, Gnollpike, Direwarden, Glacial Revenant, Ur-Grakh
 - **Guardian (6):** Carapax, Sepulcher Knight, Hollowhorn, Tarhulk, Beetlback, Ashen Cataphract
-- **Assassin (15):** Runtclaw, Cindervane, Frostquill, Bonegnasher, Ashwing, Dreadmaw, Gloamwing, Bonerat, Duskmaw, Cryptrat Swarm, Grimhound, Broodlancer, Glimmerhound, Emberling, Duskdrake
-- **Mage (18):** Cindermaw Drake, Hoarfrost Matron, Voidcaller, Vharûn, The Pale Sovereign, Sporecrawler, Glacewisp, Cindergnat, Mirewisp, Sporebloat, Palewisp, Sporelord, Frostbite Sylph, Grinlet, Cindercreep, Fiendlord, Rimewarden Sovereign, Nyxaris
+- **Assassin (12):** Runtclaw, Cindervane, Frostquill, Bonegnasher, Ashwing, Gloamwing, Bonerat, Duskmaw, Cryptrat Swarm, Grimhound, Broodlancer, Emberling
+- **Mage (17):** Cindermaw Drake, Hoarfrost Matron, Voidcaller, Vharûn, The Pale Sovereign, Glacewisp, Cindergnat, Mirewisp, Sporebloat, Palewisp, Sporelord, Frostbite Sylph, Grinlet, Cindercreep, Fiendlord, Rimewarden Sovereign, Nyxaris
 - **Support (6):** Warhowl, Xir'Vok, Snarlpack Alpha, Broodqueen Vassal, Broodmother, Ashen Lord Commander
 
 > **Elements cut.** The `element` field (Blight/Dread/Frost/…) was flavor only with no combat effect, so it's removed. The **Family** already conveys a monster's theme — any `element` / `Elem` values shown in the roster below are **deprecated and ignored**.
@@ -696,14 +696,6 @@ MonsterDef  Gravemarch Footman
   # COMMON. shadow: cheap disposable frontline
 
 # --- Rank C (variety opens up) ---
-MonsterDef  Sporecrawler
-  id: "mon_sporecrawler"; rank: C; element: "Blight"
-  base_power: 1050; extract_chance: 0.13
-  loot_table_id: "loot_uncommon_c"
-  sprite_id: "spr_sporecrawler"; portrait_id: "por_sporecrawler"
-  # bloated many-legged crawler leaking spores; sickly cyan gut-glow
-  # shadow: damage-over-time, poison cloud
-
 MonsterDef  Bonegnasher
   id: "mon_bonegnasher"; rank: C; element: "Feral"
   base_power: 1200; extract_chance: 0.13
@@ -727,14 +719,6 @@ MonsterDef  Ashwing
   sprite_id: "spr_ashwing"; portrait_id: "por_ashwing"
   # juvenile drake, oversized wings, gangly; obsidian scale, violet ember cracks
   # shadow: aerial striker (weaker Cindervane)
-
-MonsterDef  Dreadmaw
-  id: "mon_dreadmaw"; rank: C; element: "Abyss"
-  base_power: 1150; extract_chance: 0.13
-  loot_table_id: "loot_uncommon_c"
-  sprite_id: "spr_dreadmaw"; portrait_id: "por_dreadmaw"
-  # eyeless abyssal hound, split jaw, smoking hide; charcoal + violet maw-light
-  # shadow: pursuit striker, closes distance fast
 
 # --- Rank B ---
 MonsterDef  Frostquill
@@ -877,7 +861,6 @@ Fills out the common tiers so encounters are mostly low-rank, with rares staying
 | Direwarden | mon_direwarden | Ashen Wardens | Dread | 1300 | 0.12 | heavy undead knight, mace; frontline |
 | Snarlpack Alpha | mon_snarlpack | Gravekin | Feral | 1350 | 0.12 | beastfolk warleader; pack buffer |
 | Frostbite Sylph | mon_frostbite_sylph | Rime Sylphs | Frost | 1000 | 0.14 | biting frost fae; ranged frost |
-| Glimmerhound | mon_glimmerhound | Rime Sylphs | Frost | 980 | 0.14 | ice-hound; fast frost striker |
 | Emberling | mon_emberling | Emberdrakes | Ember | 1250 | 0.12 | wyrmling; aerial chip |
 | Grinlet | mon_grinlet | Abyssal Fiends | Abyss | 1150 | 0.13 | cackling imp, teleports; evasive caster |
 | Cindercreep | mon_cindercreep | Abyssal Fiends | Abyss | 1400 | 0.12 | crawling ember-demon; burn DoT |
@@ -888,7 +871,6 @@ Fills out the common tiers so encounters are mostly low-rank, with rares staying
 | Broodqueen Vassal | mon_broodqueen_vassal | Hollow Brood | Blight | 2450 | 0.09 | royal-guard brood; summons grubs |
 | Ashen Cataphract | mon_ashen_cataphract | Ashen Wardens | Dread | 2500 | 0.09 | mounted heavy knight; charging tank |
 | Glacial Revenant | mon_glacial_revenant | Rime Sylphs | Frost | 2600 | 0.08 | towering ice-fae warrior; frost bruiser |
-| Duskdrake | mon_duskdrake | Emberdrakes | Ember | 2650 | 0.08 | night-hunting drake; aerial ambusher |
 | Fiendlord | mon_fiendlord | Abyssal Fiends | Abyss | 2800 | 0.08 | greater horned demon commander; frontline caster |
 
 **Rank A (elites):**
@@ -904,7 +886,7 @@ Fills out the common tiers so encounters are mostly low-rank, with rares staying
 | Ur-Grakh, the Bonemarch King | mon_ur_grakh | Gravekin | Feral | 10000 | 0.02 | colossal warlord of the dead hordes; buffs all frontline |
 | Nyxaris, the Hollow Star | mon_nyxaris | Abyssal Fiends | Abyss | 14000 | 0.02 | void-entity apex, endgame; reality-tearing nuke |
 
-**Roster total now ~61**, distributed bottom-heavy: E 10 · D 13 · C 15 · B 11 · A 7 · S 5. Commons (E+D+C) are ~62% of species, so encounters skew low-rank as intended.
+**Roster total now 57**, distributed bottom-heavy: E 10 · D 13 · C 12 · B 10 · A 7 · S 5. Commons (E+D+C) are ~61% of species, so encounters skew low-rank as intended.
 
 *Everything here is a starting seed — add families, bosses, and regions as the game grows.*
 
@@ -1162,7 +1144,7 @@ SPEED = AGI                               # turn order
 ~16× growth either side — early fights resolve in a handful of hits (good for a quick tap mid-walk); a Lv40 fight still feels dangerous.
 
 ### Enemy stats — derived from existing base_power / floor_power, not re-authored
-Every monster already has a tuned `base_power` (§14b, Grubmaw=120 up to Xir'Vok=9000) and the Nadir already has a tuned floor curve (`floor_power(n) = 300 × 1.12^n`, §20). Rather than hand-authoring HP/ATK for 61 monsters (or every Nadir floor) from scratch, derive combat stats straight from those existing numbers:
+Every monster already has a tuned `base_power` (§14b, Grubmaw=120 up to Xir'Vok=9000) and the Nadir already has a tuned floor curve (`floor_power(n) = 300 × 1.12^n`, §20). Rather than hand-authoring HP/ATK for 57 monsters (or every Nadir floor) from scratch, derive combat stats straight from those existing numbers:
 ```
 enemy_HP  = base_power × 0.6
 enemy_ATK = base_power × 0.15
@@ -1428,9 +1410,9 @@ Assigned shadows are "busy" until reassigned; bigger/more facilities = more slot
 ### Asset inventory (what actually needs making)
 | Asset | Count | Notes |
 |-------|------:|-------|
-| Monster **battle sprites** | ~61 | one per species (§14b) |
+| Monster **battle sprites** | ~57 | one per species (§14b) |
 | Monster **portraits** | ~20 bespoke + shared | bosses/notables get bespoke; commons share a simpler frame |
-| **Shadow variants** | 61 | **not new art** — a recolor shader (see savers) |
+| **Shadow variants** | 57 | **not new art** — a recolor shader (see savers) |
 | **Hunter avatars** | 5 | one per subclass; rank glow via VFX, not redraws |
 | **Equipment icons** | ~110 | inventory icons (50 base + 60 set pieces) |
 | **Equipment on avatar** | ~a few per class | silhouette tiers by set/rarity, **not** per-piece |
@@ -1450,7 +1432,7 @@ Assigned shadows are "busy" until reassigned; bigger/more facilities = more slot
 6. Integrate via sprite IDs.
 
 ### Cost-savers (make it survivable solo)
-- **Shadow forms = a shader, not art.** A defeated monster's shadow is the base sprite recolored to inky-black + **cyan** inner glow + smoky edge via a Godot shader. **61 shadows for near-free**, and they auto-read as "a shadow."
+- **Shadow forms = a shader, not art.** A defeated monster's shadow is the base sprite recolored to inky-black + **cyan** inner glow + smoky edge via a Godot shader. **57 shadows for near-free**, and they auto-read as "a shadow."
 - **Equipment: icons + a few avatar tiers.** Draw ~110 *inventory icons* (small, fast), but on the hunter/shadow avatar only show a **handful of visual tiers by set/rarity**, not 110 paper-doll layers. Avoids a combinatorial art explosion.
 - **Grade/rank shown via aura VFX** — a shader glow whose intensity/color rises with grade (Wraith→Sovereign), so higher-grade shadows *look* stronger without redrawing them.
 - **Reuse backdrops** per family/theme rather than per-gate.
@@ -1502,7 +1484,7 @@ This is §11's MVP kernel, now the target for a first playable you'd actually en
 
 ### Ongoing tracks (parallel, later)
 - **Art pass** (§23): replace placeholders — real sprites, shadow shader, VFX, UI kit.
-  - **Full art blitz (Midjourney), one focused paid month — 147 images:** hero key art (3 formats) + 4 promo/social variants + all 61 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 14 UI/store assets (app icon, feature graphic, class icons, rank badges). Style locked: frost-cyan, near-total darkness, silhouette-first, crisp linework (`--style raw`), one shared `--sref` code for consistency. Full prompt pack in **HollowHunter_MidjourneyArtPack.md**; save/organize via **HollowHunter_ArtDropTool.html** (auto-renames + files into `/hero /promo /monsters /equipment /sets /ui`, matching monsters.json/equipment.json ids — drops straight into the game later). Subscribe → blitz in Relax mode → cancel. Reference images are **written descriptions only** — no copyrighted frames used as input (IP safety; UK CDPA s.9(3) gives us authorship of computer-generated work since we make the creative arrangements — see note below).
+  - **Full art blitz (Midjourney), one focused paid month — 143 images:** hero key art (3 formats) + 4 promo/social variants + all 57 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 14 UI/store assets (app icon, feature graphic, class icons, rank badges). Style locked: frost-cyan, near-total darkness, silhouette-first, crisp linework (`--style raw`), one shared `--sref` code for consistency. Full prompt pack in **HollowHunter_MidjourneyArtPack.md**; save/organize via **HollowHunter_ArtDropTool.html** (auto-renames + files into `/hero /promo /monsters /equipment /sets /ui`, matching monsters.json/equipment.json ids — drops straight into the game later). Subscribe → blitz in Relax mode → cancel. Reference images are **written descriptions only** — no copyrighted frames used as input (IP safety; UK CDPA s.9(3) gives us authorship of computer-generated work since we make the creative arrangements — see note below).
 - **Polish**: onboarding/first-run, wellbeing (rest-day framing, no overtraining nudges), safety, accessibility.
 - **iOS port**: HealthKit + CoreLocation plugins, once Android is solid.
 
