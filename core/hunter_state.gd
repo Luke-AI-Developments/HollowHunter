@@ -507,6 +507,18 @@ func auto_equip_shadow(shadow_instance_id: String, equipment: Dictionary, monste
 	return count
 
 
+## Runs auto_equip_shadow() over every shadow instance_id given -- the
+## Squad tab's "Auto-Equip Squad" action (§17 QoL: "auto-equip best gear...
+## across the whole squad"). Unknown ids are silently skipped (same
+## tolerance auto_equip_shadow's own _army_index lookup already has).
+## Returns the total number of slots changed across all shadows.
+func auto_equip_squad(instance_ids: Array, equipment: Dictionary, monsters: Array) -> int:
+	var count := 0
+	for instance_id in instance_ids:
+		count += auto_equip_shadow(instance_id, equipment, monsters)
+	return count
+
+
 func _all_shadow_equipped_ids() -> Array:
 	var ids := []
 	for shadow: Dictionary in army:

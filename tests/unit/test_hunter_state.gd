@@ -982,3 +982,32 @@ func test_toggle_party_member_respects_a_custom_max_size() -> void:
 	s.toggle_party_member("shadow_0", true, 1)
 	assert_false(s.toggle_party_member("shadow_1", true, 1))
 	assert_eq(s.active_party_ids, ["shadow_0"])
+
+
+func test_auto_equip_squad_equips_every_given_shadow() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_ashen_warden", "C")  # WARRIOR
+	var b := s.claim_shadow("mon_carapax", "D")  # GUARDIAN
+	var equipment := Content.load_equipment()
+	s.add_to_inventory("eq_warcleaver")  # WARRIOR weapon, matches Ashen Warden
+	var monsters := Content.load_monsters()
+	var changed := s.auto_equip_squad([a["instance_id"], b["instance_id"]], equipment, monsters)
+	assert_true(changed > 0)
+	assert_true(s.army[0]["equipped"].has("WEAPON"))
+
+
+func test_auto_equip_squad_with_no_matching_gear_changes_nothing() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_ashen_warden", "C")
+	var changed := s.auto_equip_squad(
+		[a["instance_id"]], Content.load_equipment(), Content.load_monsters()
+	)
+	assert_eq(changed, 0)
+
+
+func test_auto_equip_squad_skips_unknown_shadow_ids() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var changed := s.auto_equip_squad(
+		["does_not_exist"], Content.load_equipment(), Content.load_monsters()
+	)
+	assert_eq(changed, 0)
