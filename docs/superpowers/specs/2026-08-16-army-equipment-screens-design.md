@@ -40,7 +40,7 @@ Browse/maintain logic, kept separate from `Equip` (slot/class-gating mechanics) 
 - `const RARITY_ORDER := ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"]`
 - `const SOFT_CAP := 200`
 - `filter_by(inventory: Array, equipment: Dictionary, filters: Dictionary) -> Array` — `filters` keys: `class`, `slot`, `rarity`, `set_id`, `equipped` (bool, optional/omit = no filter on equipped state)
-- `sort_by(items: Array, mode: String) -> Array` — `mode` one of `"power"`, `"rarity"`, `"slot"`, `"newest"`. "Newest" is reverse inventory order — `instance_id`s are already append-order (`"eq_inst_%d" % inventory.size()`), so no new timestamp field is needed.
+- `sort_by(items: Array, mode: String) -> Array` — `mode` one of `"power"` (highest first), `"rarity"` (rarest first, per `RARITY_ORDER`), `"slot"` (`Equip.SLOTS` order), `"newest"` (most-recently-acquired first — reverse inventory order, since `instance_id`s are already append-order (`"eq_inst_%d" % inventory.size()`), so no new timestamp field is needed).
 - `wearer_of(instance_id: String, hunter_equipped: Dictionary, army: Array) -> Dictionary` — `{"kind": "none"|"hunter"|"shadow", "shadow_instance_id": ""}`. Backs both the "currently equipped by `<shadow>`" label and the scrap guard.
 - `compare_delta(candidate_def: Dictionary, current_def: Dictionary) -> Dictionary` — per-stat and power deltas for the green/red arrows.
 - `scrap_candidates_below_rarity(inventory: Array, equipment: Dictionary, threshold: String, hunter_equipped: Dictionary, army: Array) -> Array` — eligible instance_ids (excludes locked/equipped).
@@ -63,7 +63,7 @@ New `owned_set_counts(inventory: Array, equipment: Dictionary) -> Dictionary` �
 
 **Squad tab.** `squad_view.gd`, re-parented under the new tab, otherwise untouched, **plus one addition**: a new "Auto-Equip Squad" button beside its existing "Auto Fill", wired to `HunterState.auto_equip_squad()`. This is the only new code on this tab — everything else is the already-working, already-tested panel.
 
-**Shadow detail hub — modified `shadow_gear_view.gd`.** Identity block adds Family (replacing element, decision #1), a Lore line (decision #2), and a placeholder Traits line (decision #3), at the bottom per spec. New interaction: **each gear-slot row becomes tappable**, not just its "Equip Best" button — tapping the row opens the Inventory screen pre-filtered to that slot + this shadow's class, with the shadow carried as Compare context (decision #6); "Equip Best" still one-taps as before. This tap-target lives in the *shared* `GearPanelHelpers.build_gear_rows()`, so `HunterGearView` gets the same browse-and-compare flow for free — incidentally satisfying §21's "same inline paper-doll flow" for the hunter's own gear too, at no extra cost.
+**Shadow detail hub — modified `shadow_gear_view.gd`.** Identity block adds Family (replacing element, decision #1), a Lore line (decision #2), and a placeholder Traits line (decision #3), at the bottom per spec. Gear rows keep today's behavior exactly (per-slot "Equip Best"/"Unequip"/"Enhance") — **the slot-tap-opens-Inventory interaction (decision #6) is built in §17b, not here**, since it opens a screen that doesn't exist yet in this phase. Wiring it in §17 would be a forward reference to §17b, breaking the stated build order. See §3 below for where it actually lands.
 
 **Bulk actions, relocated.** "Mass-convert weak shadows" (already built, currently a standalone HUD button) moves into the Roster tab's lower thumb-zone as a bulk-action bar, consistent with §17b putting its own bulk actions in the same zone.
 
@@ -74,6 +74,8 @@ New `owned_set_counts(inventory: Array, equipment: Dictionary) -> Dictionary` �
 **Shell — new `scenes/inventory_view.gd`.** Filter/sort bar pinned top (class / slot / rarity / set / equipped-unequipped filters; power / rarity / slot / newest-first sort). Below it, a scrollable ~4-across icon grid — placeholder-art icons for now, same convention as every other screen in this codebase; real `spr_<id>.png` art swaps in later by data ID with no code change.
 
 **Item detail (tap a cell).** Full stats, rarity, set membership, and `Inventory.wearer_of()`'s answer rendered as "equipped by `<shadow>`" or "unequipped". Actions: equip (to the context shadow if one was carried in, otherwise a quick shadow-picker), Lock/Unlock, Scrap. Scrap is **hidden/disabled**, not just confirm-guarded, whenever the item is locked or worn — the UI and the `HunterState.scrap_item()` guard agree, so this is structural, not just a dialog.
+
+**The slot-tap-to-browse retrofit (decision #6, deferred from §17 above).** This is where each gear-slot row in `shadow_gear_view.gd` (and, via the shared `GearPanelHelpers.build_gear_rows()`, `hunter_gear_view.gd` too) becomes tappable — opening this screen pre-filtered to that slot + class, with the shadow (or the hunter) carried as Compare context. This is the one piece of §17b's work that touches §17's already-shipped files; everything else in this section is new files only.
 
 **Compare.** Only renders when a shadow was carried in as context (the slot-tap flow from §17, decision #6); each candidate shows `Inventory.compare_delta()` against that shadow's current item in the same slot as green/red per-stat arrows.
 
