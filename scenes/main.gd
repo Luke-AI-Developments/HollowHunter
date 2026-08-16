@@ -10,7 +10,6 @@ extends Node2D
 ## time a subclass is chosen.
 
 const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
-const MASS_CONVERT_COUNT := 3  ## §17 "surplus... shadows" -- v0 batch size, not in the source
 
 var bridge: Object
 var state: HunterState
@@ -43,13 +42,12 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var label: Label = $GameUI/Label
 @onready var map_view: MapView = $GameUI/MapView
 @onready var enter_gate_button: Button = $GameUI/EnterGateButton
-@onready var army_label: Label = $GameUI/ArmyLabel
 @onready var inventory_label: Label = $GameUI/InventoryLabel
 @onready var hunter_gear_button: Button = $GameUI/HunterGearButton
 @onready var hunter_gear_view: HunterGearView = $GameUI/HunterGearPanel
-@onready var shadow_gear_button: Button = $GameUI/ShadowGearButton
 @onready var shadow_gear_view: ShadowGearView = $GameUI/ShadowGearPanel
-@onready var mass_convert_button: Button = $GameUI/MassConvertButton
+@onready var army_button: Button = $GameUI/ArmyButton
+@onready var army_view: ArmyView = $GameUI/ArmyPanel
 @onready var nadir_button: Button = $GameUI/NadirButton
 @onready var nadir_panel: Node2D = $GameUI/NadirPanel
 @onready var nadir_info_label: Label = $GameUI/NadirPanel/InfoLabel
@@ -59,8 +57,6 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var character_button: Button = $GameUI/CharacterButton
 @onready var character_view: CharacterView = $GameUI/CharacterPanel
 @onready var use_ticket_button: Button = $GameUI/UseTicketButton
-@onready var squad_button: Button = $GameUI/SquadButton
-@onready var squad_view: SquadView = $GameUI/SquadPanel
 @onready var shop_button: Button = $GameUI/ShopButton
 @onready var shop_view: ShopView = $GameUI/ShopPanel
 @onready var leaderboard_button: Button = $GameUI/LeaderboardButton
@@ -176,7 +172,6 @@ func _on_onboarding_continue_pressed() -> void:
 
 func _start_game() -> void:
 	_refresh_label()
-	_refresh_army_label()
 	_refresh_inventory_label()
 	if not enter_gate_button.pressed.is_connected(_on_enter_gate_pressed):
 		enter_gate_button.pressed.connect(_on_enter_gate_pressed)
@@ -185,6 +180,8 @@ func _start_game() -> void:
 	stronghold_view.bind(state)
 	character_view.bind(state, _equipment, _monsters)
 	leaderboard_view.bind(state, _equipment)
+	army_view.bind(state, _equipment, _monsters, shadow_gear_view)
+	army_view.refresh_if_open()
 	_setup_gear_panels()
 
 
@@ -200,9 +197,11 @@ func _setup_gear_panels() -> void:
 	if not hunter_gear_button.pressed.is_connected(_on_hunter_gear_button_pressed):
 		hunter_gear_button.pressed.connect(_on_hunter_gear_button_pressed)
 		hunter_gear_view.state_changed.connect(_on_state_changed)
-		shadow_gear_button.pressed.connect(_on_shadow_gear_button_pressed)
 		shadow_gear_view.state_changed.connect(_on_state_changed)
-		mass_convert_button.pressed.connect(_on_mass_convert_pressed)
+		army_button.pressed.connect(func() -> void: army_view.open())
+		army_view.state_changed.connect(_on_state_changed)
+		army_view.mass_convert_result.connect(func(msg: String) -> void: label.text += msg)
+		army_view.squad_full_message.connect(func(msg: String) -> void: label.text += msg)
 		nadir_button.pressed.connect(_on_nadir_button_pressed)
 		$GameUI/NadirPanel/CloseButton.pressed.connect(_on_nadir_close_pressed)
 		nadir_take_on_button.pressed.connect(_on_nadir_take_on_pressed)
@@ -213,10 +212,6 @@ func _setup_gear_panels() -> void:
 		character_view.state_changed.connect(_on_state_changed)
 		character_view.trial_result.connect(_on_character_trial_result)
 		use_ticket_button.pressed.connect(_on_use_ticket_pressed)
-		squad_button.pressed.connect(_on_squad_button_pressed)
-		squad_view.close_requested.connect(func() -> void: squad_view.visible = false)
-		squad_view.auto_fill_requested.connect(_on_squad_auto_fill_requested)
-		squad_view.toggle_requested.connect(_on_squad_toggle_requested)
 		shop_button.pressed.connect(_on_shop_button_pressed)
 		shop_view.close_requested.connect(func() -> void: shop_view.visible = false)
 		shop_view.buy_ticket_bundle_requested.connect(_on_buy_ticket_bundle_requested)
@@ -493,7 +488,7 @@ func _on_battle_finished(won: bool) -> void:
 
 	SaveService.save(state)
 	_refresh_label()
-	_refresh_army_label()
+	army_view.refresh_if_open()
 	_refresh_inventory_label()
 	label.text += msg
 
@@ -584,40 +579,6 @@ func _on_use_ticket_pressed() -> void:
 	_start_gate_battle(gate, "\n\n[Ticket]")
 
 
-func _on_squad_button_pressed() -> void:
-	squad_view.visible = true
-	_refresh_squad_view()
-
-
-## Clears the manual pick -- back to auto-picking the strongest 3.
-func _on_squad_auto_fill_requested() -> void:
-	state.active_party_ids = []
-	SaveService.save(state)
-	_refresh_squad_view()
-
-
-func _on_squad_toggle_requested(instance_id: String) -> void:
-	var fielded := state.active_party_ids.has(instance_id)
-	if not state.toggle_party_member(instance_id, not fielded):
-		label.text += "\n\n3 already fielded -- unfield one first."
-		return
-	SaveService.save(state)
-	_refresh_squad_view()
-
-
-## Feeds SquadView the squad-of-6, which are manually fielded, and the
-## actually-resolved party (incl. auto-backfilled slots) -- SquadView owns
-## the row/label display itself.
-func _refresh_squad_view() -> void:
-	var squad := SquadBuilder.auto_fill_squad(
-		state.army, _monsters, state.level, _equipment, state.inventory
-	)
-	var chosen := SquadBuilder.resolve_party(
-		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
-	)
-	squad_view.refresh(squad, state.active_party_ids, chosen)
-
-
 func _on_shop_button_pressed() -> void:
 	shop_view.visible = true
 	_refresh_shop_view()
@@ -662,54 +623,6 @@ func _spend_on_shop_item(item: Dictionary) -> bool:
 
 func _refresh_shop_view() -> void:
 	shop_view.refresh(state.crystals, state.owned_cosmetics)
-
-
-func _refresh_army_label() -> void:
-	if state.army.is_empty():
-		army_label.text = "Army: (none yet)"
-		return
-
-	var enriched := SquadBuilder.enrich_army(
-		state.army, _monsters, state.level, _equipment, state.inventory
-	)
-	var squad := SquadBuilder.auto_fill_squad(
-		state.army, _monsters, state.level, _equipment, state.inventory
-	)
-	var squad_ids := {}
-	for member: Dictionary in squad:
-		squad_ids[member["instance_id"]] = true
-
-	var lines := [
-		(
-			"Army (%d) -- squad marked [S] (%d/%d):"
-			% [enriched.size(), squad.size(), GameLogic.SQUAD_SIZE]
-		)
-	]
-	for e: Dictionary in enriched:
-		var marker := " [S]" if squad_ids.has(e["instance_id"]) else ""
-		if e["locked"]:
-			marker += " [L]"
-		if e["favorite"]:
-			marker += " [F]"
-		(
-			lines
-			. append(
-				(
-					" - %s (%s·%s Lv%d/%d %s) pwr:%d%s"
-					% [
-						e["monster_name"],
-						e["grade_name"],
-						e["grade"],
-						e["level"],
-						ShadowLeveling.LEVEL_CAP,
-						e["clazz"],
-						e["power"],
-						marker,
-					]
-				)
-			)
-		)
-	army_label.text = "\n".join(lines)
 
 
 func _refresh_inventory_label() -> void:
@@ -760,28 +673,6 @@ func _refresh_label() -> void:
 
 func _on_hunter_gear_button_pressed() -> void:
 	hunter_gear_view.open()
-
-
-func _on_shadow_gear_button_pressed() -> void:
-	if not shadow_gear_view.open():
-		label.text += "\n\nNo shadows yet"
-
-
-## Phase 2/P2 step 4: mass-converts the MASS_CONVERT_COUNT weakest shadows
-## outside the auto-filled squad (SquadBuilder.surplus_shadow_ids) straight
-## to Essence. Immediate, no confirmation/lock-favorite protection yet
-## (§17's lock/favorite QoL bullet is out of scope for this patch).
-func _on_mass_convert_pressed() -> void:
-	var surplus := SquadBuilder.surplus_shadow_ids(
-		state.army, _monsters, state.level, MASS_CONVERT_COUNT, _equipment, state.inventory
-	)
-	if surplus.is_empty():
-		return
-	var gained := state.mass_convert(surplus)
-	SaveService.save(state)
-	_refresh_army_label()
-	_refresh_label()
-	label.text += "\n\nMass-converted %d shadow(s) -> +%d Essence" % [surplus.size(), gained]
 
 
 func _on_nadir_button_pressed() -> void:
@@ -871,7 +762,7 @@ func _apply_nadir_battle_result(won: bool) -> void:
 
 	SaveService.save(state)
 	_refresh_nadir_panel()
-	_refresh_army_label()
+	army_view.refresh_if_open()
 	_refresh_inventory_label()
 	_refresh_label()
 	label.text += msg
@@ -888,7 +779,7 @@ func _on_character_button_pressed() -> void:
 ## rather than tracking which specific label actually needs updating.
 func _on_state_changed() -> void:
 	_refresh_label()
-	_refresh_army_label()
+	army_view.refresh_if_open()
 	_refresh_inventory_label()
 
 

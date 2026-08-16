@@ -118,21 +118,13 @@ offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Hunter Gear"
 
-[node name="ShadowGearButton" type="Button" parent="GameUI"]
+[node name="ArmyButton" type="Button" parent="GameUI"]
 offset_left = 220.0
 offset_top = 370.0
 offset_right = 380.0
 offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
-text = "Shadow Gear"
-
-[node name="MassConvertButton" type="Button" parent="GameUI"]
-offset_left = 400.0
-offset_top = 370.0
-offset_right = 620.0
-offset_bottom = 410.0
-theme_override_font_sizes/font_size = 18
-text = "Mass-Convert Weakest 3"
+text = "Army"
 
 [node name="NadirButton" type="Button" parent="GameUI"]
 offset_left = 640.0
@@ -166,14 +158,6 @@ offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Use Ticket"
 
-[node name="SquadButton" type="Button" parent="GameUI"]
-offset_left = 1340.0
-offset_top = 370.0
-offset_right = 1480.0
-offset_bottom = 410.0
-theme_override_font_sizes/font_size = 18
-text = "Squad"
-
 [node name="ShopButton" type="Button" parent="GameUI"]
 offset_left = 1500.0
 offset_top = 370.0
@@ -189,14 +173,6 @@ offset_right = 1830.0
 offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Leaderboard"
-
-[node name="ArmyLabel" type="Label" parent="GameUI"]
-offset_left = 40.0
-offset_top = 420.0
-offset_right = 900.0
-offset_bottom = 1040.0
-theme_override_font_sizes/font_size = 20
-text = "Army: (none yet)"
 
 [node name="InventoryLabel" type="Label" parent="GameUI"]
 offset_left = 950.0

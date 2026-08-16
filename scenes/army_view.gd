@@ -66,6 +66,14 @@ func open() -> void:
 	_on_roster_tab_pressed()
 
 
+## Called by main.gd after any army-changing event (gate win, Nadir claim,
+## Stronghold idle-XP) so the Roster tab doesn't show stale data if it's
+## already open when the change happens.
+func refresh_if_open() -> void:
+	if visible and roster_tab.visible:
+		_refresh_roster()
+
+
 func _on_roster_tab_pressed() -> void:
 	roster_tab.visible = true
 	squad_tab.visible = false
