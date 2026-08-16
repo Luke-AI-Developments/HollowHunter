@@ -52,7 +52,7 @@
 
     {"id": "mon_cindervane", "name": "Cindervane", "rank": "A", "family": "Emberdrakes", "clazz": "ASSASSIN", "base_power": 4500, "extract_chance": 0.06, "lore": "A compact wyvern with membrane wings and a crest."},
     {"id": "mon_hoarfrost_matron", "name": "Hoarfrost Matron", "rank": "A", "family": "Rime Sylphs", "clazz": "MAGE", "base_power": 4000, "extract_chance": 0.06, "lore": "A greater frost fae, regal and trailing a blizzard veil."},
-    {"id": "mon_kaeric", "name": "Kaeric, the First Warden", "rank": "A", "family": "Ashen Wardens", "clazz": "WARRIOR", "base_power": 3500, "extract_chance": 0.05, "lore": "A NAMED elite Ashen Warden commander with a crowned helm and twin blades."},
+    {"id": "mon_kaeric", "name": "Kaeric, the First Warden", "rank": "A", "family": "Ashen Wardens", "clazz": "WARRIOR", "base_power": 3500, "extract_chance": 0.05, "lore": "A legendary elite Ashen Warden commander with a crowned helm and twin blades."},
     {"id": "mon_voidcaller", "name": "Voidcaller", "rank": "A", "family": "Abyssal Fiends", "clazz": "MAGE", "base_power": 4200, "extract_chance": 0.05, "lore": "A robed demon sorcerer, floating and ringed by sigils."},
     {"id": "mon_broodmother", "name": "Broodmother", "rank": "A", "family": "Hollow Brood", "clazz": "SUPPORT", "base_power": 3800, "extract_chance": 0.06, "lore": "A massive egg-layer."},
     {"id": "mon_rimewarden_sovereign", "name": "Rimewarden Sovereign", "rank": "A", "family": "Rime Sylphs", "clazz": "MAGE", "base_power": 4100, "extract_chance": 0.05, "lore": "A frost-fae royalty."},
