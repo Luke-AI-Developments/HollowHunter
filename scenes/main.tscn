@@ -351,6 +351,15 @@ offset_bottom = 900.0
 theme_override_font_sizes/font_size = 18
 text = "Active sets: (none)"
 
+[node name="LoreLabel" type="Label" parent="GameUI/ShadowGearPanel"]
+offset_left = 40.0
+offset_top = 910.0
+offset_right = 2380.0
+offset_bottom = 1040.0
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 3
+text = ""
+
 [node name="SquadPanel" type="Node2D" parent="GameUI"]
 visible = false
 script = ExtResource("4")

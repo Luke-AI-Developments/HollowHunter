@@ -16,6 +16,7 @@ var _rows: Array = []
 
 @onready var title_label: Label = $Title
 @onready var sets_label: Label = $SetsLabel
+@onready var lore_label: Label = $LoreLabel
 @onready var lock_button: Button = $LockButton
 @onready var favorite_button: Button = $FavoriteButton
 
@@ -203,6 +204,7 @@ func refresh() -> void:
 		for row: Dictionary in _rows:
 			row["label"].text = "%s: --" % row["slot"]
 		sets_label.text = "Active sets: (none)"
+		lore_label.text = ""
 		return
 
 	_index = clampi(_index, 0, _state.army.size() - 1)
@@ -210,8 +212,9 @@ func refresh() -> void:
 	var monster := Content.monster_by_id(_monsters, shadow.get("monster_id", ""))
 	var locked: bool = shadow.get("locked", false)
 	var favorite: bool = shadow.get("favorite", false)
+	var family: String = monster.get("family", "?")
 	title_label.text = (
-		"%s%s%s (%s·%s Lv%d/%d %s)  [%d/%d]"
+		"%s%s%s (%s·%s Lv%d/%d %s · %s)  [%d/%d]"
 		% [
 			"★" if favorite else "",
 			"🔒" if locked else "",
@@ -221,10 +224,12 @@ func refresh() -> void:
 			shadow.get("level", 1),
 			ShadowLeveling.LEVEL_CAP,
 			monster.get("clazz", "?"),
+			family,
 			_index + 1,
 			_state.army.size(),
 		]
 	)
+	lore_label.text = "%s\nTraits: (coming soon)" % String(monster.get("lore", ""))
 	lock_button.text = "Unlock" if locked else "Lock"
 	favorite_button.text = "Unfavorite" if favorite else "Favorite"
 	var shadow_equipped: Dictionary = shadow.get("equipped", {})
