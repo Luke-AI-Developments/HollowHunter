@@ -7,6 +7,7 @@ extends Node2D
 ## lock, favorite) that Hunter Gear doesn't have.
 
 signal state_changed
+signal closed  ## emitted on CloseButton -- lets a caller like ArmyView return to its own screen
 
 var _state: HunterState
 var _equipment: Dictionary
@@ -22,7 +23,7 @@ var _rows: Array = []
 
 
 func _ready() -> void:
-	$CloseButton.pressed.connect(func() -> void: visible = false)
+	$CloseButton.pressed.connect(_on_close_pressed)
 	$AutoEquipButton.pressed.connect(_on_auto_equip_pressed)
 	$PrevButton.pressed.connect(_on_prev_pressed)
 	$NextButton.pressed.connect(_on_next_pressed)
@@ -58,6 +59,11 @@ func open() -> bool:
 	visible = true
 	refresh()
 	return true
+
+
+func _on_close_pressed() -> void:
+	visible = false
+	closed.emit()
 
 
 func _on_prev_pressed() -> void:

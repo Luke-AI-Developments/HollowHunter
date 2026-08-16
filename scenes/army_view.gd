@@ -13,6 +13,7 @@ extends Node2D
 
 signal state_changed
 signal mass_convert_result(message: String)
+signal squad_full_message(message: String)
 
 const GRADE_FILTER_OPTIONS := ["ALL", "E", "D", "C", "B", "A", "S"]
 const SORT_MODES := ["power", "grade"]
@@ -30,7 +31,7 @@ var _collapsed: Dictionary = {}  ## clazz -> bool, session-only (resets on reope
 @onready var squad_tab: SquadView = $SquadTab
 @onready var grade_filter_button: Button = $RosterTab/FilterBar/GradeFilterButton
 @onready var sort_button: Button = $RosterTab/FilterBar/SortButton
-@onready var sections_container: Node2D = $RosterTab/Sections
+@onready var sections_container: Control = $RosterTab/SectionsScroll/Sections
 @onready var mass_convert_button: Button = $RosterTab/BulkBar/MassConvertButton
 
 
@@ -54,6 +55,10 @@ func bind(
 	_equipment = equipment
 	_monsters = monsters
 	_shadow_gear_view = shadow_gear_view
+	# Reopens this panel's Roster tab whenever Shadow Gear closes -- correct
+	# as long as ArmyView is the only path that opens Shadow Gear, which
+	# holds once the old standalone ShadowGearButton entry point is retired.
+	_shadow_gear_view.closed.connect(_on_shadow_gear_view_closed)
 
 
 func open() -> void:
@@ -115,17 +120,20 @@ func _refresh_roster() -> void:
 		var class_shadows: Array = enriched.filter(
 			func(e: Dictionary) -> bool: return e["clazz"] == clazz
 		)
+		var collapsed: bool = _collapsed.get(clazz, false)
 		var header := Button.new()
 		header.position = Vector2(40, y)
 		header.size = Vector2(2340, 44)
-		var collapsed: bool = _collapsed.get(clazz, false)
 		header.text = (
 			"%s %s (%d)" % ["▸" if collapsed else "▾", clazz.capitalize(), class_shadows.size()]
 		)
+		header.pressed.connect(_on_section_header_pressed.bind(clazz))
 		sections_container.add_child(header)
 		y += 50
 
-		var row_start_y := y
+		if collapsed:
+			continue
+
 		for e: Dictionary in class_shadows:
 			var row := Button.new()
 			row.position = Vector2(60, y)
@@ -136,25 +144,30 @@ func _refresh_roster() -> void:
 				"%s (%s·%s Lv%d) pwr:%d%s"
 				% [e["monster_name"], e["grade_name"], e["grade"], e["level"], e["power"], marker]
 			)
-			row.visible = not collapsed
 			row.pressed.connect(_on_shadow_row_pressed.bind(e["instance_id"]))
 			sections_container.add_child(row)
 			y += 44
-		header.pressed.connect(_on_section_header_pressed.bind(clazz, header, row_start_y, y))
+
+	# Lets SectionsScroll (the ScrollContainer wrapping this node) know the
+	# true content height so it knows how far there is to scroll -- a bare
+	# Control reports zero minimum size otherwise since nothing here is
+	# laid out by an auto-layout container.
+	sections_container.custom_minimum_size = Vector2(2340, y)
 
 
-func _on_section_header_pressed(
-	clazz: String, header: Button, row_start_y: float, row_end_y: float
-) -> void:
-	var collapsed: bool = not _collapsed.get(clazz, false)
-	_collapsed[clazz] = collapsed
-	header.text = header.text.replace("▾" if not collapsed else "▸", "▸" if collapsed else "▾")
-	for child in sections_container.get_children():
-		if child is Button and child.position.y >= row_start_y and child.position.y < row_end_y:
-			child.visible = not collapsed
+## Collapsing/expanding folds the section's row space away rather than just
+## hiding the rows in place -- _refresh_roster() skips building a collapsed
+## section's rows entirely, so the sections below shift up to fill the gap.
+func _on_section_header_pressed(clazz: String) -> void:
+	_collapsed[clazz] = not _collapsed.get(clazz, false)
+	_refresh_roster()
 
 
 func _on_shadow_row_pressed(shadow_instance_id: String) -> void:
+	# ArmyPanel and ShadowGearPanel are sibling full-screen panels -- hide
+	# this one first or ShadowGearPanel opens invisibly/unclickable behind
+	# ArmyPanel's own opaque Bg.
+	visible = false
 	_shadow_gear_view.open()
 	# ShadowGearView.open() opens on whichever _index it last had -- jump it
 	# to the tapped shadow before showing, same lookup shadow_gear_view's
@@ -164,6 +177,12 @@ func _on_shadow_row_pressed(shadow_instance_id: String) -> void:
 	)
 	if idx >= 0:
 		_shadow_gear_view.jump_to_index(idx)
+
+
+## Closing Shadow Gear (opened from a roster tap) returns to the Army
+## screen's Roster tab rather than leaving both panels hidden.
+func _on_shadow_gear_view_closed() -> void:
+	open()
 
 
 ## Phase 2/P2 step 4 logic, moved here from main.gd unchanged (§17's
@@ -202,6 +221,7 @@ func _on_squad_auto_fill_requested() -> void:
 func _on_squad_toggle_requested(instance_id: String) -> void:
 	var fielded := _state.active_party_ids.has(instance_id)
 	if not _state.toggle_party_member(instance_id, not fielded):
+		squad_full_message.emit("\n\n3 already fielded -- unfield one first.")
 		return
 	_after_mutation()
 	_refresh_squad()
