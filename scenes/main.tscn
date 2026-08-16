@@ -395,6 +395,14 @@ offset_bottom = 140.0
 theme_override_font_sizes/font_size = 20
 text = "Auto-Fill Party"
 
+[node name="AutoEquipSquadButton" type="Button" parent="GameUI/SquadPanel"]
+offset_left = 480.0
+offset_top = 90.0
+offset_right = 700.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 18
+text = "Auto-Equip Squad"
+
 [node name="InfoLabel" type="Label" parent="GameUI/SquadPanel"]
 offset_left = 40.0
 offset_top = 160.0

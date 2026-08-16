@@ -10,6 +10,7 @@ extends Node2D
 
 signal toggle_requested(instance_id: String)
 signal auto_fill_requested
+signal auto_equip_squad_requested
 signal close_requested
 
 var _rows: Array = []  ## Array[Dictionary]: {label, toggle_btn, instance_id} -- one per
@@ -23,6 +24,7 @@ var _rows: Array = []  ## Array[Dictionary]: {label, toggle_btn, instance_id} --
 func _ready() -> void:
 	$CloseButton.pressed.connect(func() -> void: close_requested.emit())
 	$AutoFillButton.pressed.connect(func() -> void: auto_fill_requested.emit())
+	$AutoEquipSquadButton.pressed.connect(func() -> void: auto_equip_squad_requested.emit())
 	_rows = _build_rows(rows_container, 230.0)
 
 
