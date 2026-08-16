@@ -58,7 +58,8 @@ func bind(
 	# Reopens this panel's Roster tab whenever Shadow Gear closes -- correct
 	# as long as ArmyView is the only path that opens Shadow Gear, which
 	# holds once the old standalone ShadowGearButton entry point is retired.
-	_shadow_gear_view.closed.connect(_on_shadow_gear_view_closed)
+	if not _shadow_gear_view.closed.is_connected(_on_shadow_gear_view_closed):
+		_shadow_gear_view.closed.connect(_on_shadow_gear_view_closed)
 
 
 func open() -> void:
@@ -123,6 +124,12 @@ func _refresh_roster() -> void:
 			return GameLogic.RANK_ORDER.find(b["grade"]) < GameLogic.RANK_ORDER.find(a["grade"])
 	)
 
+	var squad_ids := {}
+	for member: Dictionary in SquadBuilder.auto_fill_squad(
+		_state.army, _monsters, _state.level, _equipment, _state.inventory
+	):
+		squad_ids[member["instance_id"]] = true
+
 	var y := 0.0
 	for clazz in SquadBuilder.CLASSES:
 		var class_shadows: Array = enriched.filter(
@@ -146,7 +153,8 @@ func _refresh_roster() -> void:
 			var row := Button.new()
 			row.position = Vector2(60, y)
 			row.size = Vector2(2300, 40)
-			var marker := " [L]" if e["locked"] else ""
+			var marker := " [S]" if squad_ids.has(e["instance_id"]) else ""
+			marker += " [L]" if e["locked"] else ""
 			marker += " [F]" if e["favorite"] else ""
 			row.text = (
 				"%s (%s·%s Lv%d) pwr:%d%s"
