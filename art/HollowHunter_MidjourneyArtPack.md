@@ -211,7 +211,7 @@ Grouped by rank. Filename each download to match: **`por_<id>.png`** (id shown i
 ### B-rank — formidable named (11)
 39. **Frostquill** [mon_frostquill] — a bladed ice-sylph assassin bristling with frozen cyan quills.
 40. **Hivewarden** [mon_hivewarden] — a towering armored brood-warrior guarding a hive, thick chitin, cyan cracks.
-41. **Warhowl** [mon_warhowl] — a hulking grave-beast war-chief mid-roar, support commander, cyan battle-aura.
+41. **Warhowl** [mon_warhowl] — a colossal armored dire-bear war-chief rearing mid-roar, shaggy matted fur over a bone-and-iron war harness, thick clawed forelimbs, broad fanged muzzle, support commander, cyan battle-aura.
 42. **Sepulcher Knight** [mon_sepulcher_knight] — a grand undead guardian in ornate ashen tomb-armor with a tower shield.
 43. **Cindermaw Drake** [mon_cindermaw_drake] — a large cinder-drake mage breathing cold cyan fire, ash-scaled.
 44. **Hollowhorn** [mon_hollowhorn] — a massive horned abyssal guardian, dark hide, glowing cyan hollow eyes.
@@ -231,7 +231,7 @@ Grouped by rank. Filename each download to match: **`por_<id>.png`** (id shown i
 56. **Ashen Lord Commander** [mon_ashen_lord_commander] — a commanding undead ashen war-lord support raising a banner, cyan command-aura, regal armor.
 
 ### S-rank — colossal bosses, epic (5)
-57. **Xir'Vok, Brood Sovereign** [mon_xirvok] — a gigantic insectoid brood-sovereign, throne of writhing chitin and eggs, immense cyan glow, terrifying boss scale, epic key-art quality.
+57. **Xir'Vok, Brood Sovereign** [mon_xirvok] — a regal insectoid hive-monarch, crowned chitin skull, spined crest, four bladed limbs, tattered royal shroud, orbiting drones, immense cyan glow, terrifying boss scale, epic key-art quality.
 58. **Vharun, the Cinder Wyrm** [mon_vharun] — a colossal serpentine cinder-wyrm dragon exhaling cold cyan fire, vast ash-scaled coils, epic boss, cinematic.
 59. **The Pale Sovereign** [mon_pale_sovereign] — a towering pale crowned abyssal demon-king wreathed in cold cyan flame, hollow radiant eyes, throne of the abyss, epic final-boss grandeur, cinematic.
 60. **Ur-Grakh, the Bonemarch King** [mon_ur_grakh] — a giant bone-armored grave-warlord king warrior with a colossal cleaver, crown of tusks, mountainous, epic boss.

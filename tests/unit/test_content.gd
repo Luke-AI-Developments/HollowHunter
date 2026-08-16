@@ -13,8 +13,8 @@ func before_all() -> void:
 	moves = Content.load_moves()
 
 
-func test_all_61_monsters_load() -> void:
-	assert_eq(monsters.size(), 61)
+func test_all_57_monsters_load() -> void:
+	assert_eq(monsters.size(), 57)
 
 
 func test_equipment_loads_50_base_60_set_pieces_15_sets() -> void:

@@ -758,7 +758,8 @@ MonsterDef  Warhowl
   base_power: 2600; extract_chance: 0.08
   loot_table_id: "loot_uncommon_b"
   sprite_id: "spr_warhowl"; portrait_id: "por_warhowl"
-  # hulking Gravekin chieftain, trophy-bone armor, war banner; violet paint
+  # colossal armored dire-bear war-chief rearing mid-roar, shaggy matted fur over
+  # bone-and-iron war harness, thick clawed forelimbs, broad fanged muzzle; violet paint
   # shadow: warcry buffs allied shadows' attack
 
 MonsterDef  Sepulcher Knight
@@ -816,7 +817,8 @@ MonsterDef  Xir'Vok, Brood Sovereign
   base_power: 9000; extract_chance: 0.03
   loot_table_id: "loot_epic_s"
   sprite_id: "spr_xirvok"; portrait_id: "por_xirvok"
-  # colossal hive-king, crowned carapace, many limbs; violet chitin, cyan brood-glow
+  # regal insectoid hive-monarch, crowned chitin skull, spined crest, four bladed
+  # limbs, tattered royal shroud, orbiting drones; violet chitin, cyan brood-glow
   # shadow: buffs ALL your smaller shadows (swarm commander)
 
 MonsterDef  Vharûn, the Cinder Wyrm

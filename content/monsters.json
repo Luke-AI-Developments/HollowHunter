@@ -1,5 +1,5 @@
 {
-  "_comment": "Hollow Hunter monster content DB (v0, from design bible §14b). 61 monsters. Fields: id, name, rank, family, clazz, base_power, extract_chance (per-try boss claim chance), sprite_id/portrait_id follow spr_<id>/por_<id>. Ranks E-S. Classes gate gear + squad slots. Elements were cut. Load with JSON.parse_string().",
+  "_comment": "Hollow Hunter monster content DB (v0, from design bible §14b). 57 monsters. Fields: id, name, rank, family, clazz, base_power, extract_chance (per-try boss claim chance), sprite_id/portrait_id follow spr_<id>/por_<id>. Ranks E-S. Classes gate gear + squad slots. Elements were cut. Load with JSON.parse_string().",
   "monsters": [
     {"id": "mon_grubmaw", "name": "Grubmaw", "rank": "E", "family": "Hollow Brood", "clazz": "WARRIOR", "base_power": 120, "extract_chance": 0.40},
     {"id": "mon_runtclaw", "name": "Runtclaw", "rank": "E", "family": "Gravekin", "clazz": "ASSASSIN", "base_power": 200, "extract_chance": 0.40},
@@ -27,17 +27,14 @@
     {"id": "mon_grimhound", "name": "Grimhound", "rank": "D", "family": "Gravekin", "clazz": "ASSASSIN", "base_power": 470, "extract_chance": 0.24},
 
     {"id": "mon_ashen_warden", "name": "Ashen Warden", "rank": "C", "family": "Ashen Wardens", "clazz": "WARRIOR", "base_power": 900, "extract_chance": 0.15},
-    {"id": "mon_sporecrawler", "name": "Sporecrawler", "rank": "C", "family": "Hollow Brood", "clazz": "MAGE", "base_power": 1050, "extract_chance": 0.13},
     {"id": "mon_bonegnasher", "name": "Bonegnasher", "rank": "C", "family": "Gravekin", "clazz": "ASSASSIN", "base_power": 1200, "extract_chance": 0.13},
     {"id": "mon_glacewisp", "name": "Glacewisp", "rank": "C", "family": "Rime Sylphs", "clazz": "MAGE", "base_power": 950, "extract_chance": 0.14},
     {"id": "mon_ashwing", "name": "Ashwing", "rank": "C", "family": "Emberdrakes", "clazz": "ASSASSIN", "base_power": 1300, "extract_chance": 0.12},
-    {"id": "mon_dreadmaw", "name": "Dreadmaw", "rank": "C", "family": "Abyssal Fiends", "clazz": "ASSASSIN", "base_power": 1150, "extract_chance": 0.13},
     {"id": "mon_sporelord", "name": "Sporelord", "rank": "C", "family": "Hollow Brood", "clazz": "MAGE", "base_power": 1100, "extract_chance": 0.13},
     {"id": "mon_broodlancer", "name": "Broodlancer", "rank": "C", "family": "Hollow Brood", "clazz": "ASSASSIN", "base_power": 1200, "extract_chance": 0.13},
     {"id": "mon_direwarden", "name": "Direwarden", "rank": "C", "family": "Ashen Wardens", "clazz": "WARRIOR", "base_power": 1300, "extract_chance": 0.12},
     {"id": "mon_snarlpack", "name": "Snarlpack Alpha", "rank": "C", "family": "Gravekin", "clazz": "SUPPORT", "base_power": 1350, "extract_chance": 0.12},
     {"id": "mon_frostbite_sylph", "name": "Frostbite Sylph", "rank": "C", "family": "Rime Sylphs", "clazz": "MAGE", "base_power": 1000, "extract_chance": 0.14},
-    {"id": "mon_glimmerhound", "name": "Glimmerhound", "rank": "C", "family": "Rime Sylphs", "clazz": "ASSASSIN", "base_power": 980, "extract_chance": 0.14},
     {"id": "mon_emberling", "name": "Emberling", "rank": "C", "family": "Emberdrakes", "clazz": "ASSASSIN", "base_power": 1250, "extract_chance": 0.12},
     {"id": "mon_grinlet", "name": "Grinlet", "rank": "C", "family": "Abyssal Fiends", "clazz": "MAGE", "base_power": 1150, "extract_chance": 0.13},
     {"id": "mon_cindercreep", "name": "Cindercreep", "rank": "C", "family": "Abyssal Fiends", "clazz": "MAGE", "base_power": 1400, "extract_chance": 0.12},
@@ -51,7 +48,6 @@
     {"id": "mon_broodqueen_vassal", "name": "Broodqueen Vassal", "rank": "B", "family": "Hollow Brood", "clazz": "SUPPORT", "base_power": 2450, "extract_chance": 0.09},
     {"id": "mon_ashen_cataphract", "name": "Ashen Cataphract", "rank": "B", "family": "Ashen Wardens", "clazz": "GUARDIAN", "base_power": 2500, "extract_chance": 0.09},
     {"id": "mon_glacial_revenant", "name": "Glacial Revenant", "rank": "B", "family": "Rime Sylphs", "clazz": "WARRIOR", "base_power": 2600, "extract_chance": 0.08},
-    {"id": "mon_duskdrake", "name": "Duskdrake", "rank": "B", "family": "Emberdrakes", "clazz": "ASSASSIN", "base_power": 2650, "extract_chance": 0.08},
     {"id": "mon_fiendlord", "name": "Fiendlord", "rank": "B", "family": "Abyssal Fiends", "clazz": "MAGE", "base_power": 2800, "extract_chance": 0.08},
 
     {"id": "mon_cindervane", "name": "Cindervane", "rank": "A", "family": "Emberdrakes", "clazz": "ASSASSIN", "base_power": 4500, "extract_chance": 0.06},
