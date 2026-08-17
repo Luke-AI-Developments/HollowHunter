@@ -42,6 +42,21 @@ static func equipped_set_counts(
 	return counts
 
 
+## §17b: owned piece count per set_id across the WHOLE inventory (not just
+## equipped) -- feeds the Inventory screen's Sets tab "3/4" readout.
+## Sibling to equipped_set_counts(), same counting logic, a different
+## source array (every owned copy counts, worn or not).
+static func owned_set_counts(inventory: Array, equipment: Dictionary) -> Dictionary:
+	var counts := {}
+	for item: Dictionary in inventory:
+		var def := Content.equipment_by_id(equipment, item.get("equipment_def_id", ""))
+		var set_id: String = def.get("set_id", "")
+		if set_id == "":
+			continue
+		counts[set_id] = counts.get(set_id, 0) + 1
+	return counts
+
+
 ## Parses a clean "STAT+N[, STAT+N...]" bonus string into {STAT: N, ...}.
 ## Returns {} for anything that doesn't match that exact shape (e.g.
 ## bonus_4pc's prose) -- not an error, just "no stat bonus here".

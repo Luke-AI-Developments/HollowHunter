@@ -189,3 +189,12 @@ func test_essence_for_converted_shadow_matches_the_source_table():
 
 func test_essence_for_converted_shadow_unknown_grade_is_zero():
 	assert_eq(GameLogic.essence_for_converted_shadow("Z"), 0)
+
+
+func test_essence_for_scrapped_item_by_rarity() -> void:
+	assert_eq(GameLogic.essence_for_scrapped_item("COMMON"), 2)
+	assert_eq(GameLogic.essence_for_scrapped_item("LEGENDARY"), 32)
+
+
+func test_essence_for_scrapped_item_unknown_rarity_is_zero() -> void:
+	assert_eq(GameLogic.essence_for_scrapped_item("NOT_A_RARITY"), 0)

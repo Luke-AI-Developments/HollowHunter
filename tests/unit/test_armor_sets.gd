@@ -119,3 +119,21 @@ func test_total_set_bonus_with_no_sets_equipped_is_zero() -> void:
 	var bonus := ArmorSets.total_set_bonus({}, [], equipment)
 	assert_eq(bonus["stat_mods"], {})
 	assert_eq(bonus["power_pct"], 0.0)
+
+
+func test_owned_set_counts_counts_whole_inventory_not_just_equipped() -> void:
+	var equipment_data := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_warhowls_hood", "enhancement_level": 0},
+		{"instance_id": "i1", "equipment_def_id": "eq_warhowls_robe", "enhancement_level": 0},
+	]
+	var counts := ArmorSets.owned_set_counts(inventory, equipment_data)
+	assert_eq(counts.get("set_warhowls_standard", 0), 2)
+
+
+func test_owned_set_counts_ignores_non_set_items() -> void:
+	var equipment_data := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_warcleaver", "enhancement_level": 0}
+	]
+	assert_eq(ArmorSets.owned_set_counts(inventory, equipment_data), {})

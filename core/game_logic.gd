@@ -59,6 +59,14 @@ const GRADE_NAME := {
 # --- Essence per mass-converted shadow, by grade (§26/§17): real source numbers ---
 const ESSENCE_PER_CONVERTED_SHADOW := {"E": 1, "D": 2, "C": 4, "B": 8, "A": 15, "S": 30}
 
+# --- Essence granted scrapping an unwanted item, by rarity (§17b): invented v0
+# numbers, a doubling curve on its own base (not reusing ESSENCE_PER_CONVERTED_SHADOW's
+# numbers), same "don't let two Essence sinks read as directly comparable"
+# reasoning ShadowLeveling's own fuse-discount comment already uses. ---
+const ESSENCE_PER_SCRAPPED_ITEM := {
+	"COMMON": 2, "UNCOMMON": 4, "RARE": 8, "EPIC": 16, "LEGENDARY": 32
+}
+
 
 # --- Progression (§3): linear curve ---
 static func exp_to_next(level: int) -> int:
@@ -290,3 +298,8 @@ static func grade_name(rank: String) -> String:
 # --- Essence granted converting a shadow to Essence, by grade (§26/§17) ---
 static func essence_for_converted_shadow(grade: String) -> int:
 	return int(ESSENCE_PER_CONVERTED_SHADOW.get(grade, 0))
+
+
+# --- Essence granted scrapping an unwanted item, by rarity (§17b) ---
+static func essence_for_scrapped_item(rarity: String) -> int:
+	return int(ESSENCE_PER_SCRAPPED_ITEM.get(rarity, 0))
