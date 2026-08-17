@@ -20,6 +20,12 @@ var last_exp_date: String  ## "YYYY-MM-DD" (device-local calendar date) of the l
 var inventory: Array  ## Array[Dictionary]: {instance_id, equipment_def_id, enhancement_level}.
 ## Like army, doesn't duplicate content data -- look up name/slot/rarity/stat_mods/power_bonus
 ## from equipment_def_id via Content when needed.
+var next_inventory_id: int = 0  ## §17b: monotonic counter for inventory instance_ids. NOT
+## inventory.size() (the old scheme) -- that gets reused after scrap_item() removes an item,
+## colliding with a surviving item's id. Bulk scrap is what makes this reachable for the
+## first time; fixed here rather than left as a "flagged gap" like the identical (still
+## unfixed) pattern in claim_shadow()'s shadow ids, which nothing removes-then-adds fast
+## enough to hit in practice today.
 var equipped: Dictionary  ## slot (Equip.SLOTS) -> inventory instance_id. The hunter's own
 ## 7-slot loadout. Each army shadow carries its own equipped dict too (see claim_shadow()).
 var nadir_deepest_floor: int  ## Phase 2/P3 step 1: highest Nadir floor ever cleared (§20) --
@@ -84,6 +90,7 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.army = []
 	s.last_exp_date = ""
 	s.inventory = []
+	s.next_inventory_id = 0
 	s.equipped = {}
 	s.nadir_deepest_floor = 0
 	s.stronghold_level = 1
@@ -99,13 +106,16 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 
 
 ## Adds an unenhanced instance of the given equipment def to the inventory.
-## Pure -- instance_id is index-based, same convention as claim_shadow().
+## Pure -- instance_id comes from next_inventory_id, which only ever
+## increases, so it's safe across any number of scrap_item() removals.
 func add_to_inventory(equipment_def_id: String) -> Dictionary:
 	var item := {
-		"instance_id": "eq_inst_%d" % inventory.size(),
+		"instance_id": "eq_inst_%d" % next_inventory_id,
 		"equipment_def_id": equipment_def_id,
 		"enhancement_level": 0,
+		"locked": false,
 	}
+	next_inventory_id += 1
 	inventory.append(item)
 	return item
 
@@ -156,6 +166,16 @@ func set_shadow_favorite(shadow_instance_id: String, favorite: bool) -> bool:
 	if idx < 0:
 		return false
 	army[idx]["favorite"] = favorite
+	return true
+
+
+## §17b: locks/unlocks an owned item, protecting it from scrap (single or
+## bulk). Same shape as set_shadow_locked(). False (no-op) if unknown item.
+func set_item_locked(instance_id: String, locked: bool) -> bool:
+	var idx := _inventory_index(instance_id)
+	if idx < 0:
+		return false
+	inventory[idx]["locked"] = locked
 	return true
 
 
@@ -548,11 +568,48 @@ func enhance_item(instance_id: String) -> bool:
 	return true
 
 
+## §17b: scraps an owned item for Essence (GameLogic.essence_for_scrapped_item,
+## keyed by rarity). False/0 (no-op) if the item's unknown, locked, or
+## currently worn by the hunter or any shadow (Inventory.wearer_of) --
+## scrapping a worn item is a structural block here, not just a UI
+## confirm-dialog.
+func scrap_item(instance_id: String, equipment: Dictionary) -> int:
+	var idx := _inventory_index(instance_id)
+	if idx < 0:
+		return 0
+	var item: Dictionary = inventory[idx]
+	if item.get("locked", false):
+		return 0
+	if Inventory.wearer_of(instance_id, equipped, army)["kind"] != "none":
+		return 0
+	var def := Content.equipment_by_id(equipment, item.get("equipment_def_id", ""))
+	var gained := GameLogic.essence_for_scrapped_item(def.get("rarity", ""))
+	essence += gained
+	inventory.remove_at(idx)
+	return gained
+
+
+## Scraps every given instance_id, skipping any that don't qualify (same
+## shape as mass_convert() for shadows). Returns total Essence gained.
+func bulk_scrap(instance_ids: Array, equipment: Dictionary) -> int:
+	var before := essence
+	for instance_id in instance_ids:
+		scrap_item(instance_id, equipment)
+	return essence - before
+
+
 func _inventory_item(instance_id: String) -> Dictionary:
 	for item: Dictionary in inventory:
 		if item.get("instance_id", "") == instance_id:
 			return item
 	return {}
+
+
+func _inventory_index(instance_id: String) -> int:
+	for i in inventory.size():
+		if inventory[i].get("instance_id", "") == instance_id:
+			return i
+	return -1
 
 
 func _army_index(shadow_instance_id: String) -> int:
@@ -675,6 +732,7 @@ func to_dict() -> Dictionary:
 		"army": army,
 		"last_exp_date": last_exp_date,
 		"inventory": inventory,
+		"next_inventory_id": next_inventory_id,
 		"equipped": equipped,
 		"nadir_deepest_floor": nadir_deepest_floor,
 		"stronghold_level": stronghold_level,
@@ -700,6 +758,7 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.army = d.get("army", [])
 	s.last_exp_date = String(d.get("last_exp_date", ""))
 	s.inventory = d.get("inventory", [])
+	s.next_inventory_id = int(d.get("next_inventory_id", s.inventory.size()))
 	s.equipped = d.get("equipped", {})
 	s.nadir_deepest_floor = int(d.get("nadir_deepest_floor", 0))
 	s.stronghold_level = int(d.get("stronghold_level", 1))
