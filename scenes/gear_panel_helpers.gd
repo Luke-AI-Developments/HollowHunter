@@ -38,6 +38,12 @@ static func build_gear_rows(parent: Node2D, y_start: float) -> Array:
 		enhance_btn.text = "Enhance"
 		parent.add_child(enhance_btn)
 
+		var browse_btn := Button.new()
+		browse_btn.position = Vector2(1140, y)
+		browse_btn.size = Vector2(130, 40)
+		browse_btn.text = "Browse"
+		parent.add_child(browse_btn)
+
 		(
 			rows
 			. append(
@@ -47,6 +53,7 @@ static func build_gear_rows(parent: Node2D, y_start: float) -> Array:
 					"equip_btn": equip_btn,
 					"unequip_btn": unequip_btn,
 					"enhance_btn": enhance_btn,
+					"browse_btn": browse_btn,
 				}
 			)
 		)

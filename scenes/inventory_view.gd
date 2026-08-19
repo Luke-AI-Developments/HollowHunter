@@ -13,6 +13,9 @@ extends Node2D
 ## Standalone opens (this task's only entry point) have no context.
 
 signal state_changed
+signal item_equipped  ## fired after a successful Equip-from-detail, so the caller (a gear
+## panel) can refresh itself -- distinct from state_changed, which the shared HUD listens to;
+## this one specifically tells "your paper-doll may now be stale, refresh your own display"
 
 const CLASS_OPTIONS := ["ALL", "WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
 const EQUIPPED_OPTIONS := ["ALL", "EQUIPPED", "UNEQUIPPED"]
@@ -32,6 +35,9 @@ var _multi_select_mode: bool = false
 var _multi_selected: Dictionary = {}  ## instance_id -> true, only while _multi_select_mode
 var _pending_scrap_ids: Array = []  ## computed by whichever bulk action was tapped
 var _rarity_below_threshold: String = "UNCOMMON"
+## set by open_for_slot(), cleared by open()
+var _context := {"kind": "none", "shadow_instance_id": ""}
+var _context_slot: String = ""
 
 @onready var grid: GridContainer = $GridTab/GridScroll/Grid
 @onready var class_filter_button: Button = $GridTab/FilterBar/ClassFilterButton
@@ -69,6 +75,7 @@ func _ready() -> void:
 	$GridTab/BulkBar/ScrapDuplicatesButton.pressed.connect(_on_scrap_duplicates_pressed)
 	$ConfirmScrapPanel/ConfirmButton.pressed.connect(_on_confirm_scrap_pressed)
 	$ConfirmScrapPanel/CancelButton.pressed.connect(_on_cancel_scrap_pressed)
+	$DetailPanel/EquipButton.pressed.connect(_on_equip_pressed)
 
 
 func bind(state: HunterState, equipment: Dictionary, monsters: Array) -> void:
@@ -84,8 +91,23 @@ func bind(state: HunterState, equipment: Dictionary, monsters: Array) -> void:
 ## Standalone entry point -- no shadow/hunter context, Compare never
 ## renders (Task 7 adds a second, context-carrying open variant).
 func open() -> void:
+	_context = {"kind": "none", "shadow_instance_id": ""}
+	_context_slot = ""
 	visible = true
 	$GridTabButton.visible = true  # re-shown in case a later task's tab hid it
+	_on_grid_tab_pressed()
+
+
+## Called from a gear panel's new "Browse" button -- opens pre-filtered to
+## `slot` and (if given) `class_filter`, with `context` carried through so
+## Compare and Equip-from-detail both work. `context`: {"kind": "hunter"|
+## "shadow", "shadow_instance_id": ""}.
+func open_for_slot(slot: String, class_filter: String, context: Dictionary) -> void:
+	_context = context
+	_context_slot = slot
+	_filters["slot"] = slot
+	_filters["class"] = class_filter
+	visible = true
 	_on_grid_tab_pressed()
 
 
@@ -276,11 +298,64 @@ func _show_detail() -> void:
 	var worn: bool = wearer["kind"] != "none"
 	scrap_button.visible = not worn and not item["locked"]
 
+	var equip_button: Button = $DetailPanel/EquipButton
+	equip_button.visible = _context["kind"] != "none" and item["slot"] == _context_slot
+	$DetailPanel/CompareLabel.text = ""
+	if equip_button.visible:
+		var current_def := _current_context_def()
+		var delta := Inventory.compare_delta(item, current_def)
+		var lines := ["vs. currently equipped:", "Power: %+d" % delta["power_delta"]]
+		for stat in delta["stat_delta"]:
+			lines.append("%s: %+d" % [stat, delta["stat_delta"][stat]])
+		$DetailPanel/CompareLabel.text = "\n".join(lines)
+
 
 func _on_detail_back_pressed() -> void:
 	detail_panel.visible = false
 	$GridTab.visible = true
 	_selected_instance_id = ""
+
+
+## The def dict (enhancement-scaled, same shape filter_by's enrichment
+## produces) of whatever's currently in _context_slot for the current
+## context -- {} if the slot's empty. compare_delta() treats {} as
+## all-zero, so an empty slot just shows the full candidate as pure gain.
+func _current_context_def() -> Dictionary:
+	var current_instance_id := ""
+	if _context["kind"] == "hunter":
+		current_instance_id = _state.equipped.get(_context_slot, "")
+	elif _context["kind"] == "shadow":
+		var idx := _state.army.find_custom(
+			func(s: Dictionary) -> bool: return s["instance_id"] == _context["shadow_instance_id"]
+		)
+		if idx >= 0:
+			current_instance_id = _state.army[idx].get("equipped", {}).get(_context_slot, "")
+	if current_instance_id == "":
+		return {}
+	var current_items := Inventory.filter_by(
+		_state.inventory, _equipment, _state.equipped, _state.army, {}
+	)
+	for i: Dictionary in current_items:
+		if i["instance_id"] == current_instance_id:
+			return i
+	return {}
+
+
+func _on_equip_pressed() -> void:
+	if _selected_instance_id == "" or _context["kind"] == "none":
+		return
+	var ok := false
+	if _context["kind"] == "hunter":
+		ok = _state.equip_to_hunter(_selected_instance_id, _equipment)
+	elif _context["kind"] == "shadow":
+		ok = _state.equip_to_shadow(
+			_context["shadow_instance_id"], _selected_instance_id, _equipment, _monsters
+		)
+	if not ok:
+		return
+	_after_mutation()
+	item_equipped.emit()
+	_on_detail_back_pressed()
 
 
 func _on_lock_pressed() -> void:

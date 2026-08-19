@@ -12,6 +12,7 @@ signal closed  ## emitted on CloseButton -- lets a caller like ArmyView return t
 var _state: HunterState
 var _equipment: Dictionary
 var _monsters: Array
+var _inventory_view: InventoryView
 var _index: int = 0  ## index into state.army for whichever shadow is being viewed
 var _rows: Array = []
 
@@ -38,15 +39,20 @@ func _ready() -> void:
 		row["equip_btn"].pressed.connect(_on_equip_best_pressed.bind(slot))
 		row["unequip_btn"].pressed.connect(_on_unequip_pressed.bind(slot))
 		row["enhance_btn"].pressed.connect(_on_enhance_pressed.bind(slot))
+		row["browse_btn"].pressed.connect(_on_browse_pressed.bind(slot))
 
 
 ## Called from main.gd's _start_game() (both the existing-save and
 ## new-game bootstrap paths) -- state/_equipment/_monsters aren't ready at
 ## _ready().
-func bind(state: HunterState, equipment: Dictionary, monsters: Array) -> void:
+func bind(
+	state: HunterState, equipment: Dictionary, monsters: Array, inventory_view: InventoryView
+) -> void:
 	_state = state
 	_equipment = equipment
 	_monsters = monsters
+	_inventory_view = inventory_view
+	_inventory_view.item_equipped.connect(refresh)
 
 
 ## False (no-op, panel stays closed) if the army is empty -- main.gd shows
@@ -138,6 +144,16 @@ func _on_enhance_pressed(slot: String) -> void:
 		return
 	_state.enhance_item(instance_id)
 	_after_mutation()
+
+
+func _on_browse_pressed(slot: String) -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	var monster := Content.monster_by_id(_monsters, _state.army[_index].get("monster_id", ""))
+	_inventory_view.open_for_slot(
+		slot, monster.get("clazz", ""), {"kind": "shadow", "shadow_instance_id": shadow_id}
+	)
 
 
 ## No-op (no error UI yet, same placeholder-simplicity as the gear

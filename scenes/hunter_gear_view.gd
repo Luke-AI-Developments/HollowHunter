@@ -16,7 +16,9 @@ signal state_changed
 
 var _state: HunterState
 var _equipment: Dictionary
-var _rows: Array = []  ## Array[Dictionary]: {slot, label, equip_btn, unequip_btn, enhance_btn}
+var _inventory_view: InventoryView
+## Array[Dictionary]: {slot, label, equip_btn, unequip_btn, enhance_btn, browse_btn}
+var _rows: Array = []
 
 @onready var sets_label: Label = $SetsLabel
 
@@ -30,13 +32,16 @@ func _ready() -> void:
 		row["equip_btn"].pressed.connect(_on_equip_best_pressed.bind(slot))
 		row["unequip_btn"].pressed.connect(_on_unequip_pressed.bind(slot))
 		row["enhance_btn"].pressed.connect(_on_enhance_pressed.bind(slot))
+		row["browse_btn"].pressed.connect(_on_browse_pressed.bind(slot))
 
 
 ## Called from main.gd's _start_game() (both the existing-save and
 ## new-game bootstrap paths) -- state/_equipment aren't ready at _ready().
-func bind(state: HunterState, equipment: Dictionary) -> void:
+func bind(state: HunterState, equipment: Dictionary, inventory_view: InventoryView) -> void:
 	_state = state
 	_equipment = equipment
+	_inventory_view = inventory_view
+	_inventory_view.item_equipped.connect(refresh)
 
 
 func open() -> void:
@@ -68,6 +73,12 @@ func _on_equip_best_pressed(slot: String) -> void:
 func _on_unequip_pressed(slot: String) -> void:
 	_state.unequip_from_hunter(slot)
 	_after_mutation()
+
+
+func _on_browse_pressed(slot: String) -> void:
+	_inventory_view.open_for_slot(
+		slot, _state.subclass, {"kind": "hunter", "shadow_instance_id": ""}
+	)
 
 
 func _on_auto_equip_pressed() -> void:

@@ -175,14 +175,14 @@ func _start_game() -> void:
 	_refresh_label()
 	if not enter_gate_button.pressed.is_connected(_on_enter_gate_pressed):
 		enter_gate_button.pressed.connect(_on_enter_gate_pressed)
-	hunter_gear_view.bind(state, _equipment)
-	shadow_gear_view.bind(state, _equipment, _monsters)
+	inventory_view.bind(state, _equipment, _monsters)
+	hunter_gear_view.bind(state, _equipment, inventory_view)
+	shadow_gear_view.bind(state, _equipment, _monsters, inventory_view)
 	stronghold_view.bind(state)
 	character_view.bind(state, _equipment, _monsters)
 	leaderboard_view.bind(state, _equipment)
 	army_view.bind(state, _equipment, _monsters, shadow_gear_view)
 	army_view.refresh_if_open()
-	inventory_view.bind(state, _equipment, _monsters)
 	_setup_gear_panels()
 
 
