@@ -17,6 +17,7 @@ signal state_changed
 const CLASS_OPTIONS := ["ALL", "WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
 const EQUIPPED_OPTIONS := ["ALL", "EQUIPPED", "UNEQUIPPED"]
 const SORT_MODES := ["power", "rarity", "slot", "newest"]
+const RARITY_BELOW_OPTIONS := ["UNCOMMON", "RARE", "EPIC", "LEGENDARY"]  ## "below COMMON" is empty
 
 var _state: HunterState
 var _equipment: Dictionary
@@ -27,6 +28,10 @@ var _filters := {"class": "ALL", "slot": "ALL", "rarity": "ALL", "set_id": "ALL"
 var _sort_mode: String = "power"
 var _selected_instance_id: String = ""
 var _grid_items: Array = []  ## the last filtered+sorted list, so detail can look an item back up
+var _multi_select_mode: bool = false
+var _multi_selected: Dictionary = {}  ## instance_id -> true, only while _multi_select_mode
+var _pending_scrap_ids: Array = []  ## computed by whichever bulk action was tapped
+var _rarity_below_threshold: String = "UNCOMMON"
 
 @onready var grid: GridContainer = $GridTab/GridScroll/Grid
 @onready var class_filter_button: Button = $GridTab/FilterBar/ClassFilterButton
@@ -58,6 +63,12 @@ func _ready() -> void:
 	$DetailPanel/BackButton.pressed.connect(_on_detail_back_pressed)
 	lock_button.pressed.connect(_on_lock_pressed)
 	scrap_button.pressed.connect(_on_scrap_pressed)
+	$GridTab/BulkBar/MultiSelectToggleButton.pressed.connect(_on_multi_select_toggle_pressed)
+	$GridTab/BulkBar/ScrapSelectedButton.pressed.connect(_on_scrap_selected_pressed)
+	$GridTab/BulkBar/ScrapBelowRarityButton.pressed.connect(_on_scrap_below_rarity_pressed)
+	$GridTab/BulkBar/ScrapDuplicatesButton.pressed.connect(_on_scrap_duplicates_pressed)
+	$ConfirmScrapPanel/ConfirmButton.pressed.connect(_on_confirm_scrap_pressed)
+	$ConfirmScrapPanel/CancelButton.pressed.connect(_on_cancel_scrap_pressed)
 
 
 func bind(state: HunterState, equipment: Dictionary, monsters: Array) -> void:
@@ -173,9 +184,17 @@ func _refresh_grid() -> void:
 		var cell := Button.new()
 		cell.custom_minimum_size = Vector2(560, 160)
 		var lock_mark := " [L]" if item["locked"] else ""
+		var select_mark := " [✓]" if _multi_selected.has(item["instance_id"]) else ""
 		cell.text = (
-			"%s\n%s · %s%s\npwr:%d"
-			% [item["name"], item["rarity"], item["slot"], lock_mark, item["power_bonus"]]
+			"%s\n%s · %s%s%s\npwr:%d"
+			% [
+				item["name"],
+				item["rarity"],
+				item["slot"],
+				lock_mark,
+				select_mark,
+				item["power_bonus"]
+			]
 		)
 		cell.pressed.connect(_on_cell_pressed.bind(item["instance_id"]))
 		grid.add_child(cell)
@@ -190,8 +209,24 @@ func _refresh_grid() -> void:
 
 
 func _on_cell_pressed(instance_id: String) -> void:
+	if _multi_select_mode:
+		if _multi_selected.has(instance_id):
+			_multi_selected.erase(instance_id)
+		else:
+			_multi_selected[instance_id] = true
+		_refresh_grid()  # redraw so selected cells can show a mark
+		return
 	_selected_instance_id = instance_id
 	_show_detail()
+
+
+func _on_multi_select_toggle_pressed() -> void:
+	_multi_select_mode = not _multi_select_mode
+	_multi_selected.clear()
+	$GridTab/BulkBar/MultiSelectToggleButton.text = (
+		"Cancel Multi-Select" if _multi_select_mode else "Select Multiple"
+	)
+	_refresh_grid()
 
 
 func _find_grid_item(instance_id: String) -> Dictionary:
@@ -267,6 +302,79 @@ func _on_scrap_pressed() -> void:
 	_state.scrap_item(_selected_instance_id, _equipment)
 	_after_mutation()
 	_on_detail_back_pressed()
+
+
+func _on_scrap_selected_pressed() -> void:
+	if _multi_selected.is_empty():
+		return
+	_offer_scrap_confirm(_multi_selected.keys())
+
+
+func _on_scrap_below_rarity_pressed() -> void:
+	_rarity_below_threshold = RARITY_BELOW_OPTIONS[
+		(RARITY_BELOW_OPTIONS.find(_rarity_below_threshold) + 1) % RARITY_BELOW_OPTIONS.size()
+	]
+	$GridTab/BulkBar/ScrapBelowRarityButton.text = "Scrap Below: %s" % _rarity_below_threshold
+	# Cycling the threshold is a separate tap from committing to it -- a second, explicit
+	# "go" isn't specced, so this button both cycles AND immediately offers the confirm
+	# for whatever it now reads, matching "no extra taps beyond what's needed" elsewhere
+	# in this project's placeholder UI.
+	var candidates := Inventory.scrap_candidates_below_rarity(
+		_state.inventory, _equipment, _rarity_below_threshold, _state.equipped, _state.army
+	)
+	_offer_scrap_confirm(candidates)
+
+
+func _on_scrap_duplicates_pressed() -> void:
+	var candidates := Inventory.scrap_candidates_unequipped_duplicates(
+		_state.inventory, _state.equipped, _state.army
+	)
+	_offer_scrap_confirm(candidates)
+
+
+## Filters instance_ids down to what HunterState.bulk_scrap() will actually
+## scrap (skips locked/equipped, same guard as scrap_item()) so the preview
+## total can never overstate the real yield -- matters for "Scrap Selected"
+## since multi-select has no such guard on what can be tapped; the below-
+## rarity/duplicates candidate lists are already pre-filtered, so this is a
+## no-op for those.
+func _offer_scrap_confirm(instance_ids: Array) -> void:
+	var eligible_ids: Array = []
+	var total := 0
+	for instance_id in instance_ids:
+		var idx := _state.inventory.find_custom(
+			func(i: Dictionary) -> bool: return i["instance_id"] == instance_id
+		)
+		if idx < 0:
+			continue
+		var item: Dictionary = _state.inventory[idx]
+		if item.get("locked", false):
+			continue
+		if Inventory.wearer_of(instance_id, _state.equipped, _state.army)["kind"] != "none":
+			continue
+		var def := Content.equipment_by_id(_equipment, item.get("equipment_def_id", ""))
+		total += GameLogic.essence_for_scrapped_item(def.get("rarity", ""))
+		eligible_ids.append(instance_id)
+	if eligible_ids.is_empty():
+		return
+	_pending_scrap_ids = eligible_ids
+	$ConfirmScrapPanel/ConfirmLabel.text = (
+		"Scrap %d item(s) for %d Essence?" % [eligible_ids.size(), total]
+	)
+	$ConfirmScrapPanel.visible = true
+
+
+func _on_confirm_scrap_pressed() -> void:
+	$ConfirmScrapPanel.visible = false
+	_state.bulk_scrap(_pending_scrap_ids, _equipment)
+	_pending_scrap_ids = []
+	_multi_selected.clear()
+	_after_mutation()
+
+
+func _on_cancel_scrap_pressed() -> void:
+	$ConfirmScrapPanel.visible = false
+	_pending_scrap_ids = []
 
 
 func _after_mutation() -> void:

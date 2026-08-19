@@ -565,6 +565,41 @@ offset_bottom = 940.0
 theme_override_font_sizes/font_size = 18
 text = ""
 
+[node name="BulkBar" type="Node2D" parent="GameUI/InventoryPanel/GridTab"]
+position = Vector2(0, 940)
+
+[node name="MultiSelectToggleButton" type="Button" parent="GameUI/InventoryPanel/GridTab/BulkBar"]
+offset_left = 40.0
+offset_top = 0.0
+offset_right = 340.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 18
+text = "Select Multiple"
+
+[node name="ScrapSelectedButton" type="Button" parent="GameUI/InventoryPanel/GridTab/BulkBar"]
+offset_left = 360.0
+offset_top = 0.0
+offset_right = 640.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 18
+text = "Scrap Selected"
+
+[node name="ScrapBelowRarityButton" type="Button" parent="GameUI/InventoryPanel/GridTab/BulkBar"]
+offset_left = 660.0
+offset_top = 0.0
+offset_right = 1020.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 18
+text = "Scrap Below: UNCOMMON"
+
+[node name="ScrapDuplicatesButton" type="Button" parent="GameUI/InventoryPanel/GridTab/BulkBar"]
+offset_left = 1040.0
+offset_top = 0.0
+offset_right = 1400.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 18
+text = "Scrap Unequipped Duplicates"
+
 [node name="SetsTab" type="Node2D" parent="GameUI/InventoryPanel"]
 visible = false
 
@@ -650,6 +685,40 @@ offset_right = 860.0
 offset_bottom = 950.0
 theme_override_font_sizes/font_size = 20
 text = "Scrap"
+
+[node name="ConfirmScrapPanel" type="Node2D" parent="GameUI/InventoryPanel"]
+visible = false
+
+[node name="ConfirmBg" type="ColorRect" parent="GameUI/InventoryPanel/ConfirmScrapPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.0, 0.0, 0.0, 0.85)
+
+[node name="ConfirmLabel" type="Label" parent="GameUI/InventoryPanel/ConfirmScrapPanel"]
+offset_left = 400.0
+offset_top = 400.0
+offset_right = 2024.0
+offset_bottom = 550.0
+theme_override_font_sizes/font_size = 26
+text = ""
+
+[node name="ConfirmButton" type="Button" parent="GameUI/InventoryPanel/ConfirmScrapPanel"]
+offset_left = 400.0
+offset_top = 900.0
+offset_right = 700.0
+offset_bottom = 950.0
+theme_override_font_sizes/font_size = 20
+text = "Confirm Scrap"
+
+[node name="CancelButton" type="Button" parent="GameUI/InventoryPanel/ConfirmScrapPanel"]
+offset_left = 720.0
+offset_top = 900.0
+offset_right = 960.0
+offset_bottom = 950.0
+theme_override_font_sizes/font_size = 20
+text = "Cancel"
 
 [node name="ShopPanel" type="Node2D" parent="GameUI"]
 visible = false
