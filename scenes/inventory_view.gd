@@ -42,10 +42,12 @@ var _grid_items: Array = []  ## the last filtered+sorted list, so detail can loo
 @onready var wearer_label: Label = $DetailPanel/WearerLabel
 @onready var lock_button: Button = $DetailPanel/LockButton
 @onready var scrap_button: Button = $DetailPanel/ScrapButton
+@onready var sets_rows: Node2D = $SetsTab/SetsScroll/SetsRows
 
 
 func _ready() -> void:
 	$GridTabButton.pressed.connect(_on_grid_tab_pressed)
+	$SetsTabButton.pressed.connect(_on_sets_tab_pressed)
 	$CloseButton.pressed.connect(func() -> void: visible = false)
 	class_filter_button.pressed.connect(_on_class_filter_pressed)
 	slot_filter_button.pressed.connect(_on_slot_filter_pressed)
@@ -79,7 +81,43 @@ func open() -> void:
 func _on_grid_tab_pressed() -> void:
 	detail_panel.visible = false
 	$GridTab.visible = true
+	$SetsTab.visible = false
 	_refresh_grid()
+
+
+func _on_sets_tab_pressed() -> void:
+	detail_panel.visible = false
+	$GridTab.visible = false
+	$SetsTab.visible = true
+	_refresh_sets()
+
+
+## Rebuilds one row per set in equipment["armor_sets"] -- name, owned/4
+## (ArmorSets.owned_set_counts), and both tier bonus strings verbatim
+## (same "display only, see core/armor_sets.gd for what's mechanical"
+## convention GearPanelHelpers.active_sets_display already uses).
+func _refresh_sets() -> void:
+	for child in sets_rows.get_children():
+		child.queue_free()
+	var counts := ArmorSets.owned_set_counts(_state.inventory, _equipment)
+	var y := 0.0
+	for set_def: Dictionary in _equipment.get("armor_sets", []):
+		var owned: int = counts.get(set_def.get("id", ""), 0)
+		var label := Label.new()
+		label.position = Vector2(40, y)
+		label.size = Vector2(2340, 80)
+		label.add_theme_font_size_override("font_size", 18)
+		label.text = (
+			"%s  %d/4\n  2pc: %s\n  4pc: %s"
+			% [
+				set_def.get("name", ""),
+				owned,
+				set_def.get("bonus_2pc", ""),
+				set_def.get("bonus_4pc", "")
+			]
+		)
+		sets_rows.add_child(label)
+		y += 90
 
 
 func _cycle(options: Array, current: String) -> String:

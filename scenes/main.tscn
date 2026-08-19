@@ -478,6 +478,14 @@ offset_bottom = 70.0
 theme_override_font_sizes/font_size = 20
 text = "Grid"
 
+[node name="SetsTabButton" type="Button" parent="GameUI/InventoryPanel"]
+offset_left = 280.0
+offset_top = 20.0
+offset_right = 500.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 20
+text = "Sets"
+
 [node name="CloseButton" type="Button" parent="GameUI/InventoryPanel"]
 offset_left = 2260.0
 offset_top = 20.0
@@ -556,6 +564,17 @@ offset_right = 2380.0
 offset_bottom = 940.0
 theme_override_font_sizes/font_size = 18
 text = ""
+
+[node name="SetsTab" type="Node2D" parent="GameUI/InventoryPanel"]
+visible = false
+
+[node name="SetsScroll" type="ScrollContainer" parent="GameUI/InventoryPanel/SetsTab"]
+offset_left = 0.0
+offset_top = 90.0
+offset_right = 2424.0
+offset_bottom = 1000.0
+
+[node name="SetsRows" type="Node2D" parent="GameUI/InventoryPanel/SetsTab/SetsScroll"]
 
 [node name="DetailPanel" type="Node2D" parent="GameUI/InventoryPanel"]
 visible = false
