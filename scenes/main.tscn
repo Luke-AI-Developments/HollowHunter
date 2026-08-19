@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/map_view.gd" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scenes/character_view.gd" id="9"]
 [ext_resource type="Script" path="res://scenes/leaderboard_view.gd" id="10"]
 [ext_resource type="Script" path="res://scenes/army_view.gd" id="11"]
+[ext_resource type="Script" path="res://scenes/inventory_view.gd" id="12"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -174,13 +175,13 @@ offset_bottom = 410.0
 theme_override_font_sizes/font_size = 18
 text = "Leaderboard"
 
-[node name="InventoryLabel" type="Label" parent="GameUI"]
-offset_left = 950.0
-offset_top = 40.0
-offset_right = 1650.0
-offset_bottom = 1040.0
-theme_override_font_sizes/font_size = 20
-text = "Inventory: (none yet)"
+[node name="InventoryButton" type="Button" parent="GameUI"]
+offset_left = 400.0
+offset_top = 370.0
+offset_right = 620.0
+offset_bottom = 410.0
+theme_override_font_sizes/font_size = 18
+text = "Inventory"
 
 [node name="HunterGearPanel" type="Node2D" parent="GameUI"]
 visible = false
@@ -457,6 +458,179 @@ theme_override_font_sizes/font_size = 20
 text = "Party: 0/3 chosen -- tap a squad member to field them"
 
 [node name="Rows" type="Node2D" parent="GameUI/ArmyPanel/SquadTab"]
+
+[node name="InventoryPanel" type="Node2D" parent="GameUI"]
+visible = false
+script = ExtResource("12")
+
+[node name="Bg" type="ColorRect" parent="GameUI/InventoryPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.05, 0.05, 0.05, 0.95)
+
+[node name="GridTabButton" type="Button" parent="GameUI/InventoryPanel"]
+offset_left = 40.0
+offset_top = 20.0
+offset_right = 260.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 20
+text = "Grid"
+
+[node name="CloseButton" type="Button" parent="GameUI/InventoryPanel"]
+offset_left = 2260.0
+offset_top = 20.0
+offset_right = 2380.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 20
+text = "Close"
+
+[node name="GridTab" type="Node2D" parent="GameUI/InventoryPanel"]
+
+[node name="FilterBar" type="Node2D" parent="GameUI/InventoryPanel/GridTab"]
+position = Vector2(0, 90)
+
+[node name="ClassFilterButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
+offset_left = 40.0
+offset_top = 0.0
+offset_right = 260.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 16
+text = "Class: ALL"
+
+[node name="SlotFilterButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
+offset_left = 280.0
+offset_top = 0.0
+offset_right = 500.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 16
+text = "Slot: ALL"
+
+[node name="RarityFilterButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
+offset_left = 520.0
+offset_top = 0.0
+offset_right = 740.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 16
+text = "Rarity: ALL"
+
+[node name="SetFilterButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
+offset_left = 760.0
+offset_top = 0.0
+offset_right = 980.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 16
+text = "Set: ALL"
+
+[node name="EquippedFilterButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
+offset_left = 1000.0
+offset_top = 0.0
+offset_right = 1220.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 16
+text = "Show: ALL"
+
+[node name="SortButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
+offset_left = 1240.0
+offset_top = 0.0
+offset_right = 1460.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 16
+text = "Sort: Power"
+
+[node name="GridScroll" type="ScrollContainer" parent="GameUI/InventoryPanel/GridTab"]
+offset_left = 0.0
+offset_top = 160.0
+offset_right = 2424.0
+offset_bottom = 890.0
+
+[node name="Grid" type="GridContainer" parent="GameUI/InventoryPanel/GridTab/GridScroll"]
+layout_mode = 2
+columns = 4
+
+[node name="CapacityWarningLabel" type="Label" parent="GameUI/InventoryPanel/GridTab"]
+offset_left = 40.0
+offset_top = 900.0
+offset_right = 2380.0
+offset_bottom = 940.0
+theme_override_font_sizes/font_size = 18
+text = ""
+
+[node name="DetailPanel" type="Node2D" parent="GameUI/InventoryPanel"]
+visible = false
+
+[node name="DetailBg" type="ColorRect" parent="GameUI/InventoryPanel/DetailPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2424.0
+offset_bottom = 1080.0
+color = Color(0.03, 0.03, 0.03, 0.98)
+
+[node name="BackButton" type="Button" parent="GameUI/InventoryPanel/DetailPanel"]
+offset_left = 40.0
+offset_top = 20.0
+offset_right = 200.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 20
+text = "< Back"
+
+[node name="NameLabel" type="Label" parent="GameUI/InventoryPanel/DetailPanel"]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 2380.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 28
+text = ""
+
+[node name="StatsLabel" type="Label" parent="GameUI/InventoryPanel/DetailPanel"]
+offset_left = 40.0
+offset_top = 150.0
+offset_right = 2380.0
+offset_bottom = 400.0
+theme_override_font_sizes/font_size = 18
+text = ""
+
+[node name="WearerLabel" type="Label" parent="GameUI/InventoryPanel/DetailPanel"]
+offset_left = 40.0
+offset_top = 410.0
+offset_right = 2380.0
+offset_bottom = 450.0
+theme_override_font_sizes/font_size = 18
+text = ""
+
+[node name="CompareLabel" type="Label" parent="GameUI/InventoryPanel/DetailPanel"]
+offset_left = 40.0
+offset_top = 460.0
+offset_right = 2380.0
+offset_bottom = 650.0
+theme_override_font_sizes/font_size = 18
+text = ""
+
+[node name="EquipButton" type="Button" parent="GameUI/InventoryPanel/DetailPanel"]
+visible = false
+offset_left = 40.0
+offset_top = 900.0
+offset_right = 300.0
+offset_bottom = 950.0
+theme_override_font_sizes/font_size = 20
+text = "Equip"
+
+[node name="LockButton" type="Button" parent="GameUI/InventoryPanel/DetailPanel"]
+offset_left = 320.0
+offset_top = 900.0
+offset_right = 580.0
+offset_bottom = 950.0
+theme_override_font_sizes/font_size = 20
+text = "Lock"
+
+[node name="ScrapButton" type="Button" parent="GameUI/InventoryPanel/DetailPanel"]
+offset_left = 600.0
+offset_top = 900.0
+offset_right = 860.0
+offset_bottom = 950.0
+theme_override_font_sizes/font_size = 20
+text = "Scrap"
 
 [node name="ShopPanel" type="Node2D" parent="GameUI"]
 visible = false

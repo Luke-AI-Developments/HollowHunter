@@ -42,7 +42,8 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var label: Label = $GameUI/Label
 @onready var map_view: MapView = $GameUI/MapView
 @onready var enter_gate_button: Button = $GameUI/EnterGateButton
-@onready var inventory_label: Label = $GameUI/InventoryLabel
+@onready var inventory_button: Button = $GameUI/InventoryButton
+@onready var inventory_view: InventoryView = $GameUI/InventoryPanel
 @onready var hunter_gear_button: Button = $GameUI/HunterGearButton
 @onready var hunter_gear_view: HunterGearView = $GameUI/HunterGearPanel
 @onready var shadow_gear_view: ShadowGearView = $GameUI/ShadowGearPanel
@@ -172,7 +173,6 @@ func _on_onboarding_continue_pressed() -> void:
 
 func _start_game() -> void:
 	_refresh_label()
-	_refresh_inventory_label()
 	if not enter_gate_button.pressed.is_connected(_on_enter_gate_pressed):
 		enter_gate_button.pressed.connect(_on_enter_gate_pressed)
 	hunter_gear_view.bind(state, _equipment)
@@ -182,6 +182,7 @@ func _start_game() -> void:
 	leaderboard_view.bind(state, _equipment)
 	army_view.bind(state, _equipment, _monsters, shadow_gear_view)
 	army_view.refresh_if_open()
+	inventory_view.bind(state, _equipment, _monsters)
 	_setup_gear_panels()
 
 
@@ -202,6 +203,8 @@ func _setup_gear_panels() -> void:
 		army_view.state_changed.connect(_on_state_changed)
 		army_view.mass_convert_result.connect(func(msg: String) -> void: label.text += msg)
 		army_view.squad_full_message.connect(func(msg: String) -> void: label.text += msg)
+		inventory_button.pressed.connect(func() -> void: inventory_view.open())
+		inventory_view.state_changed.connect(_on_state_changed)
 		nadir_button.pressed.connect(_on_nadir_button_pressed)
 		$GameUI/NadirPanel/CloseButton.pressed.connect(_on_nadir_close_pressed)
 		nadir_take_on_button.pressed.connect(_on_nadir_take_on_pressed)
@@ -489,7 +492,6 @@ func _on_battle_finished(won: bool) -> void:
 	SaveService.save(state)
 	_refresh_label()
 	army_view.refresh_if_open()
-	_refresh_inventory_label()
 	label.text += msg
 
 
@@ -625,27 +627,6 @@ func _refresh_shop_view() -> void:
 	shop_view.refresh(state.crystals, state.owned_cosmetics)
 
 
-func _refresh_inventory_label() -> void:
-	if state.inventory.is_empty():
-		inventory_label.text = "Inventory: (none yet)"
-		return
-
-	var lines := ["Inventory (%d):" % state.inventory.size()]
-	for item: Dictionary in state.inventory:
-		var def := Content.equipment_by_id(_equipment, item.get("equipment_def_id", ""))
-		if def.is_empty():
-			continue
-		var level: int = item.get("enhancement_level", 0)
-		var effective := Equip.enhanced_def(def, level)
-		lines.append(
-			(
-				" - %s [%s] %s +%d (Lv%d)"
-				% [def["name"], def["slot"], def["rarity"], effective["power_bonus"], level]
-			)
-		)
-	inventory_label.text = "\n".join(lines)
-
-
 func _refresh_label() -> void:
 	var stats := state.stats()
 	label.text = (
@@ -763,7 +744,6 @@ func _apply_nadir_battle_result(won: bool) -> void:
 	SaveService.save(state)
 	_refresh_nadir_panel()
 	army_view.refresh_if_open()
-	_refresh_inventory_label()
 	_refresh_label()
 	label.text += msg
 
@@ -773,14 +753,13 @@ func _on_character_button_pressed() -> void:
 
 
 ## The one handler every panel controller's state_changed signal connects
-## to -- refreshes the shared HUD (Essence/Tickets/Crystals/army/
-## inventory). Always refreshing all three regardless of which panel fired
-## is deliberately simple (cheap string formatting, not a perf concern)
-## rather than tracking which specific label actually needs updating.
+## to -- refreshes the shared HUD (Essence/Tickets/Crystals/army). Always
+## refreshing both regardless of which panel fired is deliberately simple
+## (cheap string formatting, not a perf concern) rather than tracking which
+## specific label actually needs updating.
 func _on_state_changed() -> void:
 	_refresh_label()
 	army_view.refresh_if_open()
-	_refresh_inventory_label()
 
 
 func _on_character_trial_result(msg: String) -> void:
