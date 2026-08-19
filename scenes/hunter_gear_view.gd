@@ -41,7 +41,8 @@ func bind(state: HunterState, equipment: Dictionary, inventory_view: InventoryVi
 	_state = state
 	_equipment = equipment
 	_inventory_view = inventory_view
-	_inventory_view.item_equipped.connect(refresh)
+	if not _inventory_view.item_equipped.is_connected(refresh):
+		_inventory_view.item_equipped.connect(refresh)
 
 
 func open() -> void:

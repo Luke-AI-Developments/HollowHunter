@@ -93,6 +93,14 @@ func bind(state: HunterState, equipment: Dictionary, monsters: Array) -> void:
 func open() -> void:
 	_context = {"kind": "none", "shadow_instance_id": ""}
 	_context_slot = ""
+	# Reset so a standalone open never inherits a prior Browse's narrowing --
+	# same shape as the initial value declared above.
+	_filters = {"class": "ALL", "slot": "ALL", "rarity": "ALL", "set_id": "ALL", "equipped": "ALL"}
+	class_filter_button.text = "Class: %s" % _filters["class"]
+	slot_filter_button.text = "Slot: %s" % _filters["slot"]
+	rarity_filter_button.text = "Rarity: %s" % _filters["rarity"]
+	set_filter_button.text = "Set: %s" % _filters["set_id"]
+	equipped_filter_button.text = "Show: %s" % _filters["equipped"]
 	visible = true
 	$GridTabButton.visible = true  # re-shown in case a later task's tab hid it
 	_on_grid_tab_pressed()
@@ -107,6 +115,8 @@ func open_for_slot(slot: String, class_filter: String, context: Dictionary) -> v
 	_context_slot = slot
 	_filters["slot"] = slot
 	_filters["class"] = class_filter
+	slot_filter_button.text = "Slot: %s" % slot
+	class_filter_button.text = "Class: %s" % class_filter
 	visible = true
 	_on_grid_tab_pressed()
 

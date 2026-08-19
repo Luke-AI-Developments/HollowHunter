@@ -52,7 +52,8 @@ func bind(
 	_equipment = equipment
 	_monsters = monsters
 	_inventory_view = inventory_view
-	_inventory_view.item_equipped.connect(refresh)
+	if not _inventory_view.item_equipped.is_connected(refresh):
+		_inventory_view.item_equipped.connect(refresh)
 
 
 ## False (no-op, panel stays closed) if the army is empty -- main.gd shows
