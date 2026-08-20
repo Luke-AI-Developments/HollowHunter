@@ -140,6 +140,25 @@ func test_rank_for_level():
 	assert_eq(GameLogic.rank_for_level(40), "S")
 
 
+func test_stage_for_rank_early_ranks() -> void:
+	assert_eq(GameLogic.stage_for_rank("E"), "early")
+	assert_eq(GameLogic.stage_for_rank("D"), "early")
+
+
+func test_stage_for_rank_mid_ranks() -> void:
+	assert_eq(GameLogic.stage_for_rank("C"), "mid")
+	assert_eq(GameLogic.stage_for_rank("B"), "mid")
+
+
+func test_stage_for_rank_late_ranks() -> void:
+	assert_eq(GameLogic.stage_for_rank("A"), "late")
+	assert_eq(GameLogic.stage_for_rank("S"), "late")
+
+
+func test_stage_for_rank_unknown_falls_back_to_early() -> void:
+	assert_eq(GameLogic.stage_for_rank("Z"), "early")
+
+
 func test_essence_for_gate_matches_the_source_table():
 	# §26: Essence per gate ≈ E 20 · D 50 · C 120 · B 300 · A 700 · S 1,500
 	assert_eq(GameLogic.essence_for_gate("E"), 20)

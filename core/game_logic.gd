@@ -289,6 +289,18 @@ static func essence_for_gate(rank: String) -> int:
 	return int(ESSENCE_PER_GATE_RANK.get(rank, 0))
 
 
+## §9b/§25: maps an earned hunter_rank to one of the three preset-portrait
+## art stages (art/presets/preset_hunter_<id>_<stage>.png). Unknown input
+## falls back to "early" rather than erroring, same degrade-gracefully
+## convention as grade_name()/essence_for_gate() elsewhere in this file.
+static func stage_for_rank(rank: String) -> String:
+	if rank == "C" or rank == "B":
+		return "mid"
+	if rank == "A" or rank == "S":
+		return "late"
+	return "early"
+
+
 # --- Shadow grade ladder name for a rank (§6) -- unranked/unknown rank falls
 # back to the raw rank letter rather than an empty string. ---
 static func grade_name(rank: String) -> String:
