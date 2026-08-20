@@ -102,3 +102,4 @@ New `owned_set_counts(inventory: Array, equipment: Dictionary) -> Dictionary` �
 - Shadow nicknames (§6c) — a separate, already-planned-but-not-yet-greenlit feature (`docs/superpowers/plans/2026-08-16-shadow-nicknames.md`); not folded into this build.
 - Real inventory-expansion purchases (spending Essence to raise the soft cap) — the spec only asks for the cap to be *expandable later*, not that this pass builds the expansion flow.
 - Real art for inventory icons / shadow portraits — placeholder-art convention continues; swapped in later by data ID.
+- A shadow-picker for equipping from a *standalone* Inventory open (no context carried in) — the spec's original wording called for this, but every equip path in practice already goes through a gear panel's Browse button, which always carries context. Dropped for v0; revisit if a real need for context-less equip emerges.

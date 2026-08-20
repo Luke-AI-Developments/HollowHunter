@@ -115,13 +115,32 @@ func test_scrap_candidates_below_rarity_excludes_locked_and_equipped() -> void:
 	var inv := [
 		_item("i0", "eq_warcleaver"),  # COMMON, unlocked, unequipped -- candidate
 		_item("i1", "eq_warcleaver", true),  # locked -- excluded
+		_item("i2", "eq_warcleaver"),  # COMMON, unlocked, but equipped -- excluded
 	]
-	var hunter_equipped := {}
+	var hunter_equipped := {"WEAPON": "i2"}
 	var candidates := Inventory.scrap_candidates_below_rarity(
 		inv, equipment, "UNCOMMON", hunter_equipped, []
 	)
 	assert_true(candidates.has("i0"))
 	assert_false(candidates.has("i1"))
+	assert_false(candidates.has("i2"))
+
+
+func test_filter_by_rarity_filter() -> void:
+	var inv := [_item("i0", "eq_warcleaver")]  # COMMON
+	assert_eq(Inventory.filter_by(inv, equipment, {}, [], {"rarity": "COMMON"}).size(), 1)
+	assert_eq(Inventory.filter_by(inv, equipment, {}, [], {"rarity": "LEGENDARY"}).size(), 0)
+
+
+func test_filter_by_set_id_filter() -> void:
+	# i0 is set, i1 isn't
+	var inv := [_item("i0", "eq_ashen_vanguard_helm"), _item("i1", "eq_warcleaver")]
+	var set_only := Inventory.filter_by(
+		inv, equipment, {}, [], {"set_id": "set_ashen_vanguard_plate"}
+	)
+	assert_eq(set_only.size(), 1)
+	assert_eq(set_only[0]["instance_id"], "i0")
+	assert_eq(Inventory.filter_by(inv, equipment, {}, [], {"set_id": "no_such_set"}).size(), 0)
 
 
 func test_scrap_candidates_below_rarity_excludes_equal_or_above() -> void:

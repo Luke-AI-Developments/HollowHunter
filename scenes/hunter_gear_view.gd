@@ -9,8 +9,8 @@ extends Node2D
 ## here is fully self-contained to this one panel (equip/unequip/
 ## enhance), so routing each button through main.gd would just be
 ## indirection with no benefit. `state_changed` fires after any mutation
-## so main.gd can refresh the shared HUD (Essence/Tickets/Crystals/army/
-## inventory labels) -- the one thing this panel doesn't own.
+## so main.gd can refresh the shared HUD (Essence/Tickets/Crystals/army)
+## -- the one thing this panel doesn't own.
 
 signal state_changed
 

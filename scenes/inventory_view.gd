@@ -2,15 +2,14 @@ class_name InventoryView
 extends Node2D
 ## §17b: the Equipment inventory screen -- filterable/sortable icon grid
 ## over the whole owned pool (hunter + every shadow share one inventory,
-## see core/equip.gd's own doc comment), item detail, and (added in later
-## tasks) a Sets-progress tab and bulk scrap-to-Essence. Self-contained
+## see core/equip.gd's own doc comment), a Sets-progress tab, item detail
+## with contextual Compare/Equip, and bulk scrap-to-Essence. Self-contained
 ## controller (holds HunterState directly, mutates it, saves), same
 ## pattern as ArmyView/StrongholdView.
 ##
-## This task builds the Grid tab and item detail WITHOUT Compare or Equip
-## -- those need a context (which shadow/hunter slot triggered the open),
-## which only exists once Task 7 retrofits the gear panels to carry it in.
-## Standalone opens (this task's only entry point) have no context.
+## Two entry points: open() (standalone, no shadow/hunter context -- Compare
+## and Equip-from-detail don't render) and open_for_slot() (a gear panel's
+## "Browse" button, carrying a context so Compare/Equip both work).
 
 signal state_changed
 signal item_equipped  ## fired after a successful Equip-from-detail, so the caller (a gear
@@ -53,7 +52,7 @@ var _context_slot: String = ""
 @onready var wearer_label: Label = $DetailPanel/WearerLabel
 @onready var lock_button: Button = $DetailPanel/LockButton
 @onready var scrap_button: Button = $DetailPanel/ScrapButton
-@onready var sets_rows: Node2D = $SetsTab/SetsScroll/SetsRows
+@onready var sets_rows: Control = $SetsTab/SetsScroll/SetsRows
 
 
 func _ready() -> void:
@@ -88,31 +87,52 @@ func bind(state: HunterState, equipment: Dictionary, monsters: Array) -> void:
 		_set_options.append(String(set_def.get("id", "")))
 
 
-## Standalone entry point -- no shadow/hunter context, Compare never
-## renders (Task 7 adds a second, context-carrying open variant).
-func open() -> void:
-	_context = {"kind": "none", "shadow_instance_id": ""}
-	_context_slot = ""
-	# Reset so a standalone open never inherits a prior Browse's narrowing --
-	# same shape as the initial value declared above.
+## Resets the five filter dimensions + their button labels to "ALL" -- the
+## clean baseline both open() and open_for_slot() start from, so neither
+## entry point can inherit a prior session's narrowing.
+func _reset_filters() -> void:
 	_filters = {"class": "ALL", "slot": "ALL", "rarity": "ALL", "set_id": "ALL", "equipped": "ALL"}
 	class_filter_button.text = "Class: %s" % _filters["class"]
 	slot_filter_button.text = "Slot: %s" % _filters["slot"]
 	rarity_filter_button.text = "Rarity: %s" % _filters["rarity"]
 	set_filter_button.text = "Set: %s" % _filters["set_id"]
 	equipped_filter_button.text = "Show: %s" % _filters["equipped"]
+
+
+## Clears session-only UI state that neither open() nor open_for_slot() owns
+## semantically but both must start clean from -- otherwise leaving
+## multi-select on (or a scrap confirm pending) before Close leaks into the
+## next open, e.g. a Browse-triggered open where every cell tap should open
+## detail instead of toggling a checkmark.
+func _reset_transient_ui() -> void:
+	_multi_select_mode = false
+	_multi_selected.clear()
+	$GridTab/BulkBar/MultiSelectToggleButton.text = "Select Multiple"
+	$ConfirmScrapPanel.visible = false
+	_pending_scrap_ids = []
+
+
+## Standalone entry point -- no shadow/hunter context, so Compare and
+## Equip-from-detail never render (see open_for_slot() below for the
+## context-carrying variant that does).
+func open() -> void:
+	_reset_transient_ui()
+	_context = {"kind": "none", "shadow_instance_id": ""}
+	_context_slot = ""
+	_reset_filters()
 	visible = true
-	$GridTabButton.visible = true  # re-shown in case a later task's tab hid it
 	_on_grid_tab_pressed()
 
 
-## Called from a gear panel's new "Browse" button -- opens pre-filtered to
+## Called from a gear panel's "Browse" button -- opens pre-filtered to
 ## `slot` and (if given) `class_filter`, with `context` carried through so
 ## Compare and Equip-from-detail both work. `context`: {"kind": "hunter"|
 ## "shadow", "shadow_instance_id": ""}.
 func open_for_slot(slot: String, class_filter: String, context: Dictionary) -> void:
+	_reset_transient_ui()
 	_context = context
 	_context_slot = slot
+	_reset_filters()
 	_filters["slot"] = slot
 	_filters["class"] = class_filter
 	slot_filter_button.text = "Slot: %s" % slot
@@ -161,6 +181,12 @@ func _refresh_sets() -> void:
 		)
 		sets_rows.add_child(label)
 		y += 90
+
+	# Lets SetsScroll (the ScrollContainer wrapping this node) know the true
+	# content height so it knows how far there is to scroll -- same reason
+	# ArmyView's Sections needs it (a bare Control reports zero minimum size
+	# otherwise since nothing here is laid out by an auto-layout container).
+	sets_rows.custom_minimum_size = Vector2(2340, y)
 
 
 func _cycle(options: Array, current: String) -> String:
@@ -215,6 +241,8 @@ func _refresh_grid() -> void:
 	for item: Dictionary in _grid_items:
 		var cell := Button.new()
 		cell.custom_minimum_size = Vector2(560, 160)
+		# Real art: set cell.icon from item["equipment_def_id"] here once real
+		# sprites exist; text stays as the fallback label.
 		var lock_mark := " [L]" if item["locked"] else ""
 		var select_mark := " [✓]" if _multi_selected.has(item["instance_id"]) else ""
 		cell.text = (

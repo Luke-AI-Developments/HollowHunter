@@ -609,7 +609,8 @@ offset_top = 90.0
 offset_right = 2424.0
 offset_bottom = 1000.0
 
-[node name="SetsRows" type="Node2D" parent="GameUI/InventoryPanel/SetsTab/SetsScroll"]
+[node name="SetsRows" type="Control" parent="GameUI/InventoryPanel/SetsTab/SetsScroll"]
+layout_mode = 2
 
 [node name="DetailPanel" type="Node2D" parent="GameUI/InventoryPanel"]
 visible = false
