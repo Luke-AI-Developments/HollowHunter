@@ -1,5 +1,5 @@
 {
-  "_comment": "Hollow Hunter monster content DB (v0, from design bible §14b). 57 monsters. Fields: id, name, rank, family, clazz, base_power, extract_chance (per-try boss claim chance), sprite_id/portrait_id follow spr_<id>/por_<id>. Ranks E-S. Classes gate gear + squad slots. Elements were cut. Load with JSON.parse_string().",
+  "_comment": "Hollow Hunter monster content DB (v0, from design bible §14b). 54 monsters. Fields: id, name, rank, family, clazz, base_power, extract_chance (per-try boss claim chance), sprite_id/portrait_id follow spr_<id>/por_<id>. Ranks E-S. Classes gate gear + squad slots. Elements were cut. Load with JSON.parse_string().",
   "monsters": [
     {"id": "mon_grubmaw", "name": "Grubmaw", "rank": "E", "family": "Hollow Brood", "clazz": "WARRIOR", "base_power": 120, "extract_chance": 0.40, "lore": "A teardrop larva with one giant toothy maw."},
     {"id": "mon_runtclaw", "name": "Runtclaw", "rank": "E", "family": "Gravekin", "clazz": "ASSASSIN", "base_power": 200, "extract_chance": 0.40, "lore": "A small hunched scavenger that darts in and bites."},
@@ -9,7 +9,6 @@
     {"id": "mon_gloamwing", "name": "Gloamwing", "rank": "E", "family": "Gloamwing", "clazz": "ASSASSIN", "base_power": 130, "extract_chance": 0.42, "lore": "A small leathery bat."},
     {"id": "mon_bonerat", "name": "Bonerat", "rank": "E", "family": "Ashen Wardens", "clazz": "ASSASSIN", "base_power": 120, "extract_chance": 0.44, "lore": "A skeletal vermin creature."},
     {"id": "mon_mirewisp", "name": "Mirewisp", "rank": "E", "family": "Ashen Wardens", "clazz": "MAGE", "base_power": 100, "extract_chance": 0.45, "lore": "A pale drifting spirit-mote."},
-    {"id": "mon_mudtusk", "name": "Mudtusk", "rank": "E", "family": "Gravekin", "clazz": "WARRIOR", "base_power": 180, "extract_chance": 0.40, "lore": "A piglet-brute runt."},
     {"id": "mon_nipclaw", "name": "Nipclaw", "rank": "E", "family": "Gravekin", "clazz": "WARRIOR", "base_power": 210, "extract_chance": 0.38, "lore": "A crab scuttler with pincers."},
 
     {"id": "mon_tuskrend", "name": "Tuskrend", "rank": "D", "family": "Gravekin", "clazz": "WARRIOR", "base_power": 350, "extract_chance": 0.25, "lore": "A hunched tusked brute wielding a bone cleaver."},
@@ -22,7 +21,6 @@
     {"id": "mon_rotknight", "name": "Rotknight", "rank": "D", "family": "Ashen Wardens", "clazz": "WARRIOR", "base_power": 560, "extract_chance": 0.23, "lore": "A decayed foot knight."},
     {"id": "mon_cryptrat", "name": "Cryptrat Swarm", "rank": "D", "family": "Ashen Wardens", "clazz": "ASSASSIN", "base_power": 380, "extract_chance": 0.26, "lore": "A pack of bone-vermin."},
     {"id": "mon_palewisp", "name": "Palewisp", "rank": "D", "family": "Ashen Wardens", "clazz": "MAGE", "base_power": 350, "extract_chance": 0.27, "lore": "A draining spirit-mote."},
-    {"id": "mon_boartusk", "name": "Boartusk", "rank": "D", "family": "Gravekin", "clazz": "WARRIOR", "base_power": 520, "extract_chance": 0.24, "lore": "A boar-brute that charges with a goring attack."},
     {"id": "mon_gnollpike", "name": "Gnollpike", "rank": "D", "family": "Gravekin", "clazz": "WARRIOR", "base_power": 540, "extract_chance": 0.23, "lore": "A hyena-kin spearman."},
     {"id": "mon_grimhound", "name": "Grimhound", "rank": "D", "family": "Gravekin", "clazz": "ASSASSIN", "base_power": 470, "extract_chance": 0.24, "lore": "A feral hound."},
 
@@ -54,7 +52,6 @@
     {"id": "mon_hoarfrost_matron", "name": "Hoarfrost Matron", "rank": "A", "family": "Rime Sylphs", "clazz": "MAGE", "base_power": 4000, "extract_chance": 0.06, "lore": "A greater frost fae, regal and trailing a blizzard veil."},
     {"id": "mon_kaeric", "name": "Kaeric, the First Warden", "rank": "A", "family": "Ashen Wardens", "clazz": "WARRIOR", "base_power": 3500, "extract_chance": 0.05, "lore": "A legendary elite Ashen Warden commander with a crowned helm and twin blades."},
     {"id": "mon_voidcaller", "name": "Voidcaller", "rank": "A", "family": "Abyssal Fiends", "clazz": "MAGE", "base_power": 4200, "extract_chance": 0.05, "lore": "A robed demon sorcerer, floating and ringed by sigils."},
-    {"id": "mon_broodmother", "name": "Broodmother", "rank": "A", "family": "Hollow Brood", "clazz": "SUPPORT", "base_power": 3800, "extract_chance": 0.06, "lore": "A massive egg-layer."},
     {"id": "mon_rimewarden_sovereign", "name": "Rimewarden Sovereign", "rank": "A", "family": "Rime Sylphs", "clazz": "MAGE", "base_power": 4100, "extract_chance": 0.05, "lore": "A frost-fae royalty."},
     {"id": "mon_ashen_lord_commander", "name": "Ashen Lord Commander", "rank": "A", "family": "Ashen Wardens", "clazz": "SUPPORT", "base_power": 3900, "extract_chance": 0.05, "lore": "An undead general."},
 

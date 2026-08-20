@@ -13,8 +13,8 @@ func before_all() -> void:
 	moves = Content.load_moves()
 
 
-func test_all_57_monsters_load() -> void:
-	assert_eq(monsters.size(), 57)
+func test_all_54_monsters_load() -> void:
+	assert_eq(monsters.size(), 54)
 
 
 func test_every_monster_has_lore_text() -> void:
@@ -41,7 +41,7 @@ func test_monster_by_id_found() -> void:
 
 func test_monsters_by_rank_filters() -> void:
 	var e_rank := Content.monsters_by_rank(monsters, "E")
-	assert_eq(e_rank.size(), 10)
+	assert_eq(e_rank.size(), 9)
 
 
 func test_equipment_by_id_found() -> void:
