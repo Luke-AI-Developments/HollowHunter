@@ -20,6 +20,23 @@ script = ExtResource("1")
 wait_time = 60.0
 autostart = true
 
+[node name="PresetPicker" type="Node2D" parent="."]
+
+[node name="TitleLabel" type="Label" parent="PresetPicker"]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 900.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+text = "Choose your hunter."
+
+[node name="Grid" type="GridContainer" parent="PresetPicker"]
+offset_left = 40.0
+offset_top = 120.0
+offset_right = 2000.0
+offset_bottom = 900.0
+columns = 6
+
 [node name="SubclassPicker" type="Node2D" parent="."]
 
 [node name="TitleLabel" type="Label" parent="SubclassPicker"]

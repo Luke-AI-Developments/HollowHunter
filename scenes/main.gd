@@ -19,6 +19,10 @@ var _steps: int = -1
 var _workouts_json: String = ""
 var _health_applied := false
 var _gps_status := "Requesting..."  ## Phase 2/P5 step 2: §21's "health connection" status line
+var _pending_preset_id: String = "m1"  ## Holds the onboarding preset pick
+## between the PresetPicker and SubclassPicker screens -- no HunterState
+## exists yet at pick time (created in _on_subclass_chosen()), same reason
+## subclass itself isn't stored until then.
 var _health_status := "Requesting..."
 var _has_location := false  ## Phase 2/P7 step 1: whether _last_lat/_last_lon are real yet
 var _last_lat: float = 0.0  ## most recent GPS fix -- §8a's ticket gate spawns "where you are"
@@ -34,6 +38,8 @@ var _pending_nadir_floor: int = -1  ## Phase 3/P3-Nadir: >=0 while a BattlePanel
 var _pending_nadir_is_boss: bool = false  ## whether that floor is a boss floor (§20)
 var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss monster id
 
+@onready var preset_picker: Node2D = $PresetPicker
+@onready var preset_grid: GridContainer = $PresetPicker/Grid
 @onready var subclass_picker: Node2D = $SubclassPicker
 @onready var subclass_title_label: Label = $SubclassPicker/TitleLabel
 @onready var welcome_label: Label = $SubclassPicker/WelcomeLabel
@@ -90,7 +96,7 @@ func _ready() -> void:
 		game_ui.visible = true
 		_start_game()
 	else:
-		_show_subclass_picker()
+		_show_preset_picker()
 
 	if not Engine.has_singleton("GpsHealthBridge"):
 		_gps_status = "Bridge not found"
@@ -114,6 +120,32 @@ func _ready() -> void:
 	bridge.checkHealthConnectAvailable()
 
 
+## First onboarding screen for a genuinely new hunter (§25) -- picking a
+## preset portrait happens before the subclass picker. Builds the 12-cell
+## grid at runtime from ArtPaths.PRESET_IDS rather than hardcoding 12
+## .tscn button nodes, same dynamic-cell-into-GridContainer pattern
+## inventory_view.gd already uses for its equipment grid.
+func _show_preset_picker() -> void:
+	preset_picker.visible = true
+	subclass_picker.visible = false
+	game_ui.visible = false
+	for preset_id in ArtPaths.PRESET_IDS:
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(160, 160)
+		button.icon = ArtPaths.preset_portrait(preset_id, "early")
+		button.pressed.connect(_on_preset_chosen.bind(preset_id))
+		preset_grid.add_child(button)
+
+
+## Permanent pick (§21 no-respec precedent) -- stored for
+## _on_subclass_chosen() to pass into SaveService.load_or_create() once
+## the HunterState is actually created.
+func _on_preset_chosen(preset_id: String) -> void:
+	_pending_preset_id = preset_id
+	preset_picker.visible = false
+	_show_subclass_picker()
+
+
 ## The subclass is permanent once picked (design bible §21) -- this screen
 ## only shows for a genuinely new hunter (no save file yet), never again.
 func _show_subclass_picker() -> void:
@@ -132,7 +164,7 @@ func _show_subclass_picker() -> void:
 ## than a new panel -- same "one screen, swap its content" pattern as
 ## nothing-new-to-build-here.
 func _on_subclass_chosen(subclass: String) -> void:
-	state = SaveService.load_or_create(subclass)
+	state = SaveService.load_or_create(subclass, _pending_preset_id)
 
 	var starter_id := Onboarding.starter_monster_id(subclass, _monsters)
 	state.claim_shadow(starter_id, "E")
