@@ -113,6 +113,11 @@ func _refresh_enemy_slots() -> void:
 			continue
 		var e: Dictionary = _battle.enemies[i]
 		slot.visible = true
+		# `id` is a real monster_id for gate enemies (e.g. "mon_grubmaw") but a
+		# synthetic "nadir_floor_N" for Nadir floors, which has no matching art --
+		# ArtPaths falls back to null (no icon) for those, same placeholder-first
+		# convention as everywhere else.
+		slot.icon = ArtPaths.monster_portrait(String(e["id"]))
 		if int(e["hp"]) <= 0:
 			slot.text = "%s\n[DEFEATED]" % e["name"]
 			slot.disabled = true

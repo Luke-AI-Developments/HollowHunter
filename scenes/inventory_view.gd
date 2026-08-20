@@ -166,9 +166,16 @@ func _refresh_sets() -> void:
 	var y := 0.0
 	for set_def: Dictionary in _equipment.get("armor_sets", []):
 		var owned: int = counts.get(set_def.get("id", ""), 0)
+		var icon := TextureRect.new()
+		icon.position = Vector2(40, y)
+		icon.size = Vector2(80, 80)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture = ArtPaths.set_showcase(String(set_def.get("id", "")))
+		sets_rows.add_child(icon)
 		var label := Label.new()
-		label.position = Vector2(40, y)
-		label.size = Vector2(2340, 80)
+		label.position = Vector2(140, y)
+		label.size = Vector2(2240, 80)
 		label.add_theme_font_size_override("font_size", 18)
 		label.text = (
 			"%s  %d/4\n  2pc: %s\n  4pc: %s"
@@ -241,8 +248,7 @@ func _refresh_grid() -> void:
 	for item: Dictionary in _grid_items:
 		var cell := Button.new()
 		cell.custom_minimum_size = Vector2(560, 160)
-		# Real art: set cell.icon from item["equipment_def_id"] here once real
-		# sprites exist; text stays as the fallback label.
+		cell.icon = ArtPaths.equipment_icon(item["equipment_def_id"])
 		var lock_mark := " [L]" if item["locked"] else ""
 		var select_mark := " [✓]" if _multi_selected.has(item["instance_id"]) else ""
 		cell.text = (
