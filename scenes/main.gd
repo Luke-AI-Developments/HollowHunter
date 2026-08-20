@@ -349,7 +349,13 @@ func _maybe_apply_daily_exp() -> void:
 ## `apply_synergy` turns on Army Synergy (§16/§20) -- raids/the Nadir only,
 ## per the doc's own "gates get no synergy bonus" line, so gate callers
 ## leave this false (the default).
-func _build_battle_party(apply_synergy: bool = false) -> Array:
+## Returns {"party": Array, "portraits": Dictionary} -- combatant dicts plus
+## a parallel instance_id -> Texture2D lookup for BattleView's party-slot
+## icons. Built here (not in core/battle.gd) since this is the one place
+## that still has each shadow's real monster_id before it gets flattened
+## into a combatant dict; "player" has no portrait entry, same
+## "no preset-selection feature exists yet" gap noted elsewhere.
+func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 	var chosen := SquadBuilder.resolve_party(
 		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
 	)
@@ -359,6 +365,7 @@ func _build_battle_party(apply_synergy: bool = false) -> Array:
 			"player", state.subclass, state.level, state.stats(), "You", synergy_bonus
 		)
 	]
+	var portraits := {}
 	for member: Dictionary in chosen:
 		var shadow_stats := GameLogic.shadow_combat_stats(
 			int(member["base_power"]), int(member["level"]), String(member["clazz"])
@@ -373,7 +380,8 @@ func _build_battle_party(apply_synergy: bool = false) -> Array:
 				synergy_bonus
 			)
 		)
-	return party
+		portraits[member["instance_id"]] = ArtPaths.monster_portrait(member["monster_id"])
+	return {"party": party, "portraits": portraits}
 
 
 ## Army Synergy (§16/§20): "your full army beyond the 3 in your active
@@ -411,7 +419,10 @@ func _start_gate_battle(gate: Dictionary, prefix: String = "", is_break: bool = 
 			gate["monster_id"], gate["monster_base_power"], true, gate["monster_name"]
 		)
 	]
-	battle_view.start_battle(_build_battle_party(), enemies, _moves, false)
+	var battle_party := _build_battle_party()
+	battle_view.start_battle(
+		battle_party["party"], enemies, _moves, false, battle_party["portraits"]
+	)
 
 
 ## Phase 3/P3-Nadir: launches the current Nadir floor (§20) as a real
@@ -440,7 +451,10 @@ func _start_nadir_battle() -> void:
 			enemy_name
 		)
 	]
-	battle_view.start_battle(_build_battle_party(true), enemies, _moves, false)
+	var battle_party := _build_battle_party(true)
+	battle_view.start_battle(
+		battle_party["party"], enemies, _moves, false, battle_party["portraits"]
+	)
 
 
 ## Fires once per fight, whether won or lost (§16: "loss... no penalty").

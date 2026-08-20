@@ -1207,7 +1207,7 @@ autowrap_mode = 3
 vertical_alignment = 2
 clip_text = true
 
-[node name="PartySlot1" type="Label" parent="GameUI/BattlePanel"]
+[node name="PartySlot1" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
 offset_top = 620.0
 offset_right = 620.0
@@ -1215,7 +1215,7 @@ offset_bottom = 780.0
 theme_override_font_sizes/font_size = 18
 text = "You"
 
-[node name="PartySlot2" type="Label" parent="GameUI/BattlePanel"]
+[node name="PartySlot2" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 640.0
 offset_top = 620.0
 offset_right = 1220.0
@@ -1223,7 +1223,7 @@ offset_bottom = 780.0
 theme_override_font_sizes/font_size = 18
 text = "Shadow 1"
 
-[node name="PartySlot3" type="Label" parent="GameUI/BattlePanel"]
+[node name="PartySlot3" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 1240.0
 offset_top = 620.0
 offset_right = 1820.0
@@ -1231,7 +1231,7 @@ offset_bottom = 780.0
 theme_override_font_sizes/font_size = 18
 text = "Shadow 2"
 
-[node name="PartySlot4" type="Label" parent="GameUI/BattlePanel"]
+[node name="PartySlot4" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 1840.0
 offset_top = 620.0
 offset_right = 2380.0

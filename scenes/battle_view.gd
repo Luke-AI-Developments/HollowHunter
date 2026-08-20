@@ -38,12 +38,17 @@ var _pending_move: Dictionary = {}  ## a single_enemy move awaiting a target tap
 var _awaiting_player_input := false  ## set from step()'s own waiting_for_player result --
 ## NOT inferred, since by the time a refresh runs, the turn queue has already moved past
 ## whoever just acted (see _advance()).
+var _party_portraits: Dictionary = {}  ## combatant id -> Texture2D, set by start_battle()'s
+## caller (which already has the real monster_id per shadow before it's flattened into a
+## combatant dict) -- core/battle.gd itself carries no art data, stays pure. "player" has no
+## entry (no preset-selection feature exists yet to pick a hunter portrait from), so the
+## icon is null for that slot -- same "load if it exists" fallback ArtPaths uses everywhere.
 
 @onready var title_label: Label = $TitleLabel
 @onready var enemy_slots: Array[Button] = [$EnemySlot1, $EnemySlot2, $EnemySlot3, $EnemySlot4]
 @onready var turn_order_label: Label = $TurnOrderLabel
 @onready var log_label: Label = $LogLabel
-@onready var party_slots: Array[Label] = [$PartySlot1, $PartySlot2, $PartySlot3, $PartySlot4]
+@onready var party_slots: Array[Button] = [$PartySlot1, $PartySlot2, $PartySlot3, $PartySlot4]
 @onready var waiting_label: Label = $WaitingLabel
 @onready var action_buttons: Array[Button] = [
 	$ActionButton1, $ActionButton2, $ActionButton3, $ActionButton4, $ActionButton5
@@ -69,8 +74,15 @@ func _ready() -> void:
 ## Starts a fresh fight. `party`/`enemies` are Battle combatant dicts
 ## (Battle.make_ally_combatant()/make_enemy_combatant()) -- constructing
 ## those from real HunterState/shadow/monster data is step 5's job.
-func start_battle(party: Array, enemies: Array, moves: Array, auto: bool = false) -> void:
+## `party_portraits` (combatant id -> Texture2D, optional) resolves each
+## party slot's icon -- the caller's job, since it's the one that knows
+## each shadow's real monster_id before Battle.make_ally_combatant() drops
+## it down to just an instance_id.
+func start_battle(
+	party: Array, enemies: Array, moves: Array, auto: bool = false, party_portraits: Dictionary = {}
+) -> void:
 	_moves = moves
+	_party_portraits = party_portraits
 	_battle = Battle.new(party, enemies, moves, auto, null)
 	_pending_move = {}
 	result_label.visible = false
@@ -135,6 +147,7 @@ func _refresh_party_slots() -> void:
 			continue
 		var c: Dictionary = _battle.party[i]
 		slot.visible = true
+		slot.icon = _party_portraits.get(c["id"], null)
 		var status := ""
 		if int(c["hp"]) <= 0:
 			status = "\n[DOWN]"
