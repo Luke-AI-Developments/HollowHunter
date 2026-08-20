@@ -77,9 +77,17 @@ var owned_cosmetics: Array = []  ## Phase 4/shop step 1: cosmetic ids (content/s
 ## the player has purchased. No visual effect yet -- this project is still placeholder-art
 ## throughout (§9b); ownership is tracked now so the real art pass can swap sprites in by
 ## data later without touching this system again.
+var preset_id: String  ## §9b/§25: the 12 curated preset-hunter portraits
+## (art/HollowHunter_ArtDropTool.html's PRESET_IDS -- "f1".."f6"/"m1"..
+## "m6"). Picked once during onboarding, permanent -- same no-respec
+## precedent as subclass (§21). Combined with GameLogic.stage_for_rank()
+## to resolve the rank-appropriate portrait via
+## ArtPaths.preset_portrait().
 
 
-static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
+static func new_default(
+	hunter_subclass: String = "WARRIOR", hunter_preset: String = "m1"
+) -> HunterState:
 	var s := HunterState.new()
 	s.level = 1
 	s.exp_into_level = 0
@@ -102,6 +110,7 @@ static func new_default(hunter_subclass: String = "WARRIOR") -> HunterState:
 	s.active_party_ids = []
 	s.crystals = 0
 	s.owned_cosmetics = []
+	s.preset_id = hunter_preset
 	return s
 
 
@@ -744,6 +753,7 @@ func to_dict() -> Dictionary:
 		"active_party_ids": active_party_ids,
 		"crystals": crystals,
 		"owned_cosmetics": owned_cosmetics,
+		"preset_id": preset_id,
 	}
 
 
@@ -770,6 +780,7 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.active_party_ids = d.get("active_party_ids", [])
 	s.crystals = int(d.get("crystals", 0))
 	s.owned_cosmetics = d.get("owned_cosmetics", [])
+	s.preset_id = String(d.get("preset_id", "m1"))
 	return s
 
 
