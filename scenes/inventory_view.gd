@@ -247,7 +247,7 @@ func _refresh_grid() -> void:
 
 	for item: Dictionary in _grid_items:
 		var cell := Button.new()
-		cell.custom_minimum_size = Vector2(560, 160)
+		cell.custom_minimum_size = Vector2(480, 220)
 		cell.icon = ArtPaths.equipment_icon(item["equipment_def_id"])
 		cell.expand_icon = true
 		var lock_mark := " [L]" if item["locked"] else ""

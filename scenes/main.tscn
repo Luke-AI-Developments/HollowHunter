@@ -468,8 +468,8 @@ script = ExtResource("12")
 [node name="Bg" type="ColorRect" parent="GameUI/InventoryPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="GridTabButton" type="Button" parent="GameUI/InventoryPanel"]
@@ -489,9 +489,9 @@ theme_override_font_sizes/font_size = 20
 text = "Sets"
 
 [node name="CloseButton" type="Button" parent="GameUI/InventoryPanel"]
-offset_left = 2260.0
+offset_left = 900.0
 offset_top = 20.0
-offset_right = 2380.0
+offset_right = 1020.0
 offset_bottom = 70.0
 theme_override_font_sizes/font_size = 20
 text = "Close"
@@ -526,49 +526,49 @@ theme_override_font_sizes/font_size = 16
 text = "Rarity: ALL"
 
 [node name="SetFilterButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
-offset_left = 760.0
-offset_top = 0.0
-offset_right = 980.0
-offset_bottom = 50.0
+offset_left = 40.0
+offset_top = 60.0
+offset_right = 260.0
+offset_bottom = 110.0
 theme_override_font_sizes/font_size = 16
 text = "Set: ALL"
 
 [node name="EquippedFilterButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
-offset_left = 1000.0
-offset_top = 0.0
-offset_right = 1220.0
-offset_bottom = 50.0
+offset_left = 280.0
+offset_top = 60.0
+offset_right = 500.0
+offset_bottom = 110.0
 theme_override_font_sizes/font_size = 16
 text = "Show: ALL"
 
 [node name="SortButton" type="Button" parent="GameUI/InventoryPanel/GridTab/FilterBar"]
-offset_left = 1240.0
-offset_top = 0.0
-offset_right = 1460.0
-offset_bottom = 50.0
+offset_left = 520.0
+offset_top = 60.0
+offset_right = 740.0
+offset_bottom = 110.0
 theme_override_font_sizes/font_size = 16
 text = "Sort: Power"
 
 [node name="GridScroll" type="ScrollContainer" parent="GameUI/InventoryPanel/GridTab"]
 offset_left = 0.0
-offset_top = 160.0
-offset_right = 2424.0
-offset_bottom = 890.0
+offset_top = 220.0
+offset_right = 1080.0
+offset_bottom = 1900.0
 
 [node name="Grid" type="GridContainer" parent="GameUI/InventoryPanel/GridTab/GridScroll"]
 layout_mode = 2
-columns = 4
+columns = 2
 
 [node name="CapacityWarningLabel" type="Label" parent="GameUI/InventoryPanel/GridTab"]
 offset_left = 40.0
-offset_top = 900.0
-offset_right = 2380.0
-offset_bottom = 940.0
+offset_top = 1920.0
+offset_right = 1040.0
+offset_bottom = 1960.0
 theme_override_font_sizes/font_size = 18
 text = ""
 
 [node name="BulkBar" type="Node2D" parent="GameUI/InventoryPanel/GridTab"]
-position = Vector2(0, 940)
+position = Vector2(0, 1960)
 
 [node name="MultiSelectToggleButton" type="Button" parent="GameUI/InventoryPanel/GridTab/BulkBar"]
 offset_left = 40.0
@@ -587,18 +587,18 @@ theme_override_font_sizes/font_size = 18
 text = "Scrap Selected"
 
 [node name="ScrapBelowRarityButton" type="Button" parent="GameUI/InventoryPanel/GridTab/BulkBar"]
-offset_left = 660.0
-offset_top = 0.0
-offset_right = 1020.0
-offset_bottom = 50.0
+offset_left = 40.0
+offset_top = 60.0
+offset_right = 400.0
+offset_bottom = 110.0
 theme_override_font_sizes/font_size = 18
 text = "Scrap Below: UNCOMMON"
 
 [node name="ScrapDuplicatesButton" type="Button" parent="GameUI/InventoryPanel/GridTab/BulkBar"]
-offset_left = 1040.0
-offset_top = 0.0
-offset_right = 1400.0
-offset_bottom = 50.0
+offset_left = 420.0
+offset_top = 60.0
+offset_right = 1040.0
+offset_bottom = 110.0
 theme_override_font_sizes/font_size = 18
 text = "Scrap Unequipped Duplicates"
 
