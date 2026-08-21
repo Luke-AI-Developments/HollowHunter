@@ -905,14 +905,14 @@ script = ExtResource("8")
 [node name="Bg" type="ColorRect" parent="GameUI/StrongholdPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="Title" type="Label" parent="GameUI/StrongholdPanel"]
 offset_left = 40.0
 offset_top = 30.0
-offset_right = 1800.0
+offset_right = 1040.0
 offset_bottom = 80.0
 theme_override_font_sizes/font_size = 28
 text = "Stronghold"
@@ -944,7 +944,7 @@ text = "Upgrade Stronghold"
 [node name="InfoLabel" type="Label" parent="GameUI/StrongholdPanel"]
 offset_left = 40.0
 offset_top = 170.0
-offset_right = 1800.0
+offset_right = 1040.0
 offset_bottom = 250.0
 theme_override_font_sizes/font_size = 22
 text = "Stronghold Lv1 -- Army roster: 0/20"
@@ -952,96 +952,96 @@ text = "Stronghold Lv1 -- Army roster: 0/20"
 [node name="ReliquaryLabel" type="Label" parent="GameUI/StrongholdPanel"]
 offset_left = 40.0
 offset_top = 270.0
-offset_right = 760.0
+offset_right = 1040.0
 offset_bottom = 320.0
 theme_override_font_sizes/font_size = 20
 text = "Reliquary Lv1 (0/1 slots)"
 
 [node name="ReliquaryAssignButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 780.0
-offset_top = 270.0
-offset_right = 980.0
-offset_bottom = 320.0
+offset_left = 40.0
+offset_top = 330.0
+offset_right = 240.0
+offset_bottom = 380.0
 theme_override_font_sizes/font_size = 18
 text = "Assign Shadow"
 
 [node name="ReliquaryUnassignButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 1000.0
-offset_top = 270.0
-offset_right = 1220.0
-offset_bottom = 320.0
+offset_left = 260.0
+offset_top = 330.0
+offset_right = 480.0
+offset_bottom = 380.0
 theme_override_font_sizes/font_size = 18
 text = "Unassign All"
 
 [node name="ReliquaryUpgradeButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 1240.0
-offset_top = 270.0
-offset_right = 1440.0
-offset_bottom = 320.0
+offset_left = 500.0
+offset_top = 330.0
+offset_right = 700.0
+offset_bottom = 380.0
 theme_override_font_sizes/font_size = 18
 text = "Upgrade"
 
 [node name="TrainingYardLabel" type="Label" parent="GameUI/StrongholdPanel"]
 offset_left = 40.0
-offset_top = 350.0
-offset_right = 760.0
-offset_bottom = 400.0
+offset_top = 430.0
+offset_right = 1040.0
+offset_bottom = 480.0
 theme_override_font_sizes/font_size = 20
 text = "Training Yard Lv1 (0/1 slots)"
 
 [node name="TrainingYardAssignButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 780.0
-offset_top = 350.0
-offset_right = 980.0
-offset_bottom = 400.0
+offset_left = 40.0
+offset_top = 490.0
+offset_right = 240.0
+offset_bottom = 540.0
 theme_override_font_sizes/font_size = 18
 text = "Assign Shadow"
 
 [node name="TrainingYardUnassignButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 1000.0
-offset_top = 350.0
-offset_right = 1220.0
-offset_bottom = 400.0
+offset_left = 260.0
+offset_top = 490.0
+offset_right = 480.0
+offset_bottom = 540.0
 theme_override_font_sizes/font_size = 18
 text = "Unassign All"
 
 [node name="TrainingYardUpgradeButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 1240.0
-offset_top = 350.0
-offset_right = 1440.0
-offset_bottom = 400.0
+offset_left = 500.0
+offset_top = 490.0
+offset_right = 700.0
+offset_bottom = 540.0
 theme_override_font_sizes/font_size = 18
 text = "Upgrade"
 
 [node name="GateWatchLabel" type="Label" parent="GameUI/StrongholdPanel"]
 offset_left = 40.0
-offset_top = 430.0
-offset_right = 760.0
-offset_bottom = 480.0
+offset_top = 590.0
+offset_right = 1040.0
+offset_bottom = 640.0
 theme_override_font_sizes/font_size = 20
 text = "Gate Watch Lv1 (0/1 slots)"
 
 [node name="GateWatchAssignButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 780.0
-offset_top = 430.0
-offset_right = 980.0
-offset_bottom = 480.0
+offset_left = 40.0
+offset_top = 650.0
+offset_right = 240.0
+offset_bottom = 700.0
 theme_override_font_sizes/font_size = 18
 text = "Assign Shadow"
 
 [node name="GateWatchUnassignButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 1000.0
-offset_top = 430.0
-offset_right = 1220.0
-offset_bottom = 480.0
+offset_left = 260.0
+offset_top = 650.0
+offset_right = 480.0
+offset_bottom = 700.0
 theme_override_font_sizes/font_size = 18
 text = "Unassign All"
 
 [node name="GateWatchUpgradeButton" type="Button" parent="GameUI/StrongholdPanel"]
-offset_left = 1240.0
-offset_top = 430.0
-offset_right = 1440.0
-offset_bottom = 480.0
+offset_left = 500.0
+offset_top = 650.0
+offset_right = 700.0
+offset_bottom = 700.0
 theme_override_font_sizes/font_size = 18
 text = "Upgrade"
 
