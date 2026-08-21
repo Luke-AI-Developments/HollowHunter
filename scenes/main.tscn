@@ -110,95 +110,80 @@ visible = false
 
 [node name="Label" type="Label" parent="GameUI"]
 offset_left = 40.0
-offset_top = 40.0
-offset_right = 700.0
-offset_bottom = 260.0
+offset_top = 10.0
+offset_right = 1040.0
+offset_bottom = 70.0
 theme_override_font_sizes/font_size = 28
 text = "Waiting for location..."
 
 [node name="MapView" type="Node2D" parent="GameUI"]
-position = Vector2(1700, 540)
+position = Vector2(540, 800)
 script = ExtResource("2")
 
 [node name="EnterGateButton" type="Button" parent="GameUI"]
 offset_left = 40.0
-offset_top = 300.0
+offset_top = 80.0
 offset_right = 340.0
-offset_bottom = 360.0
+offset_bottom = 140.0
 theme_override_font_sizes/font_size = 24
 text = "Enter Nearest Gate"
 
-[node name="HunterGearButton" type="Button" parent="GameUI"]
-offset_left = 40.0
-offset_top = 370.0
-offset_right = 200.0
-offset_bottom = 410.0
+[node name="NavScroll" type="ScrollContainer" parent="GameUI"]
+offset_left = 0.0
+offset_top = 2260.0
+offset_right = 1080.0
+offset_bottom = 2380.0
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 0
+
+[node name="NavRow" type="HBoxContainer" parent="GameUI/NavScroll"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HunterGearButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(160, 60)
 theme_override_font_sizes/font_size = 18
 text = "Hunter Gear"
 
-[node name="ArmyButton" type="Button" parent="GameUI"]
-offset_left = 220.0
-offset_top = 370.0
-offset_right = 380.0
-offset_bottom = 410.0
+[node name="ArmyButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(160, 60)
 theme_override_font_sizes/font_size = 18
 text = "Army"
 
-[node name="NadirButton" type="Button" parent="GameUI"]
-offset_left = 640.0
-offset_top = 370.0
-offset_right = 780.0
-offset_bottom = 410.0
+[node name="InventoryButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(160, 60)
+theme_override_font_sizes/font_size = 18
+text = "Inventory"
+
+[node name="NadirButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(160, 60)
 theme_override_font_sizes/font_size = 18
 text = "The Nadir"
 
-[node name="StrongholdButton" type="Button" parent="GameUI"]
-offset_left = 800.0
-offset_top = 370.0
-offset_right = 960.0
-offset_bottom = 410.0
+[node name="StrongholdButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(180, 60)
 theme_override_font_sizes/font_size = 18
 text = "Stronghold"
 
-[node name="CharacterButton" type="Button" parent="GameUI"]
-offset_left = 980.0
-offset_top = 370.0
-offset_right = 1140.0
-offset_bottom = 410.0
+[node name="CharacterButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(160, 60)
 theme_override_font_sizes/font_size = 18
 text = "Character"
 
-[node name="UseTicketButton" type="Button" parent="GameUI"]
-offset_left = 1160.0
-offset_top = 370.0
-offset_right = 1320.0
-offset_bottom = 410.0
+[node name="UseTicketButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(160, 60)
 theme_override_font_sizes/font_size = 18
 text = "Use Ticket"
 
-[node name="ShopButton" type="Button" parent="GameUI"]
-offset_left = 1500.0
-offset_top = 370.0
-offset_right = 1640.0
-offset_bottom = 410.0
+[node name="ShopButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(140, 60)
 theme_override_font_sizes/font_size = 18
 text = "Shop"
 
-[node name="LeaderboardButton" type="Button" parent="GameUI"]
-offset_left = 1660.0
-offset_top = 370.0
-offset_right = 1830.0
-offset_bottom = 410.0
+[node name="LeaderboardButton" type="Button" parent="GameUI/NavScroll/NavRow"]
+custom_minimum_size = Vector2(200, 60)
 theme_override_font_sizes/font_size = 18
 text = "Leaderboard"
-
-[node name="InventoryButton" type="Button" parent="GameUI"]
-offset_left = 400.0
-offset_top = 370.0
-offset_right = 620.0
-offset_bottom = 410.0
-theme_override_font_sizes/font_size = 18
-text = "Inventory"
 
 [node name="HunterGearPanel" type="Node2D" parent="GameUI"]
 visible = false
