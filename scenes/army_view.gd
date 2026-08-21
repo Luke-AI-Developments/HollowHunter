@@ -138,7 +138,7 @@ func _refresh_roster() -> void:
 		var collapsed: bool = _collapsed.get(clazz, false)
 		var header := Button.new()
 		header.position = Vector2(40, y)
-		header.size = Vector2(2340, 44)
+		header.size = Vector2(1000, 44)
 		header.text = (
 			"%s %s (%d)" % ["▸" if collapsed else "▾", clazz.capitalize(), class_shadows.size()]
 		)
@@ -152,7 +152,7 @@ func _refresh_roster() -> void:
 		for e: Dictionary in class_shadows:
 			var row := Button.new()
 			row.position = Vector2(60, y)
-			row.size = Vector2(2300, 40)
+			row.size = Vector2(960, 40)
 			row.icon = ArtPaths.monster_portrait(e["monster_id"])
 			row.expand_icon = true
 			var marker := " [S]" if squad_ids.has(e["instance_id"]) else ""
@@ -170,7 +170,7 @@ func _refresh_roster() -> void:
 	# true content height so it knows how far there is to scroll -- a bare
 	# Control reports zero minimum size otherwise since nothing here is
 	# laid out by an auto-layout container.
-	sections_container.custom_minimum_size = Vector2(2340, y)
+	sections_container.custom_minimum_size = Vector2(1000, y)
 
 
 ## Collapsing/expanding folds the section's row space away rather than just

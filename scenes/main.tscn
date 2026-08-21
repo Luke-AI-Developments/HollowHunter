@@ -347,8 +347,8 @@ script = ExtResource("11")
 [node name="Bg" type="ColorRect" parent="GameUI/ArmyPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="RosterTabButton" type="Button" parent="GameUI/ArmyPanel"]
@@ -368,9 +368,9 @@ theme_override_font_sizes/font_size = 20
 text = "Squad"
 
 [node name="CloseButton" type="Button" parent="GameUI/ArmyPanel"]
-offset_left = 2260.0
+offset_left = 900.0
 offset_top = 20.0
-offset_right = 2380.0
+offset_right = 1020.0
 offset_bottom = 70.0
 theme_override_font_sizes/font_size = 20
 text = "Close"
@@ -399,7 +399,7 @@ text = "Sort: Power"
 [node name="SectionsScroll" type="ScrollContainer" parent="GameUI/ArmyPanel/RosterTab"]
 offset_left = 0.0
 offset_top = 160.0
-offset_right = 2424.0
+offset_right = 1080.0
 offset_bottom = 890.0
 
 [node name="Sections" type="Control" parent="GameUI/ArmyPanel/RosterTab/SectionsScroll"]
@@ -423,7 +423,7 @@ script = ExtResource("4")
 [node name="Bg" type="ColorRect" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 0.0
 offset_top = 90.0
-offset_right = 2424.0
+offset_right = 1080.0
 offset_bottom = 1080.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
@@ -454,7 +454,7 @@ text = "Auto-Equip Squad"
 [node name="InfoLabel" type="Label" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 40.0
 offset_top = 160.0
-offset_right = 2380.0
+offset_right = 1040.0
 offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
 text = "Party: 0/3 chosen -- tap a squad member to field them"

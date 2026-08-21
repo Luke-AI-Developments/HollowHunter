@@ -37,12 +37,12 @@ func _build_rows(parent: Node2D, y_start: float) -> Array:
 	for i in GameLogic.SQUAD_SIZE:
 		var row_label := Label.new()
 		row_label.position = Vector2(40, y)
-		row_label.size = Vector2(1600, 40)
+		row_label.size = Vector2(760, 40)
 		row_label.add_theme_font_size_override("font_size", 20)
 		parent.add_child(row_label)
 
 		var toggle_btn := Button.new()
-		toggle_btn.position = Vector2(1660, y)
+		toggle_btn.position = Vector2(800, y)
 		toggle_btn.size = Vector2(220, 40)
 		toggle_btn.text = "Field"
 		parent.add_child(toggle_btn)
