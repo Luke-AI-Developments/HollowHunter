@@ -25,7 +25,7 @@ autostart = true
 [node name="TitleLabel" type="Label" parent="PresetPicker"]
 offset_left = 40.0
 offset_top = 40.0
-offset_right = 900.0
+offset_right = 1040.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 text = "Choose your hunter."
@@ -33,8 +33,8 @@ text = "Choose your hunter."
 [node name="Grid" type="GridContainer" parent="PresetPicker"]
 offset_left = 40.0
 offset_top = 120.0
-offset_right = 2000.0
-offset_bottom = 900.0
+offset_right = 1040.0
+offset_bottom = 2300.0
 columns = 6
 
 [node name="SubclassPicker" type="Node2D" parent="."]
@@ -42,7 +42,7 @@ columns = 6
 [node name="TitleLabel" type="Label" parent="SubclassPicker"]
 offset_left = 40.0
 offset_top = 40.0
-offset_right = 900.0
+offset_right = 1040.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 text = "How do you train most? Pick your subclass -- it's permanent."
@@ -51,17 +51,17 @@ text = "How do you train most? Pick your subclass -- it's permanent."
 visible = false
 offset_left = 40.0
 offset_top = 40.0
-offset_right = 2000.0
-offset_bottom = 700.0
+offset_right = 1040.0
+offset_bottom = 2200.0
 theme_override_font_sizes/font_size = 26
 text = ""
 
 [node name="ContinueButton" type="Button" parent="SubclassPicker"]
 visible = false
 offset_left = 40.0
-offset_top = 720.0
+offset_top = 2240.0
 offset_right = 400.0
-offset_bottom = 790.0
+offset_bottom = 2310.0
 theme_override_font_sizes/font_size = 24
 text = "Let's go"
 
@@ -877,14 +877,14 @@ visible = false
 [node name="Bg" type="ColorRect" parent="GameUI/NadirPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="Title" type="Label" parent="GameUI/NadirPanel"]
 offset_left = 40.0
 offset_top = 30.0
-offset_right = 1800.0
+offset_right = 1040.0
 offset_bottom = 80.0
 theme_override_font_sizes/font_size = 28
 text = "The Nadir"
@@ -900,16 +900,16 @@ text = "Close"
 [node name="InfoLabel" type="Label" parent="GameUI/NadirPanel"]
 offset_left = 40.0
 offset_top = 170.0
-offset_right = 1400.0
-offset_bottom = 400.0
+offset_right = 1040.0
+offset_bottom = 700.0
 theme_override_font_sizes/font_size = 22
 text = "Floor 1"
 
 [node name="TakeOnButton" type="Button" parent="GameUI/NadirPanel"]
 offset_left = 40.0
-offset_top = 420.0
+offset_top = 720.0
 offset_right = 400.0
-offset_bottom = 480.0
+offset_bottom = 790.0
 theme_override_font_sizes/font_size = 22
 text = "Take on Floor 1"
 
@@ -1134,31 +1134,31 @@ visible = false
 [node name="Bg" type="ColorRect" parent="GameUI/GateBreakPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.2, 0.02, 0.02, 0.95)
 
 [node name="InfoLabel" type="Label" parent="GameUI/GateBreakPanel"]
 offset_left = 40.0
-offset_top = 300.0
-offset_right = 2000.0
-offset_bottom = 600.0
+offset_top = 400.0
+offset_right = 1040.0
+offset_bottom = 900.0
 theme_override_font_sizes/font_size = 32
 text = "Gate break"
 
 [node name="AcceptButton" type="Button" parent="GameUI/GateBreakPanel"]
 offset_left = 40.0
-offset_top = 640.0
+offset_top = 940.0
 offset_right = 400.0
-offset_bottom = 710.0
+offset_bottom = 1010.0
 theme_override_font_sizes/font_size = 24
 text = "Answer it"
 
 [node name="DismissButton" type="Button" parent="GameUI/GateBreakPanel"]
 offset_left = 420.0
-offset_top = 640.0
+offset_top = 940.0
 offset_right = 780.0
-offset_bottom = 710.0
+offset_bottom = 1010.0
 theme_override_font_sizes/font_size = 24
 text = "Ignore"
 
