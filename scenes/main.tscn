@@ -1154,14 +1154,14 @@ script = ExtResource("3")
 [node name="Bg" type="ColorRect" parent="GameUI/BattlePanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.02, 0.03, 0.04, 0.98)
 
 [node name="TitleLabel" type="Label" parent="GameUI/BattlePanel"]
 offset_left = 40.0
 offset_top = 10.0
-offset_right = 2380.0
+offset_right = 1040.0
 offset_bottom = 50.0
 theme_override_font_sizes/font_size = 26
 text = "Battle"
@@ -1169,48 +1169,48 @@ text = "Battle"
 [node name="EnemySlot1" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
 offset_top = 60.0
-offset_right = 620.0
+offset_right = 1040.0
 offset_bottom = 220.0
 theme_override_font_sizes/font_size = 18
 text = "Enemy 1"
 
 [node name="EnemySlot2" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 640.0
-offset_top = 60.0
-offset_right = 1220.0
-offset_bottom = 220.0
+offset_left = 40.0
+offset_top = 230.0
+offset_right = 1040.0
+offset_bottom = 390.0
 theme_override_font_sizes/font_size = 18
 text = "Enemy 2"
 
 [node name="EnemySlot3" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 1240.0
-offset_top = 60.0
-offset_right = 1820.0
-offset_bottom = 220.0
+offset_left = 40.0
+offset_top = 400.0
+offset_right = 1040.0
+offset_bottom = 560.0
 theme_override_font_sizes/font_size = 18
 text = "Enemy 3"
 
 [node name="EnemySlot4" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 1840.0
-offset_top = 60.0
-offset_right = 2380.0
-offset_bottom = 220.0
+offset_left = 40.0
+offset_top = 570.0
+offset_right = 1040.0
+offset_bottom = 730.0
 theme_override_font_sizes/font_size = 18
 text = "Enemy 4"
 
 [node name="TurnOrderLabel" type="Label" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 230.0
-offset_right = 2380.0
-offset_bottom = 270.0
+offset_top = 740.0
+offset_right = 1040.0
+offset_bottom = 780.0
 theme_override_font_sizes/font_size = 18
 text = "Turn order: --"
 
 [node name="LogLabel" type="Label" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 280.0
-offset_right = 2380.0
-offset_bottom = 610.0
+offset_top = 790.0
+offset_right = 1040.0
+offset_bottom = 1120.0
 theme_override_font_sizes/font_size = 20
 text = ""
 autowrap_mode = 3
@@ -1219,118 +1219,118 @@ clip_text = true
 
 [node name="PartySlot1" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 620.0
-offset_right = 620.0
-offset_bottom = 780.0
+offset_top = 1130.0
+offset_right = 1040.0
+offset_bottom = 1290.0
 theme_override_font_sizes/font_size = 18
 text = "You"
 
 [node name="PartySlot2" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 640.0
-offset_top = 620.0
-offset_right = 1220.0
-offset_bottom = 780.0
+offset_left = 40.0
+offset_top = 1300.0
+offset_right = 1040.0
+offset_bottom = 1460.0
 theme_override_font_sizes/font_size = 18
 text = "Shadow 1"
 
 [node name="PartySlot3" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 1240.0
-offset_top = 620.0
-offset_right = 1820.0
-offset_bottom = 780.0
+offset_left = 40.0
+offset_top = 1470.0
+offset_right = 1040.0
+offset_bottom = 1630.0
 theme_override_font_sizes/font_size = 18
 text = "Shadow 2"
 
 [node name="PartySlot4" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 1840.0
-offset_top = 620.0
-offset_right = 2380.0
-offset_bottom = 780.0
+offset_left = 40.0
+offset_top = 1640.0
+offset_right = 1040.0
+offset_bottom = 1800.0
 theme_override_font_sizes/font_size = 18
 text = "Shadow 3"
 
 [node name="WaitingLabel" type="Label" parent="GameUI/BattlePanel"]
 visible = false
 offset_left = 40.0
-offset_top = 800.0
-offset_right = 1000.0
-offset_bottom = 850.0
+offset_top = 1810.0
+offset_right = 1040.0
+offset_bottom = 1880.0
 theme_override_font_sizes/font_size = 22
 text = ""
 
 [node name="ActionButton1" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 800.0
-offset_right = 500.0
-offset_bottom = 870.0
+offset_top = 1810.0
+offset_right = 1040.0
+offset_bottom = 1880.0
 theme_override_font_sizes/font_size = 20
 text = "Move 1"
 
 [node name="ActionButton2" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 520.0
-offset_top = 800.0
-offset_right = 980.0
-offset_bottom = 870.0
+offset_left = 40.0
+offset_top = 1890.0
+offset_right = 1040.0
+offset_bottom = 1960.0
 theme_override_font_sizes/font_size = 20
 text = "Move 2"
 
 [node name="ActionButton3" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 1000.0
-offset_top = 800.0
-offset_right = 1460.0
-offset_bottom = 870.0
+offset_left = 40.0
+offset_top = 1970.0
+offset_right = 1040.0
+offset_bottom = 2040.0
 theme_override_font_sizes/font_size = 20
 text = "Move 3"
 
 [node name="ActionButton4" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 1480.0
-offset_top = 800.0
-offset_right = 1940.0
-offset_bottom = 870.0
+offset_left = 40.0
+offset_top = 2050.0
+offset_right = 1040.0
+offset_bottom = 2120.0
 theme_override_font_sizes/font_size = 20
 text = "Move 4"
 
 [node name="ActionButton5" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 1960.0
-offset_top = 800.0
-offset_right = 2380.0
-offset_bottom = 870.0
+offset_left = 40.0
+offset_top = 2130.0
+offset_right = 1040.0
+offset_bottom = 2200.0
 theme_override_font_sizes/font_size = 20
 text = "Move 5"
 
 [node name="AutoButton" type="Button" parent="GameUI/BattlePanel"]
 toggle_mode = true
 offset_left = 40.0
-offset_top = 900.0
+offset_top = 2220.0
 offset_right = 340.0
-offset_bottom = 960.0
+offset_bottom = 2280.0
 theme_override_font_sizes/font_size = 22
 text = "Auto-battle: OFF"
 
 [node name="SkipButton" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 360.0
-offset_top = 900.0
-offset_right = 560.0
-offset_bottom = 960.0
+offset_left = 320.0
+offset_top = 2220.0
+offset_right = 520.0
+offset_bottom = 2280.0
 theme_override_font_sizes/font_size = 22
 text = "Skip"
 
 [node name="ResultLabel" type="Label" parent="GameUI/BattlePanel"]
 visible = false
 offset_left = 40.0
-offset_top = 400.0
-offset_right = 2380.0
-offset_bottom = 700.0
+offset_top = 900.0
+offset_right = 1040.0
+offset_bottom = 1400.0
 theme_override_font_sizes/font_size = 36
 horizontal_alignment = 1
 text = ""
 
 [node name="CloseButton" type="Button" parent="GameUI/BattlePanel"]
 visible = false
-offset_left = 1080.0
-offset_top = 900.0
-offset_right = 1340.0
-offset_bottom = 970.0
+offset_left = 390.0
+offset_top = 1450.0
+offset_right = 690.0
+offset_bottom = 1520.0
 theme_override_font_sizes/font_size = 24
 text = "Continue"
 
