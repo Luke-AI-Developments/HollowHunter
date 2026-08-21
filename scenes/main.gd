@@ -132,8 +132,9 @@ func _show_preset_picker() -> void:
 	game_ui.visible = false
 	for preset_id in ArtPaths.PRESET_IDS:
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(160, 160)
+		button.custom_minimum_size = Vector2(160, 212)
 		button.icon = ArtPaths.preset_portrait(preset_id, "early")
+		button.expand_icon = true
 		button.pressed.connect(_on_preset_chosen.bind(preset_id))
 		preset_grid.add_child(button)
 
