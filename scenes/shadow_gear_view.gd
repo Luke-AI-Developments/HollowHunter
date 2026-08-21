@@ -33,7 +33,7 @@ func _ready() -> void:
 	$ConvertButton.pressed.connect(_on_convert_pressed)
 	lock_button.pressed.connect(_on_lock_pressed)
 	favorite_button.pressed.connect(_on_favorite_pressed)
-	_rows = GearPanelHelpers.build_gear_rows($Rows, 180.0)
+	_rows = GearPanelHelpers.build_gear_rows($Rows, 250.0)
 	for row: Dictionary in _rows:
 		var slot: String = row["slot"]
 		row["equip_btn"].pressed.connect(_on_equip_best_pressed.bind(slot))

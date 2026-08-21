@@ -192,14 +192,14 @@ script = ExtResource("6")
 [node name="Bg" type="ColorRect" parent="GameUI/HunterGearPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="Title" type="Label" parent="GameUI/HunterGearPanel"]
 offset_left = 40.0
 offset_top = 30.0
-offset_right = 900.0
+offset_right = 1040.0
 offset_bottom = 80.0
 theme_override_font_sizes/font_size = 28
 text = "Hunter Gear"
@@ -224,8 +224,8 @@ text = "Close"
 
 [node name="SetsLabel" type="Label" parent="GameUI/HunterGearPanel"]
 offset_left = 40.0
-offset_top = 560.0
-offset_right = 2380.0
+offset_top = 760.0
+offset_right = 1040.0
 offset_bottom = 900.0
 theme_override_font_sizes/font_size = 18
 text = "Active sets: (none)"
@@ -237,14 +237,14 @@ script = ExtResource("7")
 [node name="Bg" type="ColorRect" parent="GameUI/ShadowGearPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="Title" type="Label" parent="GameUI/ShadowGearPanel"]
 offset_left = 40.0
 offset_top = 30.0
-offset_right = 1200.0
+offset_right = 1040.0
 offset_bottom = 80.0
 theme_override_font_sizes/font_size = 28
 text = "Shadow Gear"
@@ -282,42 +282,42 @@ theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="LevelUpButton" type="Button" parent="GameUI/ShadowGearPanel"]
-offset_left = 820.0
-offset_top = 90.0
-offset_right = 980.0
-offset_bottom = 140.0
+offset_left = 40.0
+offset_top = 160.0
+offset_right = 200.0
+offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
 text = "Level Up"
 
 [node name="FuseButton" type="Button" parent="GameUI/ShadowGearPanel"]
-offset_left = 1000.0
-offset_top = 90.0
-offset_right = 1220.0
-offset_bottom = 140.0
+offset_left = 220.0
+offset_top = 160.0
+offset_right = 440.0
+offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
 text = "Fuse Duplicate"
 
 [node name="ConvertButton" type="Button" parent="GameUI/ShadowGearPanel"]
-offset_left = 1240.0
-offset_top = 90.0
-offset_right = 1450.0
-offset_bottom = 140.0
+offset_left = 460.0
+offset_top = 160.0
+offset_right = 670.0
+offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
 text = "Convert to Essence"
 
 [node name="LockButton" type="Button" parent="GameUI/ShadowGearPanel"]
-offset_left = 1470.0
-offset_top = 90.0
-offset_right = 1630.0
-offset_bottom = 140.0
+offset_left = 690.0
+offset_top = 160.0
+offset_right = 850.0
+offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
 text = "Lock"
 
 [node name="FavoriteButton" type="Button" parent="GameUI/ShadowGearPanel"]
-offset_left = 1650.0
-offset_top = 90.0
-offset_right = 1850.0
-offset_bottom = 140.0
+offset_left = 870.0
+offset_top = 160.0
+offset_right = 1040.0
+offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
 text = "Favorite"
 
@@ -325,16 +325,16 @@ text = "Favorite"
 
 [node name="SetsLabel" type="Label" parent="GameUI/ShadowGearPanel"]
 offset_left = 40.0
-offset_top = 560.0
-offset_right = 2380.0
+offset_top = 630.0
+offset_right = 1040.0
 offset_bottom = 900.0
 theme_override_font_sizes/font_size = 18
 text = "Active sets: (none)"
 
 [node name="LoreLabel" type="Label" parent="GameUI/ShadowGearPanel"]
 offset_left = 40.0
-offset_top = 910.0
-offset_right = 2380.0
+offset_top = 980.0
+offset_right = 1040.0
 offset_bottom = 1040.0
 theme_override_font_sizes/font_size = 16
 autowrap_mode = 3

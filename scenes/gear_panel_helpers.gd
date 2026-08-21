@@ -16,30 +16,30 @@ static func build_gear_rows(parent: Node2D, y_start: float) -> Array:
 	for slot in Equip.SLOTS:
 		var row_label := Label.new()
 		row_label.position = Vector2(40, y)
-		row_label.size = Vector2(600, 40)
+		row_label.size = Vector2(340, 40)
 		row_label.add_theme_font_size_override("font_size", 20)
 		parent.add_child(row_label)
 
 		var equip_btn := Button.new()
-		equip_btn.position = Vector2(660, y)
+		equip_btn.position = Vector2(390, y)
 		equip_btn.size = Vector2(150, 40)
 		equip_btn.text = "Equip Best"
 		parent.add_child(equip_btn)
 
 		var unequip_btn := Button.new()
-		unequip_btn.position = Vector2(820, y)
+		unequip_btn.position = Vector2(550, y)
 		unequip_btn.size = Vector2(130, 40)
 		unequip_btn.text = "Unequip"
 		parent.add_child(unequip_btn)
 
 		var enhance_btn := Button.new()
-		enhance_btn.position = Vector2(960, y)
+		enhance_btn.position = Vector2(690, y)
 		enhance_btn.size = Vector2(160, 40)
 		enhance_btn.text = "Enhance"
 		parent.add_child(enhance_btn)
 
 		var browse_btn := Button.new()
-		browse_btn.position = Vector2(1140, y)
+		browse_btn.position = Vector2(860, y)
 		browse_btn.size = Vector2(130, 40)
 		browse_btn.text = "Browse"
 		parent.add_child(browse_btn)
