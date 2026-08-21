@@ -47,12 +47,12 @@ func setup(catalog: Dictionary) -> void:
 func _build_row(y: float, id: String, kind: String) -> Dictionary:
 	var row_label := Label.new()
 	row_label.position = Vector2(40, y)
-	row_label.size = Vector2(1600, 40)
+	row_label.size = Vector2(720, 40)
 	row_label.add_theme_font_size_override("font_size", 20)
 	rows_container.add_child(row_label)
 
 	var buy_btn := Button.new()
-	buy_btn.position = Vector2(1660, y)
+	buy_btn.position = Vector2(780, y)
 	buy_btn.size = Vector2(220, 40)
 	buy_btn.text = "Buy"
 	rows_container.add_child(buy_btn)
