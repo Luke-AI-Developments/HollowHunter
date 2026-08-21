@@ -154,6 +154,7 @@ func _refresh_roster() -> void:
 			row.position = Vector2(60, y)
 			row.size = Vector2(2300, 40)
 			row.icon = ArtPaths.monster_portrait(e["monster_id"])
+			row.expand_icon = true
 			var marker := " [S]" if squad_ids.has(e["instance_id"]) else ""
 			marker += " [L]" if e["locked"] else ""
 			marker += " [F]" if e["favorite"] else ""

@@ -249,6 +249,7 @@ func _refresh_grid() -> void:
 		var cell := Button.new()
 		cell.custom_minimum_size = Vector2(560, 160)
 		cell.icon = ArtPaths.equipment_icon(item["equipment_def_id"])
+		cell.expand_icon = true
 		var lock_mark := " [L]" if item["locked"] else ""
 		var select_mark := " [✓]" if _multi_selected.has(item["instance_id"]) else ""
 		cell.text = (
