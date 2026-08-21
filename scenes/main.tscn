@@ -767,14 +767,14 @@ script = ExtResource("10")
 [node name="Bg" type="ColorRect" parent="GameUI/LeaderboardPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="Title" type="Label" parent="GameUI/LeaderboardPanel"]
 offset_left = 40.0
 offset_top = 30.0
-offset_right = 1800.0
+offset_right = 1040.0
 offset_bottom = 80.0
 theme_override_font_sizes/font_size = 28
 text = "Leaderboard"
@@ -806,7 +806,7 @@ text = "By Nadir Floor"
 [node name="StatusLabel" type="Label" parent="GameUI/LeaderboardPanel"]
 offset_left = 40.0
 offset_top = 160.0
-offset_right = 2380.0
+offset_right = 1040.0
 offset_bottom = 200.0
 theme_override_font_sizes/font_size = 20
 text = "Connecting..."
@@ -820,39 +820,39 @@ position = Vector2(0, 900)
 [node name="Label" type="Label" parent="GameUI/LeaderboardPanel/LinkPanel"]
 offset_left = 40.0
 offset_top = 0.0
-offset_right = 900.0
+offset_right = 1040.0
 offset_bottom = 30.0
 theme_override_font_sizes/font_size = 18
 text = "Link an account so a reinstall never loses your rank:"
 
 [node name="EmailInput" type="LineEdit" parent="GameUI/LeaderboardPanel/LinkPanel"]
 offset_left = 40.0
-offset_top = 30.0
-offset_right = 500.0
-offset_bottom = 70.0
+offset_top = 40.0
+offset_right = 1040.0
+offset_bottom = 90.0
 placeholder_text = "Email"
 
 [node name="PasswordInput" type="LineEdit" parent="GameUI/LeaderboardPanel/LinkPanel"]
-offset_left = 520.0
-offset_top = 30.0
-offset_right = 900.0
-offset_bottom = 70.0
+offset_left = 40.0
+offset_top = 100.0
+offset_right = 1040.0
+offset_bottom = 150.0
 placeholder_text = "Password"
 secret = true
 
 [node name="LinkButton" type="Button" parent="GameUI/LeaderboardPanel/LinkPanel"]
-offset_left = 920.0
-offset_top = 30.0
-offset_right = 1080.0
-offset_bottom = 70.0
+offset_left = 40.0
+offset_top = 160.0
+offset_right = 300.0
+offset_bottom = 210.0
 theme_override_font_sizes/font_size = 18
 text = "Link Account"
 
 [node name="StatusLabel" type="Label" parent="GameUI/LeaderboardPanel/LinkPanel"]
 offset_left = 40.0
-offset_top = 80.0
-offset_right = 1800.0
-offset_bottom = 120.0
+offset_top = 220.0
+offset_right = 1040.0
+offset_bottom = 260.0
 theme_override_font_sizes/font_size = 18
 text = ""
 

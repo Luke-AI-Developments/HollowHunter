@@ -139,7 +139,7 @@ func _build_rows(parent: Node2D, y_start: float) -> Array:
 	for i in ROW_COUNT:
 		var row_label := Label.new()
 		row_label.position = Vector2(40, y)
-		row_label.size = Vector2(2000, 30)
+		row_label.size = Vector2(1000, 30)
 		row_label.add_theme_font_size_override("font_size", 18)
 		parent.add_child(row_label)
 		rows.append(row_label)
