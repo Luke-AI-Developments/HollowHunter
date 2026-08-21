@@ -105,3 +105,83 @@ Gradle invocation, which has been unreliable in this environment -- see the
 with `gradlew` directly. Skipping that step means the plugin's manifest
 meta-data and Maven dependencies never get staged, and you're back to
 `ClassNotFoundException`/`NoClassDefFoundError`.
+
+## Orientation gotchas (portrait-mode branch, checkpoint 5)
+
+Getting the device to actually render portrait (not just the in-game canvas
+being portrait-shaped while pillarboxed inside a landscape window) took two
+separate fixes, both worth knowing before touching orientation again:
+
+1. **`android/build/src/debug/AndroidManifest.xml` and `src/release/
+   AndroidManifest.xml` hardcode `android:screenOrientation="landscape"`
+   and `android:resizeableActivity="true"` on a `tools:replace` block for
+   `.GodotApp`, and Godot's own `godot --export-debug`/`--export-release`
+   step REGENERATES both files from scratch on every single export,
+   silently reverting any hand-edit.** `src/main/AndroidManifest.xml`
+   (which carries the "real" `screenOrientation`/`resizeableActivity`
+   values, correctly driven by `project.godot`) is NOT regenerated the same
+   way and keeps a hand-edit -- but since the `tools:replace` block in the
+   debug/release files unconditionally wins the manifest merge for those
+   two attributes, `src/main`'s correct values never actually apply to a
+   built APK. Confirmed via `aapt2 dump xmltree --file AndroidManifest.xml
+   <apk>` on the final packaged manifest, not just the source files.
+
+   Fix both attributes to `"portrait"` / `"false"` in **both**
+   `src/debug/AndroidManifest.xml` and `src/release/AndroidManifest.xml`
+   after every `godot --export-debug`/`--export-release` run, before
+   building with Gradle. This has to be redone after every Godot export,
+   not just once.
+
+2. **Even with a correct manifest, Godot 4.7.1's own Android startup code
+   forces landscape anyway, on this custom Gradle build.** Traced via
+   `adb shell dumpsys activity activities` showing `overrideOrientation=
+   SCREEN_ORIENTATION_LANDSCAPE` (Android's own field name for a value set
+   at runtime via `Activity.setRequestedOrientation()`, which beats
+   whatever the manifest declares) despite the manifest and the exported
+   `project.binary` both being independently verified correct. Disassembling
+   `classes4.dex` (`dexdump -d`) traced the single `setRequestedOrientation`
+   call in the whole APK to `org.godotengine.godot.GodotIO.
+   setScreenOrientation()` -- Godot's own engine-side sync from project
+   settings to the Android `Activity`, called before any of our own code
+   runs, resolving to the wrong Android constant on this specific
+   custom-build configuration. Root cause not fully isolated (not a
+   project-setting or manifest problem -- both were checked directly and
+   are correct); workaround is `scenes/main.gd`'s `_ready()` calling
+   `DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)` as
+   its very first line, which runs after Godot's own startup call and wins.
+
+Because building via `gradlew` directly (see the section above) also skips
+Godot's own `-P` property injection, minSdk-driven manifest merge failures
+(`uses-sdk:minSdkVersion 24 cannot be smaller than version 26 declared in
+library [androidx.health.connect:connect-client]...`) show up unless you
+also pass `-Pexport_version_min_sdk=26 -Pexport_version_target_sdk=34
+-Pexport_package_name=com.hollowhunter.app -Pexport_version_code=1
+-Pexport_version_name=0.1.0` (matching `export_presets.cfg`) on the
+`gradlew` invocation. A raw `gradlew assembleStandardDebug` build is also
+unsigned (`INSTALL_PARSE_FAILED_NO_CERTIFICATES` on install) -- sign it
+with Godot's own debug keystore before installing:
+
+```bash
+# after `godot --export-debug` and re-patching both manifests above:
+cd android/build
+./gradlew.bat assembleStandardDebug --rerun-tasks \
+  -Pexport_version_min_sdk=26 -Pexport_version_target_sdk=34 \
+  -Pexport_package_name=com.hollowhunter.app \
+  -Pexport_version_code=1 -Pexport_version_name=0.1.0
+
+"$ANDROID_SDK/build-tools/34.0.0/apksigner.bat" sign \
+  --ks "$APPDATA/Godot/keystores/debug.keystore" \
+  --ks-pass pass:android --key-pass pass:android \
+  --ks-key-alias androiddebugkey \
+  --out build/outputs/apk/standard/debug/android_debug_signed.apk \
+  build/outputs/apk/standard/debug/android_debug.apk
+
+adb install -r build/outputs/apk/standard/debug/android_debug_signed.apk
+```
+
+A plain `godot --export-debug` followed by `adb install` -- the normal,
+simple workflow -- will build and install fine, but will **silently ship
+landscape orientation** every time, since it never re-patches the two
+debug/release manifest files. Until Godot's own export step is fixed to
+stop hardcoding those, the manual re-patch + direct-`gradlew`-build
+sequence above is required for a portrait build.

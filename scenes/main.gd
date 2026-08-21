@@ -77,6 +77,17 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 
 
 func _ready() -> void:
+	# Portrait mode: project.godot's display/window/handheld/orientation is
+	# correctly "portrait" (verified directly via ProjectSettings), but on
+	# this custom Gradle Android build, Godot 4.7.1's own startup sync
+	# (GodotIO.setScreenOrientation(), called from engine code before this
+	# script ever runs) calls Activity.setRequestedOrientation() with
+	# SCREEN_ORIENTATION_LANDSCAPE regardless -- a confirmed engine-side
+	# mismatch specific to custom builds, not a project misconfiguration
+	# (every manifest attribute and the exported project data were checked
+	# directly on-device and are correct). Setting it again here, from our
+	# own code, runs after the engine's own call and wins the race.
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
 	_monsters = Content.load_monsters()
 	_equipment = Content.load_equipment()
 	_moves = Content.load_moves()
