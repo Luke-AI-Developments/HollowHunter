@@ -112,19 +112,19 @@ visible = false
 offset_left = 40.0
 offset_top = 10.0
 offset_right = 1040.0
-offset_bottom = 70.0
+offset_bottom = 200.0
 theme_override_font_sizes/font_size = 28
 text = "Waiting for location..."
 
 [node name="MapView" type="Node2D" parent="GameUI"]
-position = Vector2(540, 800)
+position = Vector2(540, 870)
 script = ExtResource("2")
 
 [node name="EnterGateButton" type="Button" parent="GameUI"]
 offset_left = 40.0
-offset_top = 80.0
+offset_top = 210.0
 offset_right = 340.0
-offset_bottom = 140.0
+offset_bottom = 270.0
 theme_override_font_sizes/font_size = 24
 text = "Enter Nearest Gate"
 
@@ -424,7 +424,7 @@ script = ExtResource("4")
 offset_left = 0.0
 offset_top = 90.0
 offset_right = 1080.0
-offset_bottom = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="CloseButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
@@ -1308,9 +1308,9 @@ theme_override_font_sizes/font_size = 22
 text = "Auto-battle: OFF"
 
 [node name="SkipButton" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 320.0
+offset_left = 360.0
 offset_top = 2220.0
-offset_right = 520.0
+offset_right = 560.0
 offset_bottom = 2280.0
 theme_override_font_sizes/font_size = 22
 text = "Skip"
