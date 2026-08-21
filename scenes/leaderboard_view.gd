@@ -143,5 +143,5 @@ func _build_rows(parent: Node2D, y_start: float) -> Array:
 		row_label.add_theme_font_size_override("font_size", 18)
 		parent.add_child(row_label)
 		rows.append(row_label)
-		y += 32
+		y += 48
 	return rows

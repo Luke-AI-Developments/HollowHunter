@@ -49,7 +49,7 @@ func _build_rows(parent: Node2D, y_start: float) -> Array:
 		toggle_btn.pressed.connect(_on_row_toggle_pressed.bind(i))
 
 		rows.append({"label": row_label, "toggle_btn": toggle_btn, "instance_id": ""})
-		y += 50
+		y += 90
 	return rows
 
 

@@ -226,7 +226,7 @@ text = "Close"
 offset_left = 40.0
 offset_top = 760.0
 offset_right = 1040.0
-offset_bottom = 900.0
+offset_bottom = 2380.0
 theme_override_font_sizes/font_size = 18
 text = "Active sets: (none)"
 
@@ -327,15 +327,15 @@ text = "Favorite"
 offset_left = 40.0
 offset_top = 630.0
 offset_right = 1040.0
-offset_bottom = 900.0
+offset_bottom = 950.0
 theme_override_font_sizes/font_size = 18
 text = "Active sets: (none)"
 
 [node name="LoreLabel" type="Label" parent="GameUI/ShadowGearPanel"]
 offset_left = 40.0
-offset_top = 980.0
+offset_top = 970.0
 offset_right = 1040.0
-offset_bottom = 1040.0
+offset_bottom = 2380.0
 theme_override_font_sizes/font_size = 16
 autowrap_mode = 3
 text = ""
@@ -400,13 +400,13 @@ text = "Sort: Power"
 offset_left = 0.0
 offset_top = 160.0
 offset_right = 1080.0
-offset_bottom = 890.0
+offset_bottom = 2300.0
 
 [node name="Sections" type="Control" parent="GameUI/ArmyPanel/RosterTab/SectionsScroll"]
 layout_mode = 2
 
 [node name="BulkBar" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
-position = Vector2(0, 900)
+position = Vector2(0, 2320)
 
 [node name="MassConvertButton" type="Button" parent="GameUI/ArmyPanel/RosterTab/BulkBar"]
 offset_left = 40.0
@@ -815,7 +815,7 @@ text = "Connecting..."
 position = Vector2(0, 210)
 
 [node name="LinkPanel" type="Node2D" parent="GameUI/LeaderboardPanel"]
-position = Vector2(0, 900)
+position = Vector2(0, 1190)
 
 [node name="Label" type="Label" parent="GameUI/LeaderboardPanel/LinkPanel"]
 offset_left = 40.0
