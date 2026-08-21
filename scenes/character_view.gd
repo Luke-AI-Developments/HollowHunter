@@ -24,6 +24,7 @@ var _monsters: Array
 @onready var fitness_label: Label = $FitnessLabel
 @onready var health_label: Label = $HealthStatusLabel
 @onready var trial_button: Button = $TrialButton
+@onready var portrait_rect: TextureRect = $PortraitRect
 
 
 func _ready() -> void:
@@ -48,11 +49,16 @@ func open(steps: int, workouts_json: String, gps_status: String, health_status: 
 ## Identity/stats/rank/GATE_POWER + today's fitness breakdown (steps/
 ## workout minutes/signature match/streak, reusing DailyExp's existing
 ## pure functions on the already-fetched steps/workouts_json -- no new
-## state needed) + a persistent health-connection status line. No hunter
-## render/rank-glow art -- text only, same placeholder-art convention as
-## the rest of this project's UI.
+## state needed) + a persistent health-connection status line. Shows the
+## chosen preset portrait (ArtPaths.preset_portrait(), keyed by the
+## hunter's rank-derived art stage via GameLogic.stage_for_rank()) --
+## no rank-glow/aura overlay or equipment paper-doll yet (§9b flags both
+## as later work), so the portrait itself is still placeholder-simple.
 func refresh(steps: int, workouts_json: String, gps_status: String, health_status: String) -> void:
 	var stats := _state.stats()
+	portrait_rect.texture = ArtPaths.preset_portrait(
+		_state.preset_id, GameLogic.stage_for_rank(_state.hunter_rank)
+	)
 	var exp_needed := GameLogic.exp_to_next(_state.level)
 	var pct := 0.0
 	if exp_needed > 0:

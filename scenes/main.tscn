@@ -1120,6 +1120,14 @@ theme_override_font_sizes/font_size = 22
 text = "Attempt Trial"
 disabled = true
 
+[node name="PortraitRect" type="TextureRect" parent="GameUI/CharacterPanel"]
+offset_left = 1500.0
+offset_top = 170.0
+offset_right = 2380.0
+offset_bottom = 900.0
+expand_mode = 1
+stretch_mode = 5
+
 [node name="GateBreakPanel" type="Node2D" parent="GameUI"]
 visible = false
 
