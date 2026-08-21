@@ -92,6 +92,7 @@ func _ready() -> void:
 
 	if not is_new_hunter:
 		state = SaveService.load_or_create()
+		preset_picker.visible = false
 		subclass_picker.visible = false
 		game_ui.visible = true
 		_start_game()
