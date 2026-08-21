@@ -130,6 +130,7 @@ func _refresh_enemy_slots() -> void:
 		# ArtPaths falls back to null (no icon) for those, same placeholder-first
 		# convention as everywhere else.
 		slot.icon = ArtPaths.monster_portrait(String(e["id"]))
+		slot.expand_icon = true
 		if int(e["hp"]) <= 0:
 			slot.text = "%s\n[DEFEATED]" % e["name"]
 			slot.disabled = true
@@ -148,6 +149,7 @@ func _refresh_party_slots() -> void:
 		var c: Dictionary = _battle.party[i]
 		slot.visible = true
 		slot.icon = _party_portraits.get(c["id"], null)
+		slot.expand_icon = true
 		var status := ""
 		if int(c["hp"]) <= 0:
 			status = "\n[DOWN]"
