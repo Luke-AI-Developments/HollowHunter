@@ -1052,14 +1052,14 @@ script = ExtResource("9")
 [node name="Bg" type="ColorRect" parent="GameUI/CharacterPanel"]
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 2424.0
-offset_bottom = 1080.0
+offset_right = 1080.0
+offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="Title" type="Label" parent="GameUI/CharacterPanel"]
 offset_left = 40.0
 offset_top = 30.0
-offset_right = 1800.0
+offset_right = 1040.0
 offset_bottom = 80.0
 theme_override_font_sizes/font_size = 28
 text = "Hunter"
@@ -1074,42 +1074,42 @@ text = "Close"
 
 [node name="InfoLabel" type="Label" parent="GameUI/CharacterPanel"]
 offset_left = 40.0
-offset_top = 170.0
-offset_right = 1400.0
-offset_bottom = 520.0
+offset_top = 1200.0
+offset_right = 1040.0
+offset_bottom = 1550.0
 theme_override_font_sizes/font_size = 22
 text = "Identity"
 
 [node name="FitnessLabel" type="Label" parent="GameUI/CharacterPanel"]
 offset_left = 40.0
-offset_top = 540.0
-offset_right = 1400.0
-offset_bottom = 780.0
+offset_top = 1570.0
+offset_right = 1040.0
+offset_bottom = 1810.0
 theme_override_font_sizes/font_size = 22
 text = "Today's fitness"
 
 [node name="HealthStatusLabel" type="Label" parent="GameUI/CharacterPanel"]
 offset_left = 40.0
-offset_top = 800.0
-offset_right = 1400.0
-offset_bottom = 900.0
+offset_top = 1830.0
+offset_right = 1040.0
+offset_bottom = 1930.0
 theme_override_font_sizes/font_size = 20
 text = "Health connection"
 
 [node name="TrialButton" type="Button" parent="GameUI/CharacterPanel"]
 offset_left = 40.0
-offset_top = 920.0
+offset_top = 1950.0
 offset_right = 400.0
-offset_bottom = 980.0
+offset_bottom = 2010.0
 theme_override_font_sizes/font_size = 22
 text = "Attempt Trial"
 disabled = true
 
 [node name="PortraitRect" type="TextureRect" parent="GameUI/CharacterPanel"]
-offset_left = 1500.0
+offset_left = 140.0
 offset_top = 170.0
-offset_right = 2380.0
-offset_bottom = 900.0
+offset_right = 940.0
+offset_bottom = 1170.0
 expand_mode = 1
 stretch_mode = 5
 
