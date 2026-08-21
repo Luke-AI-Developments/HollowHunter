@@ -175,7 +175,7 @@ func _refresh_sets() -> void:
 		sets_rows.add_child(icon)
 		var label := Label.new()
 		label.position = Vector2(140, y)
-		label.size = Vector2(2240, 80)
+		label.size = Vector2(860, 80)
 		label.add_theme_font_size_override("font_size", 18)
 		label.text = (
 			"%s  %d/4\n  2pc: %s\n  4pc: %s"
@@ -193,7 +193,7 @@ func _refresh_sets() -> void:
 	# content height so it knows how far there is to scroll -- same reason
 	# ArmyView's Sections needs it (a bare Control reports zero minimum size
 	# otherwise since nothing here is laid out by an auto-layout container).
-	sets_rows.custom_minimum_size = Vector2(2340, y)
+	sets_rows.custom_minimum_size = Vector2(1000, y)
 
 
 func _cycle(options: Array, current: String) -> String:
