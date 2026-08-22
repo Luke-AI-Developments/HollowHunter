@@ -7,7 +7,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "python -c \"import sys,json; d=json.load(sys.stdin); sys.stdout.write(d.get('tool_input',{}).get('file_path') or d.get('tool_response',{}).get('filePath') or '')\" | { read -r f; case \"$f\" in *.gd) gdformat \"$f\" && gdlint \"$f\" && godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit ;; esac; } 2>&1 || true",
+            "command": "python -c \"import sys,json; d=json.load(sys.stdin); sys.stdout.write(d.get('tool_input',{}).get('file_path') or d.get('tool_response',{}).get('filePath') or '')\" | { read -r f; case \"$f\" in *.gd) gdformat \"$f\" && gdlint \"$f\" && \"/c/Users/luket/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64.exe\" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit ;; esac; } 2>&1 || true",
             "timeout": 120,
             "statusMessage": "gdformat + gdlint + GUT..."
           }
