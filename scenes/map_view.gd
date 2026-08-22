@@ -1,13 +1,16 @@
 class_name MapView
 extends Node2D
 
-## Phase 1 step 4: simple placeholder map. Live GPS position (player, drawn
-## at this node's local origin) plus a handful of rank-matched placeholder
-## gates scattered around it. No real map tiles -- lat/lon deltas project
-## straight to pixels via a flat approximation, which is fine at this scale
-## and matches "placeholder art only" for this phase.
+## Vector-line map renderer (§19b/§19c). Loads the pre-projected street/water
+## extract (content/map_data/*.bin -- see tools/map_extract/fetch_and_convert.py)
+## once at _ready(), draws it in the game's dark palette (colors/widths from
+## core/map_geometry.gd), with the live GPS position (player, drawn centred at
+## this node's local origin) and rank-matched gates layered on top. Pan (drag)
+## and pinch-zoom are manual offsets on top of that same coordinate space --
+## see _world_to_screen(). All positions -- roads, water, gates, player --
+## share one Mercator-relative-to-origin metre space (_project()), so nothing
+## drifts out of alignment between them.
 
-const PIXELS_PER_DEGREE := 100000.0
 const PLAYER_RADIUS := 14.0
 const GATE_RADIUS := 20.0
 
@@ -23,11 +26,105 @@ const RANK_COLORS := {
 const NORMAL_GATE_COUNT := 5
 const INCURSION_GATE_COUNT := 8  ## invented v0: §19's "denser" -- see core/incursion.gd
 
+const MAP_DATA_PATH := "res://content/map_data/darlington.bin"
+
+const MIN_ZOOM_PX_PER_M := 0.5
+const MAX_ZOOM_PX_PER_M := 8.0
+const DEFAULT_ZOOM_PX_PER_M := 2.0
+const LOW_ZOOM_THRESHOLD := 1.0  ## px/m -- below this, draw each way's cached
+## simplified_points tier instead of full-detail points (see _load_map_data()).
+## Half of DEFAULT_ZOOM_PX_PER_M, i.e. "zoomed out to about half the default view".
+
 var _center_lat: float = 0.0
 var _center_lon: float = 0.0
 var _has_fix := false
 var _gates: Array = []
 var _active_incursion_family := ""  ## Phase 2/P9: "" if this area+week isn't under one (§19)
+
+var _ways: Array = []  ## Array[Dictionary]: {"class_id": int, "points": PackedVector2Array,
+## "simplified_points": PackedVector2Array} -- world metres, relative to _origin_x/_origin_y
+## below. Loaded once at _ready().
+var _origin_x: float = 0.0  ## Web Mercator metres of the extract's bbox centre --
+var _origin_y: float = 0.0  ## every live GPS/gate lat-lon must subtract this same
+## origin after projecting, to land in the same relative-metres space the loaded
+## road/water geometry is already in.
+var _player_world_pos: Vector2 = Vector2.ZERO  ## set by show_position() via _project()
+
+var _zoom_px_per_m: float = DEFAULT_ZOOM_PX_PER_M
+var _pan_offset: Vector2 = Vector2.ZERO  ## world metres, added to the player's own
+## world position to get the point currently at screen-centre -- manual dragging
+## adjusts this; it is NOT reset by a new GPS fix (see show_position()).
+var _drag_touch_index: int = -1
+var _drag_last_screen_pos: Vector2 = Vector2.ZERO
+var _pinch_touch_indices: Array = []  ## up to 2 active touch indices, for pinch
+var _pinch_last_distance: float = -1.0
+var _pinch_pos_a: Vector2 = Vector2.ZERO
+var _pinch_pos_b: Vector2 = Vector2.ZERO
+
+
+func _ready() -> void:
+	_load_map_data()
+
+
+func _load_map_data() -> void:
+	var file := FileAccess.open(MAP_DATA_PATH, FileAccess.READ)
+	if file == null:
+		push_error("MapView: failed to open %s (%s)" % [MAP_DATA_PATH, FileAccess.get_open_error()])
+		return
+
+	var magic := file.get_buffer(4).get_string_from_ascii()
+	if magic != "HHMD":
+		push_error("MapView: %s has bad magic %s, expected HHMD" % [MAP_DATA_PATH, magic])
+		return
+	var version := file.get_8()
+	if version != 1:
+		push_error("MapView: %s has unsupported version %d" % [MAP_DATA_PATH, version])
+		return
+
+	file.get_float()  # bbox south -- kept in the file for reference/debugging, unused here
+	file.get_float()  # bbox west
+	file.get_float()  # bbox north
+	file.get_float()  # bbox east
+	_origin_x = file.get_float()
+	_origin_y = file.get_float()
+	var way_count := file.get_32()
+
+	_ways = []
+	for i in way_count:
+		var class_id := file.get_8()
+		var point_count := file.get_16()
+		var points := PackedVector2Array()
+		points.resize(point_count)
+		for p in point_count:
+			var x := file.get_float()
+			var y := file.get_float()
+			points[p] = Vector2(x, y)
+		# Precomputed once here, not per-frame: a fixed, generous tolerance for
+		# use when zoomed out. Running Douglas-Peucker every _draw() call would
+		# cost more than the simplification saves; caching it at load time is
+		# what makes "simplify aggressively at low zoom" actually cheap.
+		var simplified := MapGeometry.simplify_polyline(points, 3.0)
+		_ways.append({"class_id": class_id, "points": points, "simplified_points": simplified})
+
+	file.close()
+
+
+## Projects a live lat/lon (player position, a gate's spawn point) into the
+## SAME world-metres space the loaded road/water geometry already uses --
+## Mercator, relative to the extract's own origin.
+func _project(lat: float, lon: float) -> Vector2:
+	var merc := MapGeometry.lonlat_to_mercator(lon, lat)
+	return Vector2(merc.x - _origin_x, merc.y - _origin_y)
+
+
+## World metres (relative to the extract's origin) -> local draw-space
+## pixels. Centred on wherever the player currently is, offset by any
+## manual pan, then scaled by the current zoom.
+func _world_to_screen(world_pos: Vector2) -> Vector2:
+	var relative := world_pos - _player_world_pos - _pan_offset
+	# Y-axis flip matches the existing gate/player marker convention: world-
+	# space Y increases northward, screen-space Y increases downward.
+	return Vector2(relative.x, -relative.y) * _zoom_px_per_m
 
 
 ## Gates are rolled once, from the first fix -- moving around doesn't
@@ -38,6 +135,7 @@ var _active_incursion_family := ""  ## Phase 2/P9: "" if this area+week isn't un
 ## that same first fix -- deterministic, so it's fine to compute once and
 ## hold rather than re-check on every position update.
 func show_position(lat: float, lon: float, hunter_rank: String) -> void:
+	_player_world_pos = _project(lat, lon)
 	if not _has_fix:
 		_center_lat = lat
 		_center_lon = lon
@@ -115,15 +213,19 @@ func _draw() -> void:
 			Color.ORANGE_RED
 		)
 
+	_draw_map_geometry()
+
+	# Marker sizes/text offset scale with zoom too, clamped so they stay
+	# legible rather than literally scaling with the map like a mapped
+	# feature would -- markers are a UI/game-logic element, not terrain.
+	var marker_scale: float = clamp(_zoom_px_per_m / DEFAULT_ZOOM_PX_PER_M, 0.6, 1.4)
 	for g: Dictionary in _gates:
-		var dx: float = (g["lon"] - _center_lon) * PIXELS_PER_DEGREE
-		var dy: float = -(g["lat"] - _center_lat) * PIXELS_PER_DEGREE
-		var pos := Vector2(dx, dy)
+		var pos := _world_to_screen(_project(g["lat"], g["lon"]))
 		var color: Color = RANK_COLORS.get(g["rank"], Color.WHITE)
-		draw_circle(pos, GATE_RADIUS, color)
+		draw_circle(pos, GATE_RADIUS * marker_scale, color)
 		draw_string(
 			ThemeDB.fallback_font,
-			pos + Vector2(-8, 8),
+			pos + Vector2(-8, 8) * marker_scale,
 			g["rank"],
 			HORIZONTAL_ALIGNMENT_CENTER,
 			-1,
@@ -131,4 +233,106 @@ func _draw() -> void:
 			Color.BLACK
 		)
 
-	draw_circle(Vector2.ZERO, PLAYER_RADIUS, Color.DEEP_SKY_BLUE)
+	draw_circle(
+		_world_to_screen(_player_world_pos), PLAYER_RADIUS * marker_scale, Color.DEEP_SKY_BLUE
+	)
+
+
+## Water first (so roads draw on top of it, not the reverse), then roads by
+## class, culled to the visible area and detail-tiered by zoom. Every world
+## position routes through _world_to_screen(), so pan/zoom apply uniformly
+## to roads, water, and markers alike.
+func _draw_map_geometry() -> void:
+	var half_extent_m := 1200.0 / _zoom_px_per_m  ## generous margin either side
+	## of the node's local draw area -- MapView's own screen footprint is
+	## roughly ~1000px wide in the final layout, so 1200 world-space
+	## px-equivalent of margin comfortably covers it at any zoom without this
+	## function needing to know its exact on-screen rect.
+	var view_center := _player_world_pos + _pan_offset
+	var visible_rect := Rect2(
+		view_center - Vector2(half_extent_m, half_extent_m),
+		Vector2(half_extent_m, half_extent_m) * 2.0
+	)
+	var use_simplified := _zoom_px_per_m < LOW_ZOOM_THRESHOLD
+	var width_scale: float = clamp(_zoom_px_per_m / DEFAULT_ZOOM_PX_PER_M, 0.5, 2.5)
+
+	for way: Dictionary in _ways:
+		var points: PackedVector2Array = (
+			way["simplified_points"] if use_simplified else way["points"]
+		)
+		if points.size() < 2:
+			continue
+		if not MapGeometry.rect_intersects(MapGeometry.way_bounds(points), visible_rect):
+			continue
+		var class_id: int = way["class_id"]
+		var screen_points := PackedVector2Array()
+		screen_points.resize(points.size())
+		for i in points.size():
+			screen_points[i] = _world_to_screen(points[i])
+		if class_id == MapGeometry.CLASS_WATER_AREA:
+			draw_colored_polygon(screen_points, MapGeometry.road_color(class_id))
+		else:
+			draw_polyline(
+				screen_points,
+				MapGeometry.road_color(class_id),
+				MapGeometry.road_width_px(class_id) * width_scale,
+				true
+			)
+
+
+## `InputEventScreenDrag` only carries the position of the ONE finger that
+## moved, per event -- Godot has no "give me both current touch positions"
+## query API -- so both pinch fingers' last-known positions have to be
+## tracked explicitly (_pinch_pos_a/_pinch_pos_b above), seeded the moment
+## the second finger lands rather than left to be filled in by whichever
+## finger happens to drag first.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _has_fix:
+		return
+
+	if event is InputEventScreenTouch:
+		var touch_event := event as InputEventScreenTouch
+		if touch_event.pressed:
+			if _drag_touch_index == -1 and _pinch_touch_indices.is_empty():
+				_drag_touch_index = touch_event.index
+				_drag_last_screen_pos = touch_event.position
+			elif _drag_touch_index != -1 and touch_event.index != _drag_touch_index:
+				# A second finger landed -- switch from drag to pinch, and seed
+				# both positions/the starting distance right now so the first
+				# subsequent drag event has something correct to compare against.
+				_pinch_touch_indices = [_drag_touch_index, touch_event.index]
+				_pinch_pos_a = _drag_last_screen_pos
+				_pinch_pos_b = touch_event.position
+				_pinch_last_distance = _pinch_pos_a.distance_to(_pinch_pos_b)
+				_drag_touch_index = -1
+		else:
+			if touch_event.index == _drag_touch_index:
+				_drag_touch_index = -1
+			_pinch_touch_indices.erase(touch_event.index)
+			if _pinch_touch_indices.size() < 2:
+				_pinch_last_distance = -1.0
+		return
+
+	if event is InputEventScreenDrag:
+		var drag_event := event as InputEventScreenDrag
+		if drag_event.index == _drag_touch_index:
+			var delta_screen := drag_event.position - _drag_last_screen_pos
+			_drag_last_screen_pos = drag_event.position
+			_pan_offset -= Vector2(delta_screen.x, -delta_screen.y) / _zoom_px_per_m
+			queue_redraw()
+		elif drag_event.index in _pinch_touch_indices:
+			if drag_event.index == _pinch_touch_indices[0]:
+				_pinch_pos_a = drag_event.position
+			else:
+				_pinch_pos_b = drag_event.position
+			_update_pinch_zoom()
+			queue_redraw()
+
+
+func _update_pinch_zoom() -> void:
+	var distance := _pinch_pos_a.distance_to(_pinch_pos_b)
+	if _pinch_last_distance > 0.0 and distance > 0.0:
+		_zoom_px_per_m = clamp(
+			_zoom_px_per_m * (distance / _pinch_last_distance), MIN_ZOOM_PX_PER_M, MAX_ZOOM_PX_PER_M
+		)
+	_pinch_last_distance = distance
