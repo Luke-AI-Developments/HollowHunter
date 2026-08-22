@@ -1,0 +1,32 @@
+# Force LF for all text files regardless of platform/editor checkout
+# settings, so `git diff`/`git status` reflect real edits instead of
+# CRLF<->LF churn. `* text=auto` lets git auto-detect binary vs text for
+# anything not listed below; `eol=lf` pins the stored (and, on checkout,
+# working-tree) line ending for whatever it decides is text.
+* text=auto eol=lf
+
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.cfg text eol=lf
+*.godot text eol=lf
+*.uid text eol=lf
+*.import text eol=lf
+*.txt text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.properties text eol=lf
+*.gradle text eol=lf
+.gitignore text eol=lf
+
+# Binary assets -- never text-convert, never diff as text.
+*.png binary
+*.ttf binary
+*.otf binary
+*.fnt binary
+*.jar binary
+*.aar binary
+*.bin binary
+*.webp binary
