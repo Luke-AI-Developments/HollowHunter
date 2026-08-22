@@ -33,3 +33,6 @@ devmedia/
 
 # Visual brainstorming companion scratch (superpowers skill) -- local only.
 .superpowers/
+
+# Python (tools/ scripts)
+__pycache__/

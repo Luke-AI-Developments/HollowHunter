@@ -15,20 +15,20 @@ const PRESET_IDS := ["f1", "f2", "f3", "f4", "f5", "f6", "m1", "m2", "m3", "m4",
 
 
 static func monster_portrait(monster_id: String) -> Texture2D:
-	var path := "res://art/monsters/por_%s.png" % monster_id
+	var path := "res://art/monsters/por_%s.webp" % monster_id
 	return load(path) if ResourceLoader.exists(path) else null
 
 
 static func equipment_icon(equipment_def_id: String) -> Texture2D:
-	var path := "res://art/equipment/spr_%s.png" % equipment_def_id
+	var path := "res://art/equipment/spr_%s.webp" % equipment_def_id
 	return load(path) if ResourceLoader.exists(path) else null
 
 
 static func set_showcase(set_id: String) -> Texture2D:
-	var path := "res://art/sets/%s.png" % set_id
+	var path := "res://art/sets/%s.webp" % set_id
 	return load(path) if ResourceLoader.exists(path) else null
 
 
 static func preset_portrait(preset_id: String, stage: String) -> Texture2D:
-	var path := "res://art/presets/preset_hunter_%s_%s.png" % [preset_id, stage]
+	var path := "res://art/presets/preset_hunter_%s_%s.webp" % [preset_id, stage]
 	return load(path) if ResourceLoader.exists(path) else null
