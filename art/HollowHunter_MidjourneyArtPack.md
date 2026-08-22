@@ -8,20 +8,19 @@
 **The whole point:** the subscription clock only matters while you're generating. Every prompt is pre-written below, so you paste → generate → upscale → download, with zero thinking time. Do it over 2–3 focused sessions in one month, then cancel.
 
 **Which tier:**
-- **Standard (~$30/mo)** is the right pick for a bulk blitz, because it includes **unlimited "Relax" generations** (slow queue, but you're not paying per image). 57 monsters × a few rolls each = hundreds of jobs — Relax mode makes that effectively free within the month.
+- **Standard (~$30/mo)** is the right pick for a bulk blitz, because it includes **unlimited "Relax" generations** (slow queue, but you're not paying per image). 54 monsters × a few rolls each = hundreds of jobs — Relax mode makes that effectively free within the month.
 - **Basic (~$10/mo)** only gives ~3.3 "fast hours" and **no Relax mode**. You'd burn through it before finishing the monsters. Only worth it if you're doing *just* the hero art.
 - *(Check current pricing/tier names when you subscribe — Midjourney changes these.)*
 
 **Recommendation:** one month of **Standard**, do everything in Relax mode, cancel. Even at $30 that's your entire game's art for the price of two takeaways.
 
-**Full scope, one pass:** hero key art (3) + promotional variants (4) + 12 preset playable-hunter portraits + 36 rank-progression variants (12 presets × 3 stages) + all 57 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 15 UI/store assets (incl. the System UI frame, §9c) = **192 images total.** All prompts below — nothing left to decide mid-session.
+**Full scope, one pass:** hero key art (3) + promotional variants (4) + 36 rank-progression variants (12 presets × 3 stages; the early one doubles as the character-select portrait) + all 54 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 9 UI/store assets (incl. the System UI frame, §9c; the 6 rank badges are code-generated, not MJ) = **171 images total** (+6 code-generated rank badges = 180 assets). All prompts below — nothing left to decide mid-session.
 
 **Order of work in the paid month:**
-1. Lock the **style anchor** (§2) — 30 min, gets you an `--sref` code that makes everything look like one cohesive game.
+1. **Style is already locked** (§2) — tested and approved, no setup step needed. Just use the master suffix as written.
 2. **Hero key art + promo variants** (§3) — the flagship + social-content variety, 7 images.
-3. **12 preset hunter portraits** (§3b) — the playable characters, face-visible, 6F/6M.
-4. **36 rank-progression variants** (§3c) — same 12 presets, 3 power-stages each.
-5. **All 57 monsters** (§4) — the big batch, in Relax.
+3. **36 rank-progression variants** (§3c) — the 12 presets × 3 power-stages; the *early* image is also the character-select portrait.
+5. **All 54 monsters** (§4) — the big batch, in Relax.
 6. **All 50 equipment pieces** (§5) — icon-style, in Relax.
 7. **All 15 armor sets** (§6) — full-set showcases, in Relax.
 8. **UI / store assets** (§7) — app icon, store banner, class icons, rank badges.
@@ -38,31 +37,36 @@
   - `--ar 1:1` aspect ratio (monsters = square; hero = `--ar 9:16` vertical and `--ar 16:9` wide).
   - `--style raw` = less "Midjourney beautification," more literal to your prompt = **crisper, more controlled** (fixes your Leonardo complaint).
   - `--no text, watermark` = MJ's negative prompt (what to exclude).
-  - `--sref CODE` = **style reference** — the key to consistency. Lock one code (§2), append it to every monster so they all match.
+  - `--sref CODE` = style reference. **Not used** — see §2; the shared style text holds consistency on its own.
 - **Don't** use a wall of negatives like Leonardo — MJ needs far fewer. The `--no` list below is enough.
 
 ---
 
-## 2. STEP ONE — lock the style anchor (do this first in the paid month)
+## 2. STYLE — LOCKED (tested and approved 11 Aug 2026)
 
-Generate this once, pick the version whose *look* you love most, then grab its style code to reuse everywhere.
+**No `--sref` needed.** Tested in practice: the shared style text below holds the look on its own, and skipping the style-reference code is one less thing to manage. If monsters start visibly drifting apart after 10–15, revisit then using a real approved monster image as the `--sref`.
 
-**Prompt:**
-```
-dark fantasy creature concept art, a single monstrous creature centered on a plain near-black background, frost-cyan and icy-white glow, electric cyan energy accents, deep blacks, dramatic cyan rim lighting, high contrast, crisp clean linework, anime dark-fantasy illustration, Solo Leveling and Octopath Traveler mood, ominous --style raw --ar 1:1 --no text, watermark, signature, blur
-```
+**Two hard-won lessons baked into the wording below — don't undo these:**
+1. **Never say "frost-cyan" / "icy-white" as a palette description.** Midjourney reads it literally and builds creatures *out of ice*. Say "dark charcoal creature with electric cyan glowing accents" instead — cyan is a *glow on* the creature, not the material it's made of. `ice, crystal` are in the negatives for the same reason.
+2. **Explicit 2D language is required or you get painterly semi-realism.** "anime style, cel-shaded, clean bold lineart, flat 2D artwork, manhwa illustration style" + negatives `photorealistic, 3d render, realistic, painterly`. Without these, MJ defaults to rendered concept-art realism, which is the wrong look.
 
-**Then:** upscale your favourite → click it → **"..." / Use → Style Reference**, or copy its job and note the `--sref` number MJ assigns. From here on, **append `--sref <that code>` to every monster prompt.** That's what keeps all 57 looking like one game.
-
-*(If you'd rather not use --sref, MJ 6+ is consistent enough from the shared style text alone — but --sref is stronger.)*
+**No named-IP references in prompts.** Earlier drafts said "Solo Leveling / Octopath Traveler mood" — removed. Given Midjourney's active copyright litigation, prompts stay generic-descriptive. The look is achieved through description, never by naming someone else's work.
 
 ---
 
 ## THE MASTER SUFFIX (append to EVERY monster prompt below)
 
 ```
-dark fantasy creature concept art, single creature centered on a plain near-black background, frost-cyan and icy-white glow, electric cyan accents, deep blacks, dramatic rim lighting, high contrast, crisp clean linework, anime dark-fantasy illustration, Solo Leveling mood --style raw --ar 1:1 --no text, watermark, signature, extra limbs, blurry --sref <YOUR_CODE>
+anime style creature illustration, cel-shaded with clean bold lineart, flat 2D anime artwork, manhwa illustration style, single creature centered and fully isolated on a solid pure white background, clean cutout, sharp silhouette edges, grim dark creature with sickly glowing violet eyes and violet energy accents, high contrast, ominous --style raw --ar 1:1 --no photorealistic, 3d render, realistic, painterly, ice, crystal, cyan, teal, turquoise, text, watermark, shadow on ground, gradient background, scenery
 ```
+
+**3. Solid WHITE background, not dark.** Tested both: the creature art renders *identically* either way, but a white backdrop makes background-removal trivial later (game sprites need transparency). Dark-on-dark is the worst case for auto-cutout tools. White beats chroma-green here because these creatures are dark charcoal — white already gives maximum luminance contrast, with zero risk of green colour-spill on edges. `shadow on ground, gradient background, scenery` are in the negatives to keep the backdrop perfectly flat and keyable.
+
+**4. LIVING monsters are VIOLET, not cyan — this is critical.** Cyan is the *hunter's* colour and the mark of a **claimed shadow**. In-game, the shadow shader (§23 of the design bible) recolours a defeated monster from violet to inky-black-and-cyan — that colour flip *is* the CLAIM payoff. If the source art is already black-and-cyan, the shader produces no visible change and the game's biggest moment falls flat. So: **living monster art = grim dark creature + sickly violet glow**, with `cyan, teal, turquoise` in the negatives. Only the hero/gate/UI art uses cyan.
+
+**5. GEAR is cyan and CLEARLY LIT — the opposite of the monsters.** Equipment and armour sets are *yours*, so they use the hunter's cyan, never violet (`violet, purple, magenta` in the negatives). And unlike creatures, they're **inventory icons that must read clearly at small size** — so drop the moody darkness entirely: "highly detailed and clearly readable, evenly lit, every detail visible", with `dark shadows, obscured, murky` in the negatives. Atmosphere is for monsters; legibility is for gear.
+
+**Midjourney settings:** Speed **Relax** · Raw **on** · Model 8.2 · Aspect per-prompt via `--ar`.
 
 Each monster line below is just the **subject** — paste `[subject] + MASTER SUFFIX`.
 
@@ -106,26 +110,32 @@ Ultra-minimalist dark cinematic background plate, a single large glowing circula
 
 ---
 
-## 3b. PRESET HUNTER PORTRAITS (12) — the playable character
+## 3b. PRESET HUNTER DESCRIPTORS (12) — the playable character
+
+> **These 12 are descriptors only — do NOT render them as standalone portraits.** Character select uses each hunter's **early-stage** image from §3c (`preset_hunter_<id>_early.png`), so the player sees themselves as the ragged E-rank nobody they actually start as. The descriptors below feed into the three stage prompts in §3c.
 
 Different job from the hero key art: this is what the *player* actually plays as — face visible, not the mysterious silhouette. §9b: "curated preset hunters — generate many, hand-pick ~8–12 most on-style; the player picks one." These 12 are the roster to choose from at onboarding, shown on the Hunter screen (§21) with equipped gear/rank glow layered on later in-engine. Class-agnostic (class is chosen separately via the training question, §25) — plain hunter gear here, not class-specific. Filename: **`preset_hunter_<id>.png`**.
 
 **PRESET MASTER SUFFIX** (append to every subject below):
 ```
-dark fantasy near-future hunter character portrait, bust / three-quarter view, face clearly visible, confident intense expression, modern techwear blended with plate/leather armor, frost-cyan glowing accents, dramatic single-source cyan rim lighting, deep near-black background, high contrast, crisp clean linework, anime dark-fantasy illustration --style raw --ar 3:4 --no text, watermark, hood covering face, mask, extra limbs --sref <YOUR_CODE>
+anime style character portrait, cel-shaded with clean bold lineart, flat 2D anime artwork, manhwa illustration style, dark fantasy near-future hunter, bust / three-quarter view, face clearly visible, confident intense expression, modern techwear blended with plate/leather armor, dark clothing with electric cyan glowing accents, dramatic single-source cyan rim lighting, deep near-black background, high contrast --style raw --ar 3:4 --no photorealistic, 3d render, realistic, painterly, ice, crystal, text, watermark, hood covering face, mask, extra limbs
 ```
 
 ### Female (6)
-1. **f1** — short silver-white hair, sharp angular features, lean athletic build, scar over one eyebrow.
+> **Gotcha (learned the hard way):** the descriptors below don't state gender, and MJ read f1 and f4 as *male* — "sharp angular features / muscular powerful build / hard stare" skews masculine on its own. For any female preset, lead with **"a young woman, female hunter,"** and append **`male, man, beard, stubble, masculine`** to the `--no` list. f1 and f4 already have this baked in below.
+
+1. **f1** — *a young woman, female hunter,* short silver-white hair, sharp angular **feminine** features, lean athletic build, scar over one eyebrow.
 2. **f2** — long black hair in a high ponytail, striking dark eyes, toned build, calm composed expression.
 3. **f3** — shoulder-length auburn/red hair, freckled, wiry athletic build, sharp confident smirk.
-4. **f4** — undercut with a long blue-black braid, muscular powerful build, intense hard stare.
+4. **f4** — *a young woman, female hunter,* undercut with a long blue-black braid, strong muscular athletic build, **feminine face**, intense hard stare.
 5. **f5** — short blonde bob, soft features but hard eyes, lean build, faint battle scar on the jaw.
 6. **f6** — dark teal-streaked black hair half-shaved, angular tattoo-like cyan markings on one side of the face, lean build.
 
 ### Male (6)
+> **Same gotcha in reverse:** m2 (long hair, lean, clean-shaven, no beard cue) rendered *female*. Any male preset without a beard/heavy-build cue needs **"a young man, male hunter,"** up front and **`female, woman, girl, feminine, breasts`** in the `--no` list. m2 has this baked in below.
+
 7. **m1** — buzzcut dark hair, heavy jaw, broad muscular build, weathered scarred face.
-8. **m2** — long dark hair tied back, lean sharp features, calm focused expression.
+8. **m2** — *a young man, male hunter,* long dark hair tied back, lean sharp **masculine** features, **strong male jawline**, calm focused expression.
 9. **m3** — shaved head, thick beard, hulking muscular build, intense glare.
 10. **m4** — short tousled brown hair, clean-shaven, athletic build, youthful determined expression.
 11. **m5** — silver-grey hair swept back, angular scarred features, powerfully built, veteran presence.
@@ -133,7 +143,7 @@ dark fantasy near-future hunter character portrait, bust / three-quarter view, f
 
 ---
 
-## 3c. PRESET RANK-PROGRESSION VARIANTS (36) — same 12 hunters, visibly stronger over time
+## 3c. PRESET RANK-PROGRESSION VARIANTS (36) — includes the character-select art — same 12 hunters, visibly stronger over time
 
 §9b: *"the avatar visibly evolves with rank: E-rank ragged and plain → S-rank glowing with shadow aura."* These 36 are that progression for each of the 12 presets above — shown on the **Hunter screen (§21)** as the player ranks up, not the onboarding picker (that stays the base §3b portrait). 3 checkpoint stages per preset, bucketed so every rank has a look: **early** (E–D), **mid** (C–B), **late** (A–S). Filename: **`preset_hunter_<id>_<stage>.png`** (e.g. `preset_hunter_f1_early.png`).
 
@@ -141,30 +151,30 @@ dark fantasy near-future hunter character portrait, bust / three-quarter view, f
 
 **EARLY stage suffix** (ragged, plain, no glow — E/D rank):
 ```
-, ragged worn clothing, plain scuffed gear, dirt and wear, tired but determined expression, no glow, desaturated, dark fantasy near-future hunter portrait, bust / three-quarter view, face clearly visible, deep near-black background, high contrast, crisp clean linework, anime dark-fantasy illustration --style raw --ar 3:4 --no text, watermark, hood covering face, mask, extra limbs, glowing aura --sref <YOUR_CODE>
+, ragged worn clothing, plain scuffed gear, dirt and wear, tired but determined expression, no glow, desaturated, anime style character portrait, cel-shaded with clean bold lineart, flat 2D anime artwork, manhwa illustration style, dark fantasy near-future hunter, bust / three-quarter view, face clearly visible, deep near-black background, high contrast --style raw --ar 3:4 --no photorealistic, 3d render, realistic, painterly, text, watermark, hood covering face, mask, extra limbs, glowing aura
 ```
 
 **MID stage suffix** (geared, confident, moderate glow — C/B rank):
 ```
-, solid well-fitted techwear-plate armor, moderate glowing cyan accents on the gear, confident composed expression, dark fantasy near-future hunter portrait, bust / three-quarter view, face clearly visible, deep near-black background, high contrast, crisp clean linework, anime dark-fantasy illustration --style raw --ar 3:4 --no text, watermark, hood covering face, mask, extra limbs --sref <YOUR_CODE>
+, solid well-fitted techwear-plate armor, moderate glowing cyan accents on the gear, confident composed expression, anime style character portrait, cel-shaded with clean bold lineart, flat 2D anime artwork, manhwa illustration style, dark fantasy near-future hunter, bust / three-quarter view, face clearly visible, deep near-black background, high contrast --style raw --ar 3:4 --no photorealistic, 3d render, realistic, painterly, text, watermark, hood covering face, mask, extra limbs
 ```
 
 **LATE stage suffix** (radiant, commanding, full aura — A/S rank):
 ```
-, ornate radiant armor, intense glowing cyan aura surrounding the figure, faint cyan energy particles, commanding powerful presence, dark fantasy near-future hunter portrait, bust / three-quarter view, face clearly visible, deep near-black background, high contrast, crisp clean linework, anime dark-fantasy illustration --style raw --ar 3:4 --no text, watermark, hood covering face, mask, extra limbs --sref <YOUR_CODE>
+, ornate radiant armor, intense glowing cyan aura surrounding the figure, faint cyan energy particles, commanding powerful presence, anime style character portrait, cel-shaded with clean bold lineart, flat 2D anime artwork, manhwa illustration style, dark fantasy near-future hunter, bust / three-quarter view, face clearly visible, deep near-black background, high contrast --style raw --ar 3:4 --no photorealistic, 3d render, realistic, painterly, text, watermark, hood covering face, mask, extra limbs
 ```
 
 *Practical tip: paste each preset's base descriptor (e.g. "f1 — short silver-white hair, sharp angular features, lean athletic build, scar over one eyebrow") directly before the stage suffix — don't use the §3b MASTER SUFFIX for these, the stage suffixes above already include the full framing.*
 
 ---
 
-## 4. THE 57 MONSTERS (paste subject + MASTER SUFFIX)
+## 4. THE 54 MONSTERS (paste subject + MASTER SUFFIX)
 
 **Power should read visually, not just in the name.** Rank escalation is already baked into every subject line below — small/weak (E) → hulking/armored (D) → elite (C) → towering/regal/named (B) → grand/imposing (A) → colossal/epic (S). Keep those size and presence words when you paste; don't trim them for length. That's what makes a C-rank actually *look* weaker than an S-rank in the finished image, not just read that way on paper. Two extra techniques that help scale come through in a single square icon: for S-rank, add "vast scale, dwarfing everything" if it feels too tame after generating; for E-rank, it's fine if the creature reads small/tucked in the frame rather than filling it.
 
 Grouped by rank. Filename each download to match: **`por_<id>.png`** (id shown in brackets).
 
-### E-rank — small, weak minions (10)
+### E-rank — small, weak minions (9)
 1. **Grubmaw** [mon_grubmaw] — a small hollow chitinous grub-creature with a gaping toothed maw, insectoid brood minion, glowing cyan cracks in its carapace, weak and low.
 2. **Runtclaw** [mon_runtclaw] — a small feral bone-and-sinew scavenger beast with oversized claws, lithe assassin build, grave-dirt and bone.
 3. **Tarling** [mon_tarling] — a small living-tar blob creature, dripping black ooze with a glowing cyan core, crude limbs.
@@ -173,65 +183,62 @@ Grouped by rank. Filename each download to match: **`por_<id>.png`** (id shown i
 6. **Gloamwing** [mon_gloamwing] — a small winged shadow-creature with tattered misty wings, lithe assassin, wisps of dark fog.
 7. **Bonerat** [mon_bonerat] — a skeletal rat-creature of ash and bone, quick assassin vermin, cyan eye-glow.
 8. **Mirewisp** [mon_mirewisp] — a small floating swamp-wisp spirit, pale caster mote, cyan glow over dark mire.
-9. **Mudtusk** [mon_mudtusk] — a small tusked grave-boar beast, stocky warrior minion, caked in dark mud.
-10. **Nipclaw** [mon_nipclaw] — a small snapping crab-like grave-scavenger with pincers, warrior minion.
+9. **Nipclaw** [mon_nipclaw] — a small snapping crab-like grave-scavenger with pincers, warrior minion.
 
-### D-rank — soldiers / bigger minions (13)
-11. **Tuskrend** [mon_tuskrend] — a hulking tusked grave-boar warrior beast, heavier and scarred.
-12. **Carapax** [mon_carapax] — a heavily armored beetle-guardian with a massive domed chitin shell, tanky, cyan seams.
-13. **Gravemarch Footman** [mon_gravemarch_footman] — an undead ashen soldier in tattered grey plate with a spear, hollow cyan eyes, warrior.
-14. **Tarhulk** [mon_tarhulk] — a large hulking tar-golem guardian, dense dripping black mass, glowing cyan core.
-15. **Beetlback** [mon_beetlback] — a broad armored beetle-guardian, low and wide, thick carapace plating.
-16. **Sporebloat** [mon_sporebloat] — a bloated fungal brood-caster releasing cyan spore clouds, mage.
-17. **Duskmaw** [mon_duskmaw] — a winged shadow-panther assassin with a fanged maw, tattered gloam wings.
-18. **Rotknight** [mon_rotknight] — a decayed undead warden-knight in corroded ashen armor, warrior, cyan eye-glow.
-19. **Cryptrat Swarm** [mon_cryptrat] — a seething swarm of skeletal crypt-rats forming one shape, assassin swarm, cyan eyes.
-20. **Palewisp** [mon_palewisp] — a pale drifting wraith-wisp caster, ghostly ashen mage, cyan light.
-21. **Boartusk** [mon_boartusk] — a large armored grave-boar warrior with jagged tusks and bone plating.
-22. **Gnollpike** [mon_gnollpike] — a gaunt gnoll-beast warrior wielding a crude pike, grave-scavenger.
-23. **Grimhound** [mon_grimhound] — a lean spectral hound assassin, smoke-wreathed, glowing cyan eyes.
+### D-rank — soldiers / bigger minions (12)
+10. **Tuskrend** [mon_tuskrend] — a hulking tusked grave-boar warrior beast, heavier and scarred.
+11. **Carapax** [mon_carapax] — a heavily armored beetle-guardian with a massive domed chitin shell, tanky, cyan seams.
+12. **Gravemarch Footman** [mon_gravemarch_footman] — an undead ashen soldier in tattered grey plate with a spear, hollow cyan eyes, warrior.
+13. **Tarhulk** [mon_tarhulk] — a large hulking tar-golem guardian, dense dripping black mass, glowing cyan core.
+14. **Beetlback** [mon_beetlback] — a broad armored beetle-guardian, low and wide, thick carapace plating.
+15. **Sporebloat** [mon_sporebloat] — a bloated fungal brood-caster releasing cyan spore clouds, mage.
+16. **Duskmaw** [mon_duskmaw] — a winged shadow-panther assassin with a fanged maw, tattered gloam wings.
+17. **Rotknight** [mon_rotknight] — a decayed undead warden-knight in corroded ashen armor, warrior, cyan eye-glow.
+18. **Cryptrat Swarm** [mon_cryptrat] — a seething swarm of skeletal crypt-rats forming one shape, assassin swarm, cyan eyes.
+19. **Palewisp** [mon_palewisp] — a pale drifting wraith-wisp caster, ghostly ashen mage, cyan light.
+20. **Gnollpike** [mon_gnollpike] — a gaunt gnoll-beast warrior wielding a crude pike, grave-scavenger.
+21. **Grimhound** [mon_grimhound] — a lean spectral hound assassin, smoke-wreathed, glowing cyan eyes.
 
 ### C-rank — elites (12)
-24. **Ashen Warden** [mon_ashen_warden] — an elite undead warden in full ashen plate with a greatsword, hollow cyan gaze, warrior.
-25. **Bonegnasher** [mon_bonegnasher] — a hunched bone-armored grave-fiend assassin with elongated jaws and claws.
-26. **Glacewisp** [mon_glacewisp] — a crystalline ice-sylph mage, floating shards of pale-blue frost, cyan glow.
-27. **Ashwing** [mon_ashwing] — a sleek cinder-drake assassin with cold cyan flame trailing its wings.
-28. **Sporelord** [mon_sporelord] — a towering fungal brood-lord mage crowned with cyan spore-caps.
-29. **Broodlancer** [mon_broodlancer] — a chitinous insectoid assassin with bladed lance-limbs, hollow brood.
-30. **Direwarden** [mon_direwarden] — a massive ashen warden warrior in heavy plate with a warhammer.
-31. **Snarlpack Alpha** [mon_snarlpack] — an alpha grave-beast pack-leader howling, support commander, cyan war-aura.
-32. **Frostbite Sylph** [mon_frostbite_sylph] — an elegant ice-sylph mage wreathed in freezing cyan mist.
-33. **Emberling** [mon_emberling] — a lithe cinder-drake assassin whelp with cyan-hot flame claws.
-34. **Grinlet** [mon_grinlet] — a grinning abyssal imp-mage, wide manic grin, void-cyan energy.
-35. **Cindercreep** [mon_cindercreep] — a creeping abyssal fiend mage of dark tendrils and cold cyan embers.
+22. **Ashen Warden** [mon_ashen_warden] — an elite undead warden in full ashen plate with a greatsword, hollow cyan gaze, warrior.
+23. **Bonegnasher** [mon_bonegnasher] — a hunched bone-armored grave-fiend assassin with elongated jaws and claws.
+24. **Glacewisp** [mon_glacewisp] — a crystalline ice-sylph mage, floating shards of pale-blue frost, cyan glow.
+25. **Ashwing** [mon_ashwing] — a sleek cinder-drake assassin with cold cyan flame trailing its wings.
+26. **Sporelord** [mon_sporelord] — a towering fungal brood-lord mage crowned with cyan spore-caps.
+27. **Broodlancer** [mon_broodlancer] — a chitinous insectoid assassin with bladed lance-limbs, hollow brood.
+28. **Direwarden** [mon_direwarden] — a massive ashen warden warrior in heavy plate with a warhammer.
+29. **Snarlpack Alpha** [mon_snarlpack] — an alpha grave-beast pack-leader howling, support commander, cyan war-aura.
+30. **Frostbite Sylph** [mon_frostbite_sylph] — an elegant ice-sylph mage wreathed in freezing cyan mist.
+31. **Emberling** [mon_emberling] — a lithe cinder-drake assassin whelp with cyan-hot flame claws.
+32. **Grinlet** [mon_grinlet] — a grinning abyssal imp-mage, wide manic grin, void-cyan energy.
+33. **Cindercreep** [mon_cindercreep] — a creeping abyssal fiend mage of dark tendrils and cold cyan embers.
 
 ### B-rank — formidable named (10)
-36. **Frostquill** [mon_frostquill] — a bladed ice-sylph assassin bristling with frozen cyan quills.
-37. **Hivewarden** [mon_hivewarden] — a towering armored brood-warrior guarding a hive, thick chitin, cyan cracks.
-38. **Warhowl** [mon_warhowl] — a colossal armored dire-bear war-chief rearing mid-roar, shaggy matted fur over a bone-and-iron war harness, thick clawed forelimbs, broad fanged muzzle, support commander, cyan battle-aura.
-39. **Sepulcher Knight** [mon_sepulcher_knight] — a grand undead guardian in ornate ashen tomb-armor with a tower shield.
-40. **Cindermaw Drake** [mon_cindermaw_drake] — a large cinder-drake mage breathing cold cyan fire, ash-scaled.
-41. **Hollowhorn** [mon_hollowhorn] — a massive horned abyssal guardian, dark hide, glowing cyan hollow eyes.
-42. **Broodqueen Vassal** [mon_broodqueen_vassal] — a regal insectoid brood-matron support, elegant chitin, cyan glow.
-43. **Ashen Cataphract** [mon_ashen_cataphract] — a heavily armored undead cavalry guardian in full ashen barding.
-44. **Glacial Revenant** [mon_glacial_revenant] — a frozen undead warrior revenant encased in cracked cyan ice.
-45. **Fiendlord** [mon_fiendlord] — a commanding abyssal fiend mage, dark regal horns, void-cyan corona.
+34. **Frostquill** [mon_frostquill] — a bladed ice-sylph assassin bristling with frozen cyan quills.
+35. **Hivewarden** [mon_hivewarden] — a towering armored brood-warrior guarding a hive, thick chitin, cyan cracks.
+36. **Warhowl** [mon_warhowl] — a colossal armored dire-bear war-chief rearing up on hind legs mid-roar, shaggy matted fur over heavy bone-and-iron war harness, thick clawed forelimbs raised, broad fanged snarling muzzle, a commanding beast warlord.
+37. **Sepulcher Knight** [mon_sepulcher_knight] — a grand undead guardian in ornate ashen tomb-armor with a tower shield.
+38. **Cindermaw Drake** [mon_cindermaw_drake] — a large cinder-drake mage breathing cold cyan fire, ash-scaled.
+39. **Hollowhorn** [mon_hollowhorn] — a massive horned abyssal guardian, dark hide, glowing cyan hollow eyes.
+40. **Broodqueen Vassal** [mon_broodqueen_vassal] — a regal insectoid brood-matron support, elegant chitin, cyan glow.
+41. **Ashen Cataphract** [mon_ashen_cataphract] — a heavily armored undead cavalry guardian in full ashen barding.
+42. **Glacial Revenant** [mon_glacial_revenant] — a frozen undead warrior revenant encased in cracked cyan ice.
+43. **Fiendlord** [mon_fiendlord] — a commanding abyssal fiend mage, dark regal horns, void-cyan corona.
 
-### A-rank — grand mini-bosses, named (7)
-46. **Cindervane** [mon_cindervane] — an imposing elite cinder-drake assassin, sweeping ash wings, cold cyan flame, grand and menacing.
-47. **Hoarfrost Matron** [mon_hoarfrost_matron] — a towering regal ice-sylph mage-queen wreathed in a blizzard of cyan frost, ornate crystalline crown.
-48. **Kaeric, the First Warden** [mon_kaeric] — a legendary ashen warden-lord warrior in ancient ornate plate with a massive blade, hollow cyan eyes, heroic scale.
-49. **Voidcaller** [mon_voidcaller] — a sinister abyssal fiend mage tearing open void-rifts, dark robes, void-cyan energy, grand.
-50. **Broodmother** [mon_broodmother] — a colossal insectoid brood-matron support, swollen chitin throne-body, radiant cyan glow.
-51. **Rimewarden Sovereign** [mon_rimewarden_sovereign] — a majestic ice-sylph sovereign mage on a throne of frost, cyan crystalline regalia.
-52. **Ashen Lord Commander** [mon_ashen_lord_commander] — a commanding undead ashen war-lord support raising a banner, cyan command-aura, regal armor.
+### A-rank — grand mini-bosses, named (6)
+44. **Cindervane** [mon_cindervane] — an imposing elite cinder-drake assassin, sweeping ash wings, cold cyan flame, grand and menacing.
+45. **Hoarfrost Matron** [mon_hoarfrost_matron] — a towering regal ice-sylph mage-queen wreathed in a blizzard of cyan frost, ornate crystalline crown.
+46. **Kaeric, the First Warden** [mon_kaeric] — a legendary ashen warden-lord warrior in ancient ornate plate with a massive blade, hollow cyan eyes, heroic scale.
+47. **Voidcaller** [mon_voidcaller] — a sinister abyssal fiend mage tearing open void-rifts, dark robes, void-cyan energy, grand.
+48. **Rimewarden Sovereign** [mon_rimewarden_sovereign] — a majestic ice-sylph sovereign mage on a throne of frost, cyan crystalline regalia.
+49. **Ashen Lord Commander** [mon_ashen_lord_commander] — a commanding undead ashen war-lord support raising a banner, cyan command-aura, regal armor.
 
 ### S-rank — colossal bosses, epic (5)
-53. **Xir'Vok, Brood Sovereign** [mon_xirvok] — a regal insectoid hive-monarch, crowned chitin skull, spined crest, four bladed limbs, tattered royal shroud, orbiting drones, immense cyan glow, terrifying boss scale, epic key-art quality.
-54. **Vharun, the Cinder Wyrm** [mon_vharun] — a colossal serpentine cinder-wyrm dragon exhaling cold cyan fire, vast ash-scaled coils, epic boss, cinematic.
-55. **The Pale Sovereign** [mon_pale_sovereign] — a towering pale crowned abyssal demon-king wreathed in cold cyan flame, hollow radiant eyes, throne of the abyss, epic final-boss grandeur, cinematic.
-56. **Ur-Grakh, the Bonemarch King** [mon_ur_grakh] — a giant bone-armored grave-warlord king warrior with a colossal cleaver, crown of tusks, mountainous, epic boss.
-57. **Nyxaris, the Hollow Star** [mon_nyxaris] — a vast cosmic-horror abyssal entity of dark matter and a collapsing cyan star-core, countless glowing eyes, void tendrils, epic apocalyptic boss, cinematic.
+50. **Xir'Vok, Brood Sovereign** [mon_xirvok] — a towering regal insectoid hive-monarch, elongated crowned chitin skull with a spined crest, four segmented bladed limbs spread wide, heavy ridged carapace draped in a tattered royal shroud, swarm of tiny drones orbiting close, imperious and terrifying, epic key-art quality.
+51. **Vharun, the Cinder Wyrm** [mon_vharun] — a colossal serpentine cinder-wyrm dragon exhaling cold cyan fire, vast ash-scaled coils, epic boss, cinematic.
+52. **The Pale Sovereign** [mon_pale_sovereign] — a towering pale crowned abyssal demon-king wreathed in cold cyan flame, hollow radiant eyes, throne of the abyss, epic final-boss grandeur, cinematic.
+53. **Ur-Grakh, the Bonemarch King** [mon_ur_grakh] — a giant bone-armored grave-warlord king warrior with a colossal cleaver, crown of tusks, mountainous, epic boss.
+54. **Nyxaris, the Hollow Star** [mon_nyxaris] — a vast cosmic-horror abyssal entity of dark matter and a collapsing cyan star-core, countless glowing eyes, void tendrils, epic apocalyptic boss, cinematic.
 
 ---
 
@@ -241,7 +248,7 @@ Different composition from monsters/hero: a single **item icon**, centered, no c
 
 **EQUIPMENT MASTER SUFFIX** (append to every item subject below):
 ```
-game item icon, centered on a plain near-black background, frost-cyan glow accents, crisp clean linework, high contrast, dark fantasy near-future RPG icon, dramatic single-source rim glow --style raw --ar 1:1 --no text, watermark, character, hands, body, background scene --sref <YOUR_CODE>
+anime style game item icon, cel-shaded with clean bold lineart, flat 2D anime artwork, highly detailed and clearly readable, evenly lit, every detail visible, centered and fully isolated on a solid pure white background, clean cutout, sharp silhouette edges, dark steel and leather materials with electric cyan glowing accents, crisp intricate detail, high contrast, dark fantasy near-future RPG icon --style raw --ar 1:1 --no photorealistic, 3d render, realistic, painterly, ice, crystal, violet, purple, magenta, dark shadows, obscured, murky, text, watermark, character, hands, body, background scene, shadow on ground, gradient background
 ```
 
 Rarity → render intensity: COMMON = plain/utilitarian, UNCOMMON = faint cyan trim, RARE = glowing cyan runes, EPIC = intricate glowing engravings, LEGENDARY = radiant, ornate, commanding presence.
@@ -314,7 +321,7 @@ A character wearing the complete 4-piece set (head/body/hands/feet), front three
 
 **SET MASTER SUFFIX:**
 ```
-full character armor showcase, front three-quarter view, dark fantasy near-future RPG armor set, modern techwear blended with plate/leather, frost-cyan glowing accents, plain near-black background, crisp clean linework, dramatic rim lighting, high contrast, anime dark-fantasy illustration --style raw --ar 2:3 --no text, watermark, weapon in hand, background clutter, mask --sref <YOUR_CODE>
+full character armor showcase, front three-quarter view, anime style illustration, cel-shaded with clean bold lineart, flat 2D anime artwork, manhwa illustration style, highly detailed and clearly readable, evenly lit, every piece of the armor clearly visible, dark fantasy near-future RPG armor set, modern techwear blended with plate/leather, dark steel and leather with electric cyan glowing accents, fully isolated on a solid pure white background, clean cutout, crisp intricate detail, high contrast --style raw --ar 2:3 --no photorealistic, 3d render, realistic, painterly, ice, crystal, violet, purple, magenta, dark shadows, obscured, murky, text, watermark, weapon in hand, background clutter, mask, shadow on ground, gradient background
 ```
 
 Tier → intensity: **D (Rare)** = grounded, functional, modest glow. **B (Epic)** = more ornate, stronger glow, small elemental fx per set flavor. **S (Legendary)** = radiant, commanding, boss-tier grandeur.
@@ -366,12 +373,21 @@ wide promotional game banner, a hooded hunter silhouette facing a glowing cyan c
 a glowing electric-cyan crystal shard, small faceted gem, centered on a plain near-black background, crisp clean game currency icon, high contrast, dramatic glow --style raw --ar 1:1 --no text, watermark, character
 ```
 
-**Class icons (5)** — simple emblem badges, one per subclass:
-- [ui_class_warrior]: `a minimalist glowing cyan emblem icon of crossed blades, centered on a plain near-black circular badge, crisp bold iconography, high contrast --style raw --ar 1:1 --no text, watermark, character`
-- [ui_class_guardian]: `a minimalist glowing cyan emblem icon of a shield, centered on a plain near-black circular badge, crisp bold iconography, high contrast --style raw --ar 1:1 --no text, watermark, character`
-- [ui_class_assassin]: `a minimalist glowing cyan emblem icon of twin curved blades, centered on a plain near-black circular badge, crisp bold iconography, high contrast --style raw --ar 1:1 --no text, watermark, character`
-- [ui_class_mage]: `a minimalist glowing cyan emblem icon of an arcane rune circle, centered on a plain near-black circular badge, crisp bold iconography, high contrast --style raw --ar 1:1 --no text, watermark, character`
-- [ui_class_support]: `a minimalist glowing cyan emblem icon of a banner and ward-sigil, centered on a plain near-black circular badge, crisp bold iconography, high contrast --style raw --ar 1:1 --no text, watermark, character`
+**Class icons (5) + Essence icon** — *v2: weapon-symbol emblems on solid WHITE.*
+
+> **Why v2:** the original icons sat on near-black circular badges, so they can't be cleanly keyed out for compositing onto other UI. v2 drops the badge container, uses a plain weapon symbol per class (instantly readable at small size, and it echoes that class's equipment art), and renders on **solid pure white** for a trivial background removal.
+
+**ICON SUFFIX** (append to every subject below):
+```
+, bold simple symbolic emblem, minimal clean shapes, clearly readable at small size, anime style game UI icon, cel-shaded with clean bold lineart, flat 2D anime artwork, evenly lit, every detail visible, centered and fully isolated on a solid pure white background, clean cutout, sharp silhouette edges, dark steel and leather materials with electric cyan glowing accents, high contrast, dark fantasy near-future RPG icon --style raw --ar 1:1 --no photorealistic, 3d render, realistic, painterly, ice, crystal, violet, purple, magenta, dark shadows, obscured, murky, text, letters, watermark, character, face, hands, body, background scene, shadow on ground, gradient background, clutter
+```
+
+- [ui_class_warrior]: `a single heavy two-handed greatsword pointing upward, warrior class emblem`
+- [ui_class_guardian]: `a single sturdy tower shield facing forward, guardian class emblem`
+- [ui_class_assassin]: `two crossed curved daggers forming an X, assassin class emblem`
+- [ui_class_mage]: `a single tall wizard staff topped with a glowing orb, pointing upward, mage class emblem`
+- [ui_class_support]: `a single carved totem standard banner on a pole, support class emblem`
+- [ui_icon_essence]: `a single faceted glowing energy shard floating, essence currency emblem`
 
 **System UI frame** [ui_system_frame] — the reusable "status window" pop-up border (§9c of the design bible), for level-up/CLAIM/rank-up/floor-clear notifications:
 ```
@@ -379,12 +395,13 @@ a dark glass UI panel border frame, angular geometric cyan corner-brackets, thin
 ```
 *Note: pick a version with a clean, mostly-empty center — that's where text/rewards get overlaid later in-engine.*
 
-**Rank badges (6)** — E through S, one per rank:
-```
-a minimalist glowing cyan badge icon displaying the bold stylized letter "<RANK>", centered on a plain near-black shield-shaped badge, dark fantasy RPG rank insignia, crisp, high contrast, dramatic glow --style raw --ar 1:1 --no watermark, no character
-```
-Swap `<RANK>` for **E, D, C, B, A, S** → filenames [ui_rank_e] … [ui_rank_s].
-*Note: Midjourney can be inconsistent rendering single clean letters. If any come out garbled, that's the one case worth trying **Ideogram** instead (free tier, built for accurate text-in-image) — or just recreate the 6 badges quickly in Canva using the same cyan/black palette.*
+**Rank badges (6)** — E through S — **NOT generated in Midjourney.**
+
+> **Decided:** MJ treats every job as an independent roll, so six separately-generated letters come out in six different fonts — exactly the non-uniformity we hit on the first pass. Re-rolling can't fix it; it's a limitation, not a prompt problem.
+>
+> These are now **generated deterministically in code**: identical shield geometry, one font (Liberation Sans Bold), identical letter size and optical centring, cyan-on-near-black with a soft glow, exported at 512×512 with a **transparent** background (no cutout step needed).
+>
+> Script: `ui_generated/_rank_badge_generator.py` · Output: `ui_generated/ui_rank_{e,d,c,b,a,s}.png` — already done, no MJ generations required. Re-run the script to restyle all six at once if the palette ever changes.
 
 ---
 
@@ -393,11 +410,11 @@ Swap `<RANK>` for **E, D, C, B, A, S** → filenames [ui_rank_e] … [ui_rank_s]
 Folders (the Art Drop Tool creates these automatically as you drop images in):
 - `HollowHunter/art/hero` — 3 hero formats
 - `HollowHunter/art/promo` — 4 social variants
-- `HollowHunter/art/presets` — 12 preset hunter portraits, `preset_hunter_<id>.png`
-- `HollowHunter/art/monsters` — 57 portraits, `por_<id>.png`
+- `HollowHunter/art/presets` — 36 rank-stage variants, `preset_hunter_<id>_<stage>.png` (the `_early` image doubles as the character-select portrait; there is no separate base portrait — §3b/§10a)
+- `HollowHunter/art/monsters` — 54 portraits, `por_<id>.png`
 - `HollowHunter/art/equipment` — 50 item icons, `spr_<id>.png`
 - `HollowHunter/art/sets` — 15 set showcases, `<id>.png`
-- `HollowHunter/art/ui` — 14 store/UI assets, `<id>.png`
+- `HollowHunter/art/ui` — 9 store/UI assets from Midjourney, `<id>.png` — **plus 6 code-generated rank badges** (`ui_rank_*.png`, see §7) that are already finished and do not come from MJ
 
 All these filenames match the ids already in **monsters.json** / **equipment.json**, so wiring the final art into the game later is drag-and-drop, no renaming.
 
@@ -413,3 +430,40 @@ All these filenames match the ids already in **monsters.json** / **equipment.jso
 ---
 
 *Prep is done. The expensive part (deciding) cost nothing. Subscribe, blitz, cancel.*
+
+---
+
+## 9. MAP MARKERS (7) — the live map's iconography
+
+The overworld map (§19) **is** the home screen, and it is *not* generated art — it's a live MapLibre render of real OSM vector data. The map's look comes from a **style JSON** (dark roads, hidden labels, muted land), which is a code/config job, not a Midjourney one. What *is* art is the marker set drawn on top.
+
+**Different brief from equipment icons:** these sit at roughly 40px over constantly-changing terrain, so they need a bold silhouette, a heavy outline and almost no internal detail. Legibility beats richness.
+
+**MARKER SUFFIX** (append to every subject below):
+```
+, map marker icon for a mobile game, bold simple silhouette, thick clean outline, minimal internal detail, high legibility at very small size, symmetrical, centered and fully isolated on a solid pure white background, clean cutout, sharp edges, anime dark-fantasy game UI, cel-shaded with clean bold lineart, flat 2D artwork, high contrast --style raw --ar 1:1 --no photorealistic, 3d render, realistic, painterly, sci-fi, futuristic, neon, circuitry, text, letters, watermark, character, face, hands, body, background scene, map, terrain, roads, shadow on ground, gradient background, clutter, fine detail
+```
+
+**One universal gate marker — rank is NOT shown on the map.** *(Revised: an earlier pass generated six rank-coloured markers; they came out visually inconsistent with each other, and rank-at-a-glance turned out not to matter because gates have no proximity requirement and are rank-matched to ±1 anyway. Rank is stated plainly in the gate encounter panel on tap, §18.)*
+
+| id | Subject |
+|---|---|
+| `map_gate` | Gate Marker, a single oval portal rift torn in the air, clean bright cyan glow spilling from the opening, dark torn edges, one universal marker used for every gate rank |
+
+> If rank-at-a-glance is ever wanted back, **tint this one asset programmatically per rank in-engine** rather than generating six — guaranteed consistent, zero extra art.
+
+**Other map POIs:**
+
+| id | Subject |
+|---|---|
+| `map_player` | Hunter Position Marker, a bold arrowhead chevron pointing forward inside a clean ring, cool cyan glow, the player's own location pin |
+| `map_sanctuary` | Sanctuary Marker, a small calm shrine archway with a soft warm gold glow inside, peaceful and welcoming |
+| `map_stronghold` | Stronghold Marker, a compact fortified keep tower with battlements, dark stone, faint warm gold windows |
+| `map_incursion` | Incursion Marker, a violent jagged spreading crack in reality, angry red-violet glow bleeding from the fracture |
+| `map_nadir` | Nadir Entrance Marker, a deep dark descending spiral stairwell shaft seen from above, cold pale light far below |
+| `map_lorestone` | Lore Stone Marker, a small upright carved standing stone monolith with faint glowing engraved runes |
+
+Filename: **`<id>.png`** → saves to `HollowHunter/art/map`.
+
+> **Note on the incursion marker:** it uses red-violet deliberately — violet is the *monster* colour in this game's language (§4 of this pack), which is exactly right for a hostile breach, and distinguishes it from the player-aligned cyan/gold markers.
+

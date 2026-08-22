@@ -163,6 +163,26 @@ The **boss** of a cleared gate can be **extracted** as a shadow via the **CLAIM*
 - **Level:** each shadow levels **1 → cap (v0: 10)** by spending **Essence** (the single earned currency, §26); feeding in a **duplicate** you own also costs Essence but grants a big level chunk. Equipment is separate.
 - **Grades overlap:** a well-levelled lower grade rivals a fresh higher one — e.g. a maxed General ≈ a low-level Warlord — so leveling favourites stays worthwhile even without higher-grade catches.
 
+### 6b. Shadow traits (Palworld-inspired) — NEW, design pass pending
+Every shadow rolls **1–3 random traits** on CLAIM, drawn from a shared pool, independent of grade/level. Traits are the reason to keep re-farming a boss you already have instead of just leveling the one you've got.
+
+- **Trait pool (draft shape):** mostly positive stat/behavior modifiers (e.g. `+ATK%`, `+HP%`, faster cooldown, bonus Essence drop), a smaller set of situational/build-defining traits (e.g. bonus dmg vs a monster type, extra squad synergy), and a few **negative** traits (e.g. `-DEF%`) that exist to make high-roll shadows feel earned, mirroring Palworld's mix of good/bad passive skills.
+- **Rarity tiers on traits themselves** (common → legendary), independent of the shadow's own grade — so even a low-grade Wraith can roll a rare trait and stay worth using.
+- **Discovery, not full transparency:** traits are visible once claimed; no pre-CLAIM preview, keeping the CLAIM moment itself the gamble (stacks with the existing 3-attempt RNG in §18).
+- **Condensation (trait carry-over):** feeding a **duplicate** into a shadow (existing mechanic, above) already grants a level chunk — extend this so the player can **also choose which trait(s) transfer** from the fed duplicate onto the kept shadow, discarding the ones they don't want, rather than a blind auto-merge. This turns "I got a dupe" into a real decision (keep both separately? condense and pick the better roll?) instead of pure fodder.
+- **UI implication:** the Army management screen (§17) needs a **condense/fuse flow** — select target shadow, select duplicate(s) to feed, see both trait lists side-by-side, tick which traits survive on the result. Flagging for §17 spec pass.
+- **Open questions:** trait reroll/removal items as an Essence sink? Trait caps per shadow (all 3 slots always filled, or can roll fewer)? Do traits factor into `shadow_power` for matchmaking/leaderboards, or purely qualitative? — revisit alongside §12.
+
+### 6c. Custom shadow naming — NEW
+On a successful CLAIM, the player can give that specific shadow a custom nickname before it's added to the army.
+
+- **Optional, not forced:** a naming prompt appears right after the CLAIM success beat (before the trait reveal, or right after — order TBD for best dramatic pacing); skipping/cancelling just keeps the monster's default species name (e.g. "Grubmaw"). No player should feel blocked from progressing because they didn't want to name something.
+- **Per-instance, not per-species:** the nickname belongs to that individual shadow (same data layer as traits/level/equipment), so claiming three Grubmaws lets the player tell them apart.
+- **Display:** custom name shows in the Army screen (§17), squad picker, and battle screen in place of the species name; species/grade still shows as secondary text (e.g. nickname large, "Grubmaw · Wraith" small underneath) so players don't lose track of what it actually is.
+- **Renaming later:** allow editing the nickname anytime from the Army screen, not just at CLAIM.
+- **Basic hygiene:** reasonable character limit (~16–20 chars), client + server-side profanity filter given names may appear on shared/social surfaces — reuse whatever filter approach is used for hunter names if one already exists.
+- **Open question:** does the nickname get baked into shared UI like leaderboards/raid logs, or stay private to the player's own screens? Leans toward private-only for v0 to avoid moderation overhead.
+
 ---
 
 ## 7. Equipment & loot
@@ -296,6 +316,21 @@ Minimal stack — generate → clean → integrate:
 ---
 
 ## 10. Tech stack & architecture
+
+### 10a. Screen orientation — PORTRAIT ONLY (locked)
+**The game is portrait-only. Landscape is not supported and should not be built.** This was never specified in earlier drafts, which is why the first build defaulted to landscape — this section is the decision.
+
+**Why portrait:**
+- **It's a walk-around fitness app.** You check it mid-walk, mid-gym-session, one-handed, often with the other hand holding something. Landscape requires two hands and is unusable on the move — which is the entire play context.
+- **The closest comparable (Pokémon Go) is portrait-primary** for exactly this reason.
+- **Thumb reach is the constraint.** All primary actions — CLAIM, attack buttons, gate enter, squad confirm — must sit in the lower ~40% of the screen where a thumb naturally lands. Top-of-screen space is for *information*, not controls.
+- **The marketing is already vertical.** Hero key art is 9:16-primary, and screen recordings for TikTok/Reels are natively 9:16 — a portrait game means raw dev footage is post-ready with no reframing.
+- **Solo-dev cost.** Supporting both orientations means two layouts for every screen, forever, including every future screen. Not worth it for zero gameplay benefit.
+
+**Implications for existing screen specs:** §16b (battle), §17 (army), §18 (gate), §19 (overworld/map), §21 (hunter), §22 (stronghold) were all written orientation-agnostically and must be laid out vertically — stack panels, don't place them side-by-side. The battle screen (§16b) is the tightest fit: enemies occupy the upper band, party the middle, move buttons the lower thumb zone.
+
+**Aspect-ratio reality:** target **9:16 through 9:21** (modern phones are increasingly tall). Design to a safe area, not a fixed height — and account for the notch/punch-hole at the top and the gesture bar at the bottom.
+
 
 **Engine: Godot 4 (Forward+ renderer)** — chosen to hit Full HD-2D. Godot runs the whole game: UI, map, combat, and the HD-2D battle scenes. The trade vs. React Native: you gain real HD-2D rendering, but **device integration (GPS, health, push) becomes the hardest part of the build.**
 
@@ -621,12 +656,12 @@ Every monster — and therefore its shadow — has a **class**. **Classes matter
 
 Data: `MonsterDef.clazz` and `ShadowInstance` (inherits from its `MonsterDef`) carry the class; `EquipmentDef.allowed_classes` gates what fits. **The hunter** is a **Necromancer** (base shadow-commander class) with a freely-chosen, permanent **subclass** = one of these same five — it gates the hunter's own 7-slot gear, sets their stat profile (§16), and defines their 1.5× signature training (§4). Full detail in §21.
 
-**Class assignments (all 57):**
-- **Warrior (16):** Grubmaw, Ashen Warden, Tuskrend, Hivewarden, Kaeric, Gravemarch Footman, Tarling, Grublet, Mudtusk, Nipclaw, Rotknight, Boartusk, Gnollpike, Direwarden, Glacial Revenant, Ur-Grakh
+**Class assignments (all 54):**
+- **Warrior (16):** Grubmaw, Ashen Warden, Tuskrend, Hivewarden, Kaeric, Gravemarch Footman, Tarling, Grublet, Nipclaw, Rotknight, Gnollpike, Direwarden, Glacial Revenant, Ur-Grakh
 - **Guardian (6):** Carapax, Sepulcher Knight, Hollowhorn, Tarhulk, Beetlback, Ashen Cataphract
 - **Assassin (12):** Runtclaw, Cindervane, Frostquill, Bonegnasher, Ashwing, Gloamwing, Bonerat, Duskmaw, Cryptrat Swarm, Grimhound, Broodlancer, Emberling
 - **Mage (17):** Cindermaw Drake, Hoarfrost Matron, Voidcaller, Vharûn, The Pale Sovereign, Glacewisp, Cindergnat, Mirewisp, Sporebloat, Palewisp, Sporelord, Frostbite Sylph, Grinlet, Cindercreep, Fiendlord, Rimewarden Sovereign, Nyxaris
-- **Support (6):** Warhowl, Xir'Vok, Snarlpack Alpha, Broodqueen Vassal, Broodmother, Ashen Lord Commander
+- **Support (6):** Warhowl, Xir'Vok, Snarlpack Alpha, Broodqueen Vassal, Ashen Lord Commander
 
 > **Elements cut.** The `element` field (Blight/Dread/Frost/…) was flavor only with no combat effect, so it's removed. The **Family** already conveys a monster's theme — any `element` / `Elem` values shown in the roster below are **deprecated and ignored**.
 
@@ -836,7 +871,6 @@ Fills out the common tiers so encounters are mostly low-rank, with rares staying
 | Gloamwing | mon_gloamwing | Gloamwing | Dread | 130 | 0.42 | small leathery bat; evasive flyer |
 | Bonerat | mon_bonerat | Ashen Wardens | Dread | 120 | 0.44 | skeletal vermin; filler |
 | Mirewisp | mon_mirewisp | Ashen Wardens | Dread | 100 | 0.45 | pale drifting spirit-mote; distraction |
-| Mudtusk | mon_mudtusk | Gravekin | Feral | 180 | 0.40 | piglet-brute runt; cheap charger |
 | Nipclaw | mon_nipclaw | Gravekin | Feral | 210 | 0.38 | crab scuttler, pincers; chip |
 
 **Rank D (common):**
@@ -849,7 +883,6 @@ Fills out the common tiers so encounters are mostly low-rank, with rares staying
 | Rotknight | mon_rotknight | Ashen Wardens | Dread | 560 | 0.23 | decayed foot knight; frontline |
 | Cryptrat Swarm | mon_cryptrat | Ashen Wardens | Dread | 380 | 0.26 | pack of bone-vermin; swarm |
 | Palewisp | mon_palewisp | Ashen Wardens | Dread | 350 | 0.27 | draining spirit-mote; leech |
-| Boartusk | mon_boartusk | Gravekin | Feral | 520 | 0.24 | boar-brute, gore charge; charger |
 | Gnollpike | mon_gnollpike | Gravekin | Feral | 540 | 0.23 | hyena-kin spearman; reach frontline |
 | Grimhound | mon_grimhound | Gravekin | Feral | 470 | 0.24 | feral hound; pursuit |
 
@@ -876,7 +909,6 @@ Fills out the common tiers so encounters are mostly low-rank, with rares staying
 **Rank A (elites):**
 | Name | id | Family | Elem | Power | Extract | Notes / shadow role |
 |------|----|--------|------|------:|:-------:|---------------------|
-| Broodmother | mon_broodmother | Hollow Brood | Blight | 3800 | 0.06 | massive egg-layer; continuous summon |
 | Rimewarden Sovereign | mon_rimewarden_sovereign | Rime Sylphs | Frost | 4100 | 0.05 | frost-fae royalty; AoE freeze |
 | Ashen Lord Commander | mon_ashen_lord_commander | Ashen Wardens | Dread | 3900 | 0.05 | undead general; army-wide buff |
 
@@ -1144,7 +1176,7 @@ SPEED = AGI                               # turn order
 ~16× growth either side — early fights resolve in a handful of hits (good for a quick tap mid-walk); a Lv40 fight still feels dangerous.
 
 ### Enemy stats — derived from existing base_power / floor_power, not re-authored
-Every monster already has a tuned `base_power` (§14b, Grubmaw=120 up to Xir'Vok=9000) and the Nadir already has a tuned floor curve (`floor_power(n) = 300 × 1.12^n`, §20). Rather than hand-authoring HP/ATK for 57 monsters (or every Nadir floor) from scratch, derive combat stats straight from those existing numbers:
+Every monster already has a tuned `base_power` (§14b, Grubmaw=120 up to Xir'Vok=9000) and the Nadir already has a tuned floor curve (`floor_power(n) = 300 × 1.12^n`, §20). Rather than hand-authoring HP/ATK for 54 monsters (or every Nadir floor) from scratch, derive combat stats straight from those existing numbers:
 ```
 enemy_HP  = base_power × 0.6
 enemy_ATK = base_power × 0.15
@@ -1233,6 +1265,36 @@ The screen §16's combat system actually plays out on. Shared by **every** fight
 
 ---
 
+## 17b. Equipment inventory screen — NEW
+
+**Why it exists:** §17 only ever handles gear *contextually* — you equip from a shadow's paper-doll. That's the right primary flow, but it leaves nowhere to see what you actually own. Once gear drops every gate, an unmanageable pile is the fastest way to make the game feel like admin. This is the supporting view, not the primary one.
+
+**Build order:** **after** §17 (army screen). The paper-doll is the main interaction; this is the browse/maintain layer around it. Building it first would be backwards.
+
+**Layout (portrait, §10a).** A scrollable grid of item icons (the `spr_<id>.png` set), ~4 across. Filter/sort bar pinned at the top; bulk-action bar in the lower thumb zone.
+
+**Sort & filter:**
+- **Filter:** class (Warrior/Guardian/Assassin/Mage/Support), slot (all 7), rarity (Common→Legendary), set, and **equipped/unequipped**.
+- **Sort:** power, rarity, slot, newest-first (newest matters most — you want to see what just dropped).
+
+**Item detail (tap):** full stats, rarity, set membership, and — critically — **"currently equipped by <shadow>"** or "unequipped". From here: equip to a shadow (class-gating enforced), lock, or scrap.
+
+**Compare.** When an item is selected while a shadow is in context, show a **side-by-side delta vs. what that shadow currently has in that slot** — green/red stat arrows. Players should never have to do mental arithmetic to know if a drop is an upgrade.
+
+**Set-bonus progress.** A **Sets** tab listing all 15 sets with owned/total per set ("Bonemarch Warplate 3/4") and the bonus each tier grants. This is a major collection driver — surfacing progress is what makes players chase the 4th piece.
+
+**Bulk scrap → Essence (the important one).**
+- Multi-select, or **"scrap all below <rarity>"** / **"scrap all unequipped duplicates"**.
+- **Locked and equipped items are never scrappable** — hard structural guard, not a confirmation-dialog-only protection.
+- Show total Essence yield before confirming.
+- This is the main pressure valve on inventory bloat; without it the screen becomes a chore by mid-game.
+
+**Capacity:** soft cap with a warning prompt rather than a hard block — never let a full bag silently eat a gate reward. If a cap is added later it should be generous and expandable via Essence (§26 sink).
+
+**Hunter gear:** confirmed from `core/equip.gd` that hunter and shadows **share one inventory pool** (`HunterState.inventory` is a single flat Array; `equip_to_hunter()`/`equip_to_shadow()`/`is_instance_equipped()`/`gear_bonus()` all read and write that same pool). So this screen is shared, with a class filter — **do not split it into two bags.**
+
+---
+
 ## 18. Gate encounter screen & flow
 
 **Superseded fight mechanic:** combat is now the active party battle system in §16 (you + 3 chosen shadows, real turns), not the old single power-check. Honest trade-off, decided deliberately: this trades some of the original "never stop walking" frictionlessness for a genuinely more engaging fight — offset by **Auto-battle** and **Skip** (§16), which keep a routine gate a one-tap action when you don't want to play it out.
@@ -1270,7 +1332,9 @@ The home screen and the heart of the game's identity.
 - **Rank-matched (±1 rank)** — you only see gates within **±1 of your hunter rank** (§28), weighted to your own rank. A C-rank hunter mostly sees C gates, with the occasional B (a risk worth gambling) or D (easy farm). Ranks you've outgrown stop cluttering the map; ranks far above you don't appear.
 - **Sparse & high-value** — a modest number of gates in your area, refreshing slowly, so each is worth doing.
 - **Randomly themed** — each gate rolls a family/element (no geographic regions). *Set pieces (§15) drop from gates of that theme wherever they appear — "Ashen March gates" = Ashen/undead-themed gates, not a place.*
-- **Markers show rank + family + boss hint** — color/icon convey rank (E–S) and theme, plus a hint of the boss inside, so you can pick fights that drop what you want.
+- **One universal gate marker; rank is revealed on tap.** *(Revised — earlier drafts had six rank-coloured markers.)* Every gate uses the same marker art regardless of rank. Tapping it opens the gate encounter panel (§18), which states the rank plainly — "Rank E Gate" — along with the boss hint and likely drops.
+  - **Why this works here:** there's **no proximity requirement** (above), so the map is a browse-and-choose surface rather than a navigation problem — tapping to inspect costs nothing. Rank-matching also means you only ever see gates within **±1 of your own rank** (below), so at most ~3 ranks are on screen at once and the stakes of not knowing at a glance are low.
+  - **Why it's better:** six separately-generated markers came out visually inconsistent with each other, and a single asset keeps the map clean and readable. If rank-at-a-glance is ever wanted back, the cheap route is **tinting the one marker programmatically by rank in-engine** — no new art needed, and guaranteed consistent.
 - **Daily free gate** — everyone gets at least one guaranteed gate a day even without walking, so quiet areas and rest days still have something to do (backstop alongside tickets + gate-breaks, §8).
 
 **World — points of interest (beyond gates):**
@@ -1319,6 +1383,93 @@ The map isn't only gates — a few POI types give the world texture and reasons 
 - Gate lifetime: gates persist in your area, refreshing over time (tunable).
 
 ---
+
+## 19b. Map style — the basemap reskin (NEW)
+
+> ### ✅ RESOLVED — approach changed: vector lines, not tiles
+> **Decision: the map is drawn as real street geometry rendered directly in Godot. No tile pipeline.** Road and water geometry is pulled from OSM for a bounded area, simplified, and drawn with Godot's own draw calls in the palette below. No MapLibre plugin, no PMTiles, no tile server, no R2 bucket, no style JSON.
+>
+> **Why the change.** The tile approach required a native MapLibre-for-Godot integration that doesn't meaningfully exist — the one real GDExtension is a 2-star hobby project, desktop-only, with a per-frame CPU pixel copy. Getting it onto Android would be multi-week native engineering with no precedent and a real chance of dead-end — a risk on the scale of the GPS/Health Connect plugin but without a well-trodden pattern to follow. Pre-baked raster tiles were the fallback, but worldwide coverage made storage and re-render cost prohibitive, and any palette change meant re-rendering everything.
+>
+> **Vector lines avoid all of it.** No plugin, no hosting, no generation step. The data is tiny — the Darlington test area (~26 km²) is roughly **0.4 MB** of road geometry, small enough to bundle in the APK. Palette changes are constants in code, so iteration is seconds. The cost is losing buildings and landuse detail, which for a deliberately near-monochrome map is close to free.
+>
+> **Test area:** Darlington, bbox `54.5006, -1.5943, 54.5464, -1.5155`. Widening coverage for launch is an open question — see §19c.
+>
+> **The palette and layer guidance below still applies**; it's now expressed as draw-call constants rather than a MapLibre style JSON.
+>
+> <details><summary>Superseded: the original tile-based plan (kept for context)</summary>
+>
+> ### ⚠ STATUS: BLOCKED — describes target state, not what exists
+> **None of the rendering pipeline this section assumes is built.** As of now `scenes/map_view.gd` is the Phase-1 placeholder: a flat `PIXELS_PER_DEGREE` lat/lon projection drawn with `draw_circle()`. There is **no MapLibre-for-Godot plugin, no PMTiles extract, and no Cloudflare R2 bucket** anywhere in the project — `addons/` contains only `gps_health_bridge` and `gut`.
+>
+> A style JSON written today would have nothing to load it and could not be verified on device. **This section cannot be actioned until vector-tile rendering in Godot is proven to work.**
+>
+> **It needs a spike, exactly like §11c did for GPS/Health Connect.** §19 says rendering happens via "community OSM/MapLibre tile plugins" — that phrase is carrying a lot of unverified weight. There is no official MapLibre SDK for Godot, so this is plausibly a native GDExtension effort on the same scale as the GPS/Health plugin, which §11c itself calls the biggest integration risk in the project. It was never de-risked.
+>
+> **Cheaper fallback to evaluate during the spike:** serve **pre-styled raster tiles** instead of vector tiles. Raster tiles are just images, so Godot displays them as textures with no plugin at all — dramatically simpler. The cost is losing runtime restyling (the palette gets baked at tile-generation time) and larger storage. If vector rendering proves infeasible or disproportionate, raster is very likely the right answer for v1, and the styling work below still applies — it just gets applied when generating the tiles rather than at runtime.
+>
+> Until the spike resolves, the map stays on the placeholder and **map-marker art should be judged against a plain dark background**.
+> </details>
+
+**This is config, not art.** The map is a live MapLibre render of real OpenStreetMap vector data, so there is no image to draw. Its entire look comes from a **MapLibre GL style JSON** describing how each vector layer is painted. Midjourney cannot help here at all — attempting to generate a "map background" is wasted effort.
+
+**Sequencing (important):** the basemap palette must be finalised **before** map-marker art is chosen (§19). Markers are picked *against* the background — settle the background first or you're judging them against the wrong thing.
+
+### The one principle that matters
+**The map must stay visually quiet so the markers pop.** Cyan is the *hunter/interactive* colour in this game. If the basemap itself uses cyan, gate markers stop reading and the map turns to noise. So:
+
+- **Basemap = desaturated near-blacks, greys and deep blue-greys only.** No cyan, no saturated accent colour anywhere in the basemap.
+- **Cyan is reserved exclusively for markers and interactive overlays.**
+- Aim for the basemap to look almost monochrome. Colour is a *signal*, and on this screen the only things worth signalling are places you can act on.
+
+### Target treatment per layer
+| Layer | Treatment |
+|---|---|
+| Background / land | Near-black (`#03070d`–`#080d14`), flat, no texture |
+| Water | Slightly *darker* and cooler than land — reads as void, never bright blue |
+| Major roads | Dark grey, faintly lighter than land — enough to read the street grid, no more |
+| Minor roads / paths | Barely visible; present for orientation, not emphasis |
+| Buildings | Very low contrast fill, no outlines — mass and texture only |
+| Boundaries | Off, or near-invisible |
+| POI labels/icons | **Off.** The game supplies its own POIs; OSM shop/cafe pins are pure clutter |
+| Place labels | Minimal — a few major place names for orientation, dim grey, small |
+| Road labels | Off, or very sparse on major roads only |
+
+### Implementation notes
+- **Start from an existing open dark style, don't author from scratch.** Protomaps publishes an open basemap style with a dark theme that already maps cleanly onto their tile schema — retinting that is hours of work; writing a full style from zero is days. *(Verify the current Protomaps style/schema docs before starting — their basemap schema has versioned.)*
+- The style must match the **tile schema of the PMTiles extract** being served (§19: Protomaps basemap on Cloudflare R2). A style written for a different schema (e.g. OpenMapTiles vs Protomaps) will render blank or wrong — check this first, it's the most common failure.
+- Keep the **layer count low** — this renders on-device in Godot on mid-range Android phones. Every extra styled layer costs frame time on the screen players sit on longest.
+- **Test at night and in daylight, outdoors.** A near-black map that looks striking on a desk monitor can be unreadable on a phone at midday, which is exactly when people are out walking. Check real contrast on a real device before locking the palette.
+
+### Deliverable
+A single style JSON committed to the repo (e.g. `content/map_style.json`), loaded by the map view, plus a screenshot of it rendering on-device so the marker art can be chosen against the real thing.
+
+---
+
+
+## 19c. Map coverage — open question
+
+The vector-line approach (§19b) needs geometry per area, which makes **launch geography a real decision** rather than an assumption.
+
+- **Now (prototype):** one bundled bbox — Darlington, ~26 km², ~0.4 MB. Bundled in the APK, nothing hosted.
+- **Bundled regions** scale fine for a while: road geometry is small enough that a whole city is ~1 MB and a county perhaps tens of MB. A handful of regions could ship in-app.
+- **Beyond that**, geometry gets fetched on demand for the player's area and cached on device — a small static file per region on cheap storage. Still no tile server, still no per-request cost, and R2's free egress keeps it near-zero.
+- **Worldwide day one is not realistic** on any approach, and probably isn't needed: a fitness game's early players cluster geographically. Pokémon Go launched in three countries.
+
+**Sizing reality — the world does NOT get bundled:**
+
+| Coverage | Road geometry (25–100 m simplification) | Bundleable? |
+|---|---|---|
+| Town (Darlington, 26 km²) | ~0.4 MB | Yes, trivially |
+| A large city (~600 km²) | ~1–5 MB | Yes, trivially |
+| Whole UK | ~76–305 MB | Only via Play Asset Delivery, and it would dominate the app |
+| **Whole planet** | **~4.8–19.4 GB** | **No. Not possible.** |
+
+So **"ship the world in the APK" is off the table** — but it never needed to be on it. The model is the one offline-maps apps have used for years (Organic Maps, OsmAnd): **fetch the player's region on demand and cache it on device.** The player downloads a ~1–5 MB region for where they actually are, not a planet they'll never walk across.
+
+That keeps the **install ~70–85 MB (§23b) regardless of how many countries are supported** — coverage grows on the server, not in the download.
+
+**Decide before launch, not before the prototype.** The prototype needs no hosting at all.
 
 ## 20. Raid — the Nadir
 
@@ -1407,6 +1558,38 @@ Assigned shadows are "busy" until reassigned; bigger/more facilities = more slot
 
 §9b set the *style*; this is the plan for the **real art pass** that replaces placeholders. The hard part isn't any single image — it's making **hundreds of assets look like one game**. Everything here follows the placeholder-first rule (§9b): built last, swapped in by data (sprite IDs), no code changes.
 
+### 23a. Import pipeline — downscale + compress before shipping (REQUIRED)
+**Midjourney output must not be shipped as-is.** The raw finished set is **~136 MB** across 178 images (~767 KB each) because MJ upscales to full-resolution PNG. At phone display sizes that resolution is invisible — it's pure download weight, and it would roughly **triple the app size for zero visible benefit**.
+
+**Target on import:**
+
+| Asset type | Max dimension | Format |
+|---|---|---|
+| Item / UI / map-marker icons | 256 px | WebP |
+| Monster portraits, preset hunters | 512 px | WebP |
+| Armor-set showcases | 512 px | WebP |
+| Hero key art, promo, feature graphic | 1024 px (keep aspect) | WebP |
+| App icon | per Play spec | PNG |
+
+**Expected result: ~136 MB → ~34 MB**, no perceptible quality loss on a phone.
+
+**Keep the originals.** Archive full-resolution masters outside the app (they're needed for store listings, marketing, and any future higher-DPI pass). Only the downscaled set goes in the build.
+
+**Preserve transparency** where it exists — the code-generated rank badges (`art/ui/ui_rank_*.png`) already have alpha and must not be flattened. Anything background-removed later needs the same care; WebP supports alpha, so this is a settings issue, not a format one.
+
+**Do it as a scripted step, not by hand** — it has to be repeatable when art is re-rolled.
+
+### 23b. Realistic app-size budget
+| Component | Size |
+|---|---|
+| Godot 4 engine (Android, arm64) | ~30–45 MB |
+| Art (after 23a) | ~34 MB |
+| Game code + data | ~2 MB |
+| Bundled map geometry (§19c) | ~0.4 MB per town, ~1–5 MB per city |
+| **Total** | **~70–85 MB** |
+
+Comfortably inside Google Play's ~200 MB base-install limit. **Art is the size driver; map data is a rounding error.**
+
 ### Asset inventory (what actually needs making)
 | Asset | Count | Notes |
 |-------|------:|-------|
@@ -1483,8 +1666,9 @@ This is §11's MVP kernel, now the target for a first playable you'd actually en
 - **P8 — Shop & cosmetics** (§14): tickets + cosmetic monetization.
 
 ### Ongoing tracks (parallel, later)
+- **Map basemap — vector-line render** (§19b): **DO THIS BEFORE FINALISING MAP MARKER ART.** Real street geometry drawn directly in Godot from an OSM extract — no tile pipeline, no plugin, no hosting. The finished basemap dictates which marker art actually reads on top of it, so it has to land first or the markers get picked against the wrong background. Prototype area: Darlington (~26 km², ~0.4 MB). Brief: `prompts/prompt_for_code_map_render_spike.md`. Coverage beyond the prototype is §19c.
 - **Art pass** (§23): replace placeholders — real sprites, shadow shader, VFX, UI kit.
-  - **Full art blitz (Midjourney), one focused paid month — 143 images:** hero key art (3 formats) + 4 promo/social variants + all 57 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 14 UI/store assets (app icon, feature graphic, class icons, rank badges). Style locked: frost-cyan, near-total darkness, silhouette-first, crisp linework (`--style raw`), one shared `--sref` code for consistency. Full prompt pack in **HollowHunter_MidjourneyArtPack.md**; save/organize via **HollowHunter_ArtDropTool.html** (auto-renames + files into `/hero /promo /monsters /equipment /sets /ui`, matching monsters.json/equipment.json ids — drops straight into the game later). Subscribe → blitz in Relax mode → cancel. Reference images are **written descriptions only** — no copyrighted frames used as input (IP safety; UK CDPA s.9(3) gives us authorship of computer-generated work since we make the creative arrangements — see note below).
+  - **Full art blitz (Midjourney), one focused paid month — 143 images:** hero key art (3 formats) + 4 promo/social variants + all 54 monster portraits + all 50 equipment icons + all 15 armor-set showcases + 14 UI/store assets (app icon, feature graphic, class icons, rank badges). Style locked: frost-cyan, near-total darkness, silhouette-first, crisp linework (`--style raw`), one shared `--sref` code for consistency. Full prompt pack in **HollowHunter_MidjourneyArtPack.md**; save/organize via **HollowHunter_ArtDropTool.html** (auto-renames + files into `/hero /promo /monsters /equipment /sets /ui`, matching monsters.json/equipment.json ids — drops straight into the game later). Subscribe → blitz in Relax mode → cancel. Reference images are **written descriptions only** — no copyrighted frames used as input (IP safety; UK CDPA s.9(3) gives us authorship of computer-generated work since we make the creative arrangements — see note below).
 - **Polish**: onboarding/first-run, wellbeing (rest-day framing, no overtraining nudges), safety, accessibility.
 - **iOS port**: HealthKit + CoreLocation plugins, once Android is solid.
 

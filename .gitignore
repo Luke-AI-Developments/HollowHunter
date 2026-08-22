@@ -30,3 +30,6 @@ Thumbs.db
 # Dev media captures (screenshots/recordings from live device verification) --
 # binary, build-in-public content for the user, not project source. Local only.
 devmedia/
+
+# Visual brainstorming companion scratch (superpowers skill) -- local only.
+.superpowers/

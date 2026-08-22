@@ -105,6 +105,8 @@
     font-family:monospace; text-shadow:0 1px 3px #000;
   }
   .slot .plus{ font-size:20px; color:var(--muted); z-index:1; }
+  .slot .desc{ font-size:9.5px; color:var(--icy); z-index:1; margin-top:5px; line-height:1.25;
+    opacity:.85; text-shadow:0 1px 3px #000; padding:0 2px; }
   .slot input[type=file]{ display:none; }
   .clear-x{
     position:absolute; bottom:5px; right:5px; z-index:2; font-size:10px;
@@ -120,7 +122,7 @@
 <body>
 
 <h1>HOLLOW HUNTER — Art Drop Tool</h1>
-<div class="sub">Drag an image onto a slot to save it with the right filename in the right folder. Works offline, nothing uploads anywhere. 196 slots across 8 categories.</div>
+<div class="sub">Drag an image onto a slot to save it with the right filename in the right folder. Works offline, nothing uploads anywhere. 178 slots across 8 categories.</div>
 
 <div class="bar">
   <button id="pickFolderBtn">📁 Choose save folder</button>
@@ -128,81 +130,66 @@
   <input type="text" id="search" placeholder="Search name or filename…">
   <div class="progress-wrap">
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="progress-label" id="progressLabel">0 / 196 saved</div>
+    <div class="progress-label" id="progressLabel">0 / 178 saved</div>
   </div>
   <button class="secondary" id="resetBtn">Reset progress</button>
 </div>
 
 <div class="catnav">
-  <a href="#cat-hero">Hero <span class="n">(3)</span></a>
-  <a href="#cat-promo">Promo <span class="n">(4)</span></a>
-  <a href="#cat-presets">Presets <span class="n">(12)</span></a>
   <a href="#cat-stages">Rank stages <span class="n">(36)</span></a>
-  <a href="#cat-monsters">Monsters <span class="n">(61)</span></a>
-  <a href="#cat-equipment">Equipment <span class="n">(50)</span></a>
+  <a href="#cat-promo">Promo <span class="n">(4)</span></a>
+  <a href="#cat-hero">Hero <span class="n">(3)</span></a>
+  <a href="#cat-map">Map markers <span class="n">(7)</span></a>
+  <a href="#cat-ui">UI / store <span class="n">(9)</span></a>
   <a href="#cat-sets">Armor sets <span class="n">(15)</span></a>
-  <a href="#cat-ui">UI / store <span class="n">(15)</span></a>
+  <a href="#cat-equipment">Equipment <span class="n">(50, feed order)</span></a>
+  <a href="#cat-monsters">Monsters <span class="n">(54)</span></a>
 </div>
+
+<div class="cat-desc" style="margin-bottom:24px;">Ordered <b>newest-first</b> to match the Midjourney feed top-down &mdash; scroll both in the same direction.</div>
+
+<h2 class="section" id="cat-stages">Preset rank-progression variants (36)</h2>
+<div class="cat-desc">Saves to <b>/presets</b> as <b>preset_hunter_&lt;id&gt;_&lt;stage&gt;.png</b> &mdash; grouped per hunter (late &rarr; early), same as generated (&sect;3c). <b>The <i>early</i> image of each hunter doubles as the character-select portrait</b> &mdash; there is no separate base portrait.</div>
+<div id="stagesHost"></div>
+
+<h2 class="section" id="cat-promo">Promotional / social variants (4)</h2>
+<div class="cat-desc">Saves to <b>/promo</b> &mdash; for ongoing TikTok/Reddit/X content variety</div>
+<div class="grid" id="promoGrid"></div>
 
 <h2 class="section" id="cat-hero">Hero key art (3)</h2>
 <div class="cat-desc">Saves to <b>/hero</b></div>
 <div class="grid" id="heroGrid"></div>
 
-<h2 class="section" id="cat-promo">Promotional / social variants (4)</h2>
-<div class="cat-desc">Saves to <b>/promo</b> — for ongoing TikTok/Reddit/X content variety</div>
-<div class="grid" id="promoGrid"></div>
+<h2 class="section" id="cat-map">Map markers (7)</h2>
+<div class="cat-desc">Saves to <b>/map</b> as <b>&lt;id&gt;.png</b> &mdash; drawn on the live map, so they must read at small size. <b>One universal gate marker for all ranks</b> &mdash; rank is revealed on tap in the gate encounter panel (&sect;18), not on the map.</div>
+<div class="grid" id="mapGrid"></div>
 
-<h2 class="section" id="cat-presets">Preset hunter portraits (12)</h2>
-<div class="cat-desc">Saves to <b>/presets</b> as <b>preset_hunter_&lt;id&gt;.png</b> — face visible, the playable roster (§3b)</div>
-<h3 class="subsection">Female (6)</h3>
-<div class="grid" id="presetsFGrid"></div>
-<h3 class="subsection">Male (6)</h3>
-<div class="grid" id="presetsMGrid"></div>
+<h2 class="section" id="cat-ui">UI / store assets (9)</h2>
+<div class="cat-desc">Saves to <b>/ui</b> as <b>&lt;id&gt;.png</b>. <i>The 6 rank badges are not listed here &mdash; they are code-generated and already finished in <code>ui_generated/</code>.</i></div>
+<div class="grid" id="uiGrid"></div>
 
-<h2 class="section" id="cat-stages">Preset rank-progression variants (36)</h2>
-<div class="cat-desc">Saves to <b>/presets</b> as <b>preset_hunter_&lt;id&gt;_&lt;stage&gt;.png</b> — same 12 hunters, 3 power-stages each (§3c)</div>
-<h3 class="subsection">Early (E–D rank) — 12</h3>
-<div class="grid" data-stage="early"></div>
-<h3 class="subsection">Mid (C–B rank) — 12</h3>
-<div class="grid" data-stage="mid"></div>
-<h3 class="subsection">Late (A–S rank) — 12</h3>
-<div class="grid" data-stage="late"></div>
-
-<h2 class="section" id="cat-monsters">Monsters (61)</h2>
-<div class="cat-desc">Saves to <b>/monsters</b> as <b>por_&lt;id&gt;.png</b></div>
-<h3 class="subsection" id="rankE">E-rank (10)</h3>
-<div class="grid" data-rank="E"></div>
-<h3 class="subsection" id="rankD">D-rank (13)</h3>
-<div class="grid" data-rank="D"></div>
-<h3 class="subsection" id="rankC">C-rank (15)</h3>
-<div class="grid" data-rank="C"></div>
-<h3 class="subsection" id="rankB">B-rank (11)</h3>
-<div class="grid" data-rank="B"></div>
-<h3 class="subsection" id="rankA">A-rank (7)</h3>
-<div class="grid" data-rank="A"></div>
-<h3 class="subsection" id="rankS">S-rank bosses (5)</h3>
-<div class="grid" data-rank="S"></div>
-
-<h2 class="section" id="cat-equipment">Equipment — 50 base pieces</h2>
-<div class="cat-desc">Saves to <b>/equipment</b> as <b>spr_&lt;id&gt;.png</b></div>
-<h3 class="subsection">Warrior (10)</h3>
-<div class="grid" data-eqclass="WARRIOR"></div>
-<h3 class="subsection">Guardian (10)</h3>
-<div class="grid" data-eqclass="GUARDIAN"></div>
-<h3 class="subsection">Assassin (10)</h3>
-<div class="grid" data-eqclass="ASSASSIN"></div>
-<h3 class="subsection">Mage (10)</h3>
-<div class="grid" data-eqclass="MAGE"></div>
-<h3 class="subsection">Support (10)</h3>
-<div class="grid" data-eqclass="SUPPORT"></div>
-
-<h2 class="section" id="cat-sets">Armor sets — 15 full showcases</h2>
+<h2 class="section" id="cat-sets">Armor sets &mdash; 15 full showcases</h2>
 <div class="cat-desc">Saves to <b>/sets</b> as <b>&lt;id&gt;.png</b></div>
 <div class="grid" id="setsGrid"></div>
 
-<h2 class="section" id="cat-ui">UI / store assets (15)</h2>
-<div class="cat-desc">Saves to <b>/ui</b> as <b>&lt;id&gt;.png</b></div>
-<div class="grid" id="uiGrid"></div>
+<h2 class="section" id="cat-equipment">Equipment &mdash; 50 base pieces</h2>
+<div class="cat-desc">Saves to <b>/equipment</b> as <b>spr_&lt;id&gt;.png</b>. <b>Listed in exact Midjourney feed order</b> (newest first) &mdash; scroll this and the feed together, top to bottom, and they line up 1:1. <i>Warcleaver is last: it&rsquo;s the one piece kept from the old batch.</i></div>
+<div class="grid" id="equipGrid"></div>
+
+<h2 class="section" id="cat-monsters">Monsters (54)</h2>
+<div class="cat-desc">Saves to <b>/monsters</b> as <b>por_&lt;id&gt;.png</b></div>
+<h3 class="subsection" id="rankS">S-rank bosses (5)</h3>
+<div class="grid" data-rank="S"></div>
+<h3 class="subsection" id="rankA">A-rank (6)</h3>
+<div class="grid" data-rank="A"></div>
+<h3 class="subsection" id="rankB">B-rank (10)</h3>
+<div class="grid" data-rank="B"></div>
+<h3 class="subsection" id="rankC">C-rank (12)</h3>
+<div class="grid" data-rank="C"></div>
+<h3 class="subsection" id="rankD">D-rank (12)</h3>
+<div class="grid" data-rank="D"></div>
+<h3 class="subsection" id="rankE">E-rank (9)</h3>
+<div class="grid" data-rank="E"></div>
 
 <footer>
   <div>All filenames match the ids already in <b>monsters.json</b> / <b>equipment.json</b> — drops straight into the game later, no renaming.</div>
@@ -255,34 +242,36 @@ const PRESET_STAGES = STAGES.flatMap(([stage, label]) =>
 const MONSTERS = [
   ['E','mon_grubmaw','Grubmaw'],['E','mon_runtclaw','Runtclaw'],['E','mon_tarling','Tarling'],
   ['E','mon_grublet','Grublet'],['E','mon_cindergnat','Cindergnat'],['E','mon_gloamwing','Gloamwing'],
-  ['E','mon_bonerat','Bonerat'],['E','mon_mirewisp','Mirewisp'],['E','mon_mudtusk','Mudtusk'],
+  ['E','mon_bonerat','Bonerat'],['E','mon_mirewisp','Mirewisp'],
   ['E','mon_nipclaw','Nipclaw'],
 
   ['D','mon_tuskrend','Tuskrend'],['D','mon_carapax','Carapax'],['D','mon_gravemarch_footman','Gravemarch Footman'],
   ['D','mon_tarhulk','Tarhulk'],['D','mon_beetlback','Beetlback'],['D','mon_sporebloat','Sporebloat'],
   ['D','mon_duskmaw','Duskmaw'],['D','mon_rotknight','Rotknight'],['D','mon_cryptrat','Cryptrat Swarm'],
-  ['D','mon_palewisp','Palewisp'],['D','mon_boartusk','Boartusk'],['D','mon_gnollpike','Gnollpike'],
+  ['D','mon_palewisp','Palewisp'],['D','mon_gnollpike','Gnollpike'],
   ['D','mon_grimhound','Grimhound'],
 
-  ['C','mon_ashen_warden','Ashen Warden'],['C','mon_sporecrawler','Sporecrawler'],['C','mon_bonegnasher','Bonegnasher'],
-  ['C','mon_glacewisp','Glacewisp'],['C','mon_ashwing','Ashwing'],['C','mon_dreadmaw','Dreadmaw'],
+  ['C','mon_ashen_warden','Ashen Warden'],['C','mon_bonegnasher','Bonegnasher'],
+  ['C','mon_glacewisp','Glacewisp'],['C','mon_ashwing','Ashwing'],
   ['C','mon_sporelord','Sporelord'],['C','mon_broodlancer','Broodlancer'],['C','mon_direwarden','Direwarden'],
-  ['C','mon_snarlpack','Snarlpack Alpha'],['C','mon_frostbite_sylph','Frostbite Sylph'],['C','mon_glimmerhound','Glimmerhound'],
+  ['C','mon_snarlpack','Snarlpack Alpha'],['C','mon_frostbite_sylph','Frostbite Sylph'],
   ['C','mon_emberling','Emberling'],['C','mon_grinlet','Grinlet'],['C','mon_cindercreep','Cindercreep'],
 
   ['B','mon_frostquill','Frostquill'],['B','mon_hivewarden','Hivewarden'],['B','mon_warhowl','Warhowl'],
   ['B','mon_sepulcher_knight','Sepulcher Knight'],['B','mon_cindermaw_drake','Cindermaw Drake'],['B','mon_hollowhorn','Hollowhorn'],
   ['B','mon_broodqueen_vassal','Broodqueen Vassal'],['B','mon_ashen_cataphract','Ashen Cataphract'],['B','mon_glacial_revenant','Glacial Revenant'],
-  ['B','mon_duskdrake','Duskdrake'],['B','mon_fiendlord','Fiendlord'],
+  ['B','mon_fiendlord','Fiendlord'],
 
   ['A','mon_cindervane','Cindervane'],['A','mon_hoarfrost_matron','Hoarfrost Matron'],['A','mon_kaeric',"Kaeric, the First Warden"],
-  ['A','mon_voidcaller','Voidcaller'],['A','mon_broodmother','Broodmother'],['A','mon_rimewarden_sovereign','Rimewarden Sovereign'],
+  ['A','mon_voidcaller','Voidcaller'],['A','mon_rimewarden_sovereign','Rimewarden Sovereign'],
   ['A','mon_ashen_lord_commander','Ashen Lord Commander'],
 
   ['S','mon_xirvok',"Xir'Vok, Brood Sovereign"],['S','mon_vharun','Vharun, the Cinder Wyrm'],
   ['S','mon_pale_sovereign','The Pale Sovereign'],['S','mon_ur_grakh','Ur-Grakh, the Bonemarch King'],
   ['S','mon_nyxaris','Nyxaris, the Hollow Star'],
 ].map(([rank,id,name]) => ({rank, id, name, folder:'monsters', file:`por_${id}.png`}));
+
+window.EQ_DESC = {"eq_warcleaver": "plain heavy cleaver-axe (already saved)", "eq_gravebite_greataxe": "double-bladed greataxe, crimson rune edge", "eq_ironbrow_helm": "steel helm, heavy brow, amber visor slit", "eq_ashplate_cuirass": "ash-grey plate, ember glow in seams", "eq_juggernaut_plate": "massive plate, molten orange-gold engravings", "eq_bruiser_gauntlets": "knuckle gauntlets, scuffed iron, NO glow", "eq_trampling_sabatons": "armored boots, thick treads, crimson trim", "eq_marching_greaves": "shin greaves, brass rivets, faint brass sheen", "eq_berserker_signet": "heavy iron war-ring, blood-red glow", "eq_warlord_torc": "neck-torc, gold filigree, warm gold light", "eq_bulwark_shield": "plain round steel shield, NO glow", "eq_aegis_wall": "rectangular tower shield, gold rune border", "eq_wardens_barbute": "barbute helm, faint steel-blue sheen on crest", "eq_sentinel_cuirass": "plate cuirass, brass buckles, faint brass edging", "eq_immovable_plate": "colossal plate, deep amber engraved channels", "eq_ramguard_gauntlets": "plate gauntlets, leather cuffs, NO glow", "eq_rootstep_greaves": "greaves w/ root growth, mossy green trim", "eq_anchor_sabatons": "armored boots, dull bronze tone", "eq_stoneheart_charm": "stone pendant in iron, amber light inside", "eq_bastion_sigil": "shield-shaped sigil, brilliant gold crest", "eq_shadowfang_dagger": "single curved dagger, leather grip, NO glow", "eq_twin_fangs": "twin curved daggers, silver-blue edges (take v2)", "eq_gloamhood": "dark cloth hood, cold silver-blue hem", "eq_nightweave_vest": "sleek dark leather vest, faint silver stitch", "eq_phantom_leathers": "layered leather, ghost-white stitched patterns", "eq_silent_grips": "leather hand-wraps, NO glow", "eq_gloamstep_boots": "leather boots, pale blue rune sole seams", "eq_fleetfoot_shoes": "light running shoes, faint silver sheen", "eq_killers_band": "slim dark ring, thin crimson line", "eq_umbral_pendant": "dark pendant, cold silver-white engraving", "eq_blightwood_wand": "gnarled dark wooden wand, bark on, NO glow", "eq_cindercore_staff": "dark staff, burning ember-orange orb", "eq_seers_cowl": "pale grey hooded cowl, cool pale blue edge", "eq_runespun_robe": "dark robe, warm gold rune-stitching", "eq_archon_vestments": "charcoal vestments, white-gold glowing runes", "eq_channelers_gloves": "fingerless cloth gloves, NO glow", "eq_wraithsilk_slippers": "gossamer pale slippers, ghost-green trim", "eq_wanderers_sandals": "leather sandals, dusty and travelled", "eq_mana_sigil": "sigil ring, deep arcane blue crystal", "eq_oracles_eye": "eye-shaped amulet, luminous pale gold iris", "eq_rally_totem": "carved wooden totem, unpainted, NO glow", "eq_bonemarch_banner": "banner, bone-white cloth, pale gold runes", "eq_chaplains_hood": "undyed linen hood, faint warm gold trim", "eq_wardenpriest_robe": "layered dark robe, warm gold seams", "eq_hierophant_vestments": "ornate cream+gold vestments, radiant", "eq_blessing_gloves": "soft linen gloves, NO glow", "eq_shepherds_treads": "travelling boots, amber rune trim on welt", "eq_acolyte_sandals": "simple sandals, light leather straps", "eq_wardsong_charm": "chime-shaped charm, soft silver light", "eq_aegis_of_the_host": "shield-and-banner pendant, brilliant gold"};
 
 const EQUIPMENT = [
   ['WARRIOR','eq_warcleaver','Warcleaver'],['WARRIOR','eq_gravebite_greataxe','Gravebite Greataxe'],
@@ -314,7 +303,7 @@ const EQUIPMENT = [
   ['SUPPORT','eq_hierophant_vestments','Hierophant Vestments'],['SUPPORT','eq_blessing_gloves','Blessing Gloves'],
   ['SUPPORT','eq_shepherds_treads',"Shepherd's Treads"],['SUPPORT','eq_acolyte_sandals','Acolyte Sandals'],
   ['SUPPORT','eq_wardsong_charm','Wardsong Charm'],['SUPPORT','eq_aegis_of_the_host','Aegis of the Host'],
-].map(([clazz,id,name]) => ({clazz, id, name, folder:'equipment', file:`spr_${id}.png`}));
+].map(([clazz,id,name]) => ({clazz, id, name, folder:'equipment', file:`spr_${id}.png`, desc:(window.EQ_DESC||{})[id]||''}));
 
 const SETS = [
   ['WARRIOR','D','set_ashen_vanguard_plate','Ashen Vanguard Plate'],
@@ -334,6 +323,16 @@ const SETS = [
   ['SUPPORT','S','set_hive_sovereign_raiment','Hive-Sovereign Raiment'],
 ].map(([clazz,tier,id,name]) => ({rank:tier, name:`${name} (${clazz.slice(0,1)+clazz.slice(1).toLowerCase()})`, folder:'sets', file:`${id}.png`}));
 
+const MAPMARKERS = [
+  {id:"map_gate", name:"Gate marker (all ranks)", desc:"oval cyan portal rift \u2014 one marker for every rank; rank is shown on tap"},
+  {id:"map_player", name:"Hunter position", desc:"arrowhead chevron in a ring, cyan"},
+  {id:"map_sanctuary", name:"Sanctuary", desc:"shrine archway, warm gold glow"},
+  {id:"map_stronghold", name:"Stronghold", desc:"fortified keep tower, gold windows"},
+  {id:"map_incursion", name:"Incursion", desc:"jagged crack, red-violet bleed"},
+  {id:"map_nadir", name:"Nadir entrance", desc:"descending spiral shaft, pale light below"},
+  {id:"map_lorestone", name:"Lore Stone", desc:"carved standing stone, glowing runes"}
+].map(m => ({...m, folder:'map', file:`${m.id}.png`}));
+
 const UI = [
   {id:'ui_icon_playstore', name:'App icon (Play Store)'},
   {id:'ui_feature_graphic', name:'Store feature graphic'},
@@ -344,20 +343,14 @@ const UI = [
   {id:'ui_class_assassin', name:'Class icon — Assassin'},
   {id:'ui_class_mage', name:'Class icon — Mage'},
   {id:'ui_class_support', name:'Class icon — Support'},
-  {id:'ui_rank_e', name:'Rank badge — E'},
-  {id:'ui_rank_d', name:'Rank badge — D'},
-  {id:'ui_rank_c', name:'Rank badge — C'},
-  {id:'ui_rank_b', name:'Rank badge — B'},
-  {id:'ui_rank_a', name:'Rank badge — A'},
-  {id:'ui_rank_s', name:'Rank badge — S'},
 ].map(u => ({...u, folder:'ui', file:`${u.id}.png`}));
 
-const ALL_SLOTS = [...HERO, ...PROMO, ...PRESETS, ...PRESET_STAGES, ...MONSTERS, ...EQUIPMENT, ...SETS, ...UI];
+const ALL_SLOTS = [...MAPMARKERS, ...HERO, ...PROMO, ...PRESET_STAGES, ...MONSTERS, ...EQUIPMENT, ...SETS, ...UI];
 const TOTAL = ALL_SLOTS.length;
 
 let dirHandle = null;
 const FS_SUPPORTED = 'showDirectoryPicker' in window;
-const STORAGE_KEY = 'hollowhunter_art_drop_progress_v2';
+const STORAGE_KEY = 'shadowhunter_art_drop_progress_v2';
 
 function loadProgress(){
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e){ return {}; }
@@ -366,6 +359,19 @@ function saveProgress(p){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
 }
 let progress = loadProgress();
+
+// One-time reset: clear ticks for slots whose file was never actually written to disk
+// (the tick is set on drop; if the browser download failed, the flag lied.)
+(function(){
+  if (localStorage.getItem('hh_missing_reset_v1')) return;
+  const MISSING = ["equipment/spr_eq_aegis_of_the_host.png", "equipment/spr_eq_archon_vestments.png", "equipment/spr_eq_bonemarch_banner.png", "equipment/spr_eq_chaplains_hood.png", "equipment/spr_eq_hierophant_vestments.png", "equipment/spr_eq_mana_sigil.png", "equipment/spr_eq_rally_totem.png", "equipment/spr_eq_wardenpriest_robe.png", "equipment/spr_eq_wardsong_charm.png", "hero/key_art_hero_square.png", "hero/key_art_hero_wide.png", "promo/promo_action.png", "promo/promo_army.png", "promo/promo_bust.png"];
+  let n = 0;
+  MISSING.forEach(k => { if (progress[k]) { delete progress[k]; n++; } });
+  saveProgress(progress);
+  localStorage.setItem('hh_missing_reset_v1','1');
+  if (n) console.log('Art Drop Tool: cleared ' + n + ' stale saved-flags for files not on disk.');
+})();
+
 
 function progressKey(item){ return item.folder + '/' + item.file; }
 
@@ -387,7 +393,7 @@ function buildSlotEl(item){
     <span class="check">✓ saved</span>
     <span class="plus">＋</span>
     <span class="name">${item.name}</span>
-    <span class="fname">${item.file}</span>
+    <span class="fname">${item.file}</span>${item.desc ? `<span class="desc">${item.desc}</span>` : ''}
     <span class="clear-x">clear</span>
     <input type="file" accept="image/*">
   `;
@@ -456,32 +462,40 @@ function triggerDownload(file, filename){
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-// build DOM
-document.getElementById('heroGrid').append(...HERO.map(buildSlotEl));
-document.getElementById('promoGrid').append(...PROMO.map(buildSlotEl));
-document.getElementById('presetsFGrid').append(...PRESETS.filter(p => p.rank === 'F').map(buildSlotEl));
-document.getElementById('presetsMGrid').append(...PRESETS.filter(p => p.rank === 'M').map(buildSlotEl));
+// build DOM — everything newest-first to mirror the Midjourney feed
+const rev = a => a.slice().reverse();
 
-STAGES.forEach(([stage]) => {
-  const grid = document.querySelector(`.grid[data-stage="${stage}"]`);
-  const items = PRESET_STAGES.filter(p => p.stage === stage);
+// Rank stages: grouped per hunter, newest hunter first (m6..m1, f6..f1), stages late->mid->early
+const stagesHost = document.getElementById('stagesHost');
+rev(PRESET_IDS).forEach(id => {
+  const h3 = document.createElement('h3');
+  h3.className = 'subsection';
+  h3.textContent = `${id.toUpperCase()} — late / mid / early`;
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  const items = rev(STAGES).map(([stage]) =>
+    PRESET_STAGES.find(p => p.stage === stage && p.file === `preset_hunter_${id}_${stage}.png`)
+  ).filter(Boolean);
   grid.append(...items.map(buildSlotEl));
+  stagesHost.append(h3, grid);
 });
 
-['E','D','C','B','A','S'].forEach(rank => {
+document.getElementById('promoGrid').append(...rev(PROMO).map(buildSlotEl));
+document.getElementById('heroGrid').append(...rev(HERO).map(buildSlotEl));
+document.getElementById('mapGrid').append(...MAPMARKERS.map(buildSlotEl));
+document.getElementById('uiGrid').append(...rev(UI).map(buildSlotEl));
+document.getElementById('setsGrid').append(...rev(SETS).map(buildSlotEl));
+
+const FEED_ORDER = ["eq_bonemarch_banner", "eq_wardsong_charm", "eq_rally_totem", "eq_seers_cowl", "eq_acolyte_sandals", "eq_oracles_eye", "eq_blightwood_wand", "eq_shepherds_treads", "eq_mana_sigil", "eq_nightweave_vest", "eq_wardenpriest_robe", "eq_umbral_pendant", "eq_blessing_gloves", "eq_wanderers_sandals", "eq_runespun_robe", "eq_killers_band", "eq_silent_grips", "eq_phantom_leathers", "eq_shadowfang_dagger", "eq_bastion_sigil", "eq_stoneheart_charm", "eq_rootstep_greaves", "eq_ramguard_gauntlets", "eq_immovable_plate", "eq_sentinel_cuirass", "eq_wardens_barbute", "eq_aegis_wall", "eq_warlord_torc", "eq_berserker_signet", "eq_marching_greaves", "eq_trampling_sabatons", "eq_archon_vestments", "eq_aegis_of_the_host", "eq_chaplains_hood", "eq_anchor_sabatons", "eq_wraithsilk_slippers", "eq_channelers_gloves", "eq_fleetfoot_shoes", "eq_gloamstep_boots", "eq_gloamhood", "eq_twin_fangs", "eq_bruiser_gauntlets", "eq_juggernaut_plate", "eq_ironbrow_helm", "eq_gravebite_greataxe", "eq_hierophant_vestments", "eq_cindercore_staff", "eq_ashplate_cuirass", "eq_bulwark_shield", "eq_warcleaver"];
+const eqBy = Object.fromEntries(EQUIPMENT.map(e => [e.id, e]));
+document.getElementById('equipGrid').append(
+  ...FEED_ORDER.map(id => eqBy[id]).filter(Boolean).map(buildSlotEl)
+);
+
+['S','A','B','C','D','E'].forEach(rank => {
   const grid = document.querySelector(`.grid[data-rank="${rank}"]`);
-  const items = MONSTERS.filter(m => m.rank === rank);
-  grid.append(...items.map(buildSlotEl));
+  grid.append(...rev(MONSTERS.filter(m => m.rank === rank)).map(buildSlotEl));
 });
-
-['WARRIOR','GUARDIAN','ASSASSIN','MAGE','SUPPORT'].forEach(clazz => {
-  const grid = document.querySelector(`.grid[data-eqclass="${clazz}"]`);
-  const items = EQUIPMENT.filter(e => e.clazz === clazz);
-  grid.append(...items.map(buildSlotEl));
-});
-
-document.getElementById('setsGrid').append(...SETS.map(buildSlotEl));
-document.getElementById('uiGrid').append(...UI.map(buildSlotEl));
 
 updateProgressBar();
 
