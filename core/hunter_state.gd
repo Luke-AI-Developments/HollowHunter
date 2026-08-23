@@ -83,6 +83,20 @@ var preset_id: String  ## §9b/§25: the 12 curated preset-hunter portraits
 ## precedent as subclass (§21). Combined with GameLogic.stage_for_rank()
 ## to resolve the rank-appropriate portrait via
 ## ArtPaths.preset_portrait().
+var stronghold_lat: float = 0.0  ## §22 map placement (new): where the player has
+var stronghold_lon: float = 0.0  ## deployed their Stronghold, if anywhere yet.
+var stronghold_placed: bool = false  ## false until place_stronghold() is called
+## once -- old saves (before this field existed) default to false via
+## from_dict(), same as a brand-new hunter who hasn't placed one yet: no
+## marker shown, no proximity gate active.
+var last_sanctuary_claim_at: int = 0  ## Unix seconds of the last Sanctuary
+## claim, 0 = never. Global per-player, not per-sanctuary-id -- "a daily
+## bonus" (§19) is singular, not stacked across however many Sanctuaries
+## happen to be in the player's area.
+var discovered_lorestone_ids: Array = []  ## Array[String] of PoiSpawner-
+## generated lorestone ids ever discovered -- one-time-per-id-forever
+## (§19: "a one-time small reward for finding them"), persists across
+## areas so a player who walks to a new area can still discover its stone.
 
 
 static func new_default(
@@ -111,6 +125,11 @@ static func new_default(
 	s.crystals = 0
 	s.owned_cosmetics = []
 	s.preset_id = hunter_preset
+	s.stronghold_lat = 0.0
+	s.stronghold_lon = 0.0
+	s.stronghold_placed = false
+	s.last_sanctuary_claim_at = 0
+	s.discovered_lorestone_ids = []
 	return s
 
 
@@ -730,6 +749,41 @@ func unlock_cosmetic(cosmetic_id: String) -> bool:
 	return true
 
 
+## §22 map placement (new): sets/moves the Stronghold's map location.
+## Callable any number of times -- re-placement is just calling this
+## again, no separate first-time-vs-move code path.
+func place_stronghold(lat: float, lon: float) -> void:
+	stronghold_lat = lat
+	stronghold_lon = lon
+	stronghold_placed = true
+
+
+## §19 Sanctuary claim (new): true and applies the reward if the cooldown
+## has elapsed since the last claim; false (no change) otherwise. `now_unix`
+## and the reward amounts are supplied by the caller (GameLogic constants +
+## the scene layer's wall clock) -- stays pure, same convention as
+## collect_stronghold().
+func claim_sanctuary(
+	now_unix: int, essence_reward: int, ticket_reward: int, cooldown_seconds: int
+) -> bool:
+	if last_sanctuary_claim_at != 0 and now_unix - last_sanctuary_claim_at < cooldown_seconds:
+		return false
+	essence += essence_reward
+	gate_tickets += ticket_reward
+	last_sanctuary_claim_at = now_unix
+	return true
+
+
+## §19 Lore Stone discovery (new): true and applies the reward if `stone_id`
+## hasn't been discovered before; false (no change) if it has.
+func discover_lorestone(stone_id: String, essence_reward: int) -> bool:
+	if discovered_lorestone_ids.has(stone_id):
+		return false
+	discovered_lorestone_ids.append(stone_id)
+	essence += essence_reward
+	return true
+
+
 func to_dict() -> Dictionary:
 	return {
 		"level": level,
@@ -754,6 +808,11 @@ func to_dict() -> Dictionary:
 		"crystals": crystals,
 		"owned_cosmetics": owned_cosmetics,
 		"preset_id": preset_id,
+		"stronghold_lat": stronghold_lat,
+		"stronghold_lon": stronghold_lon,
+		"stronghold_placed": stronghold_placed,
+		"last_sanctuary_claim_at": last_sanctuary_claim_at,
+		"discovered_lorestone_ids": discovered_lorestone_ids,
 	}
 
 
@@ -781,6 +840,11 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.crystals = int(d.get("crystals", 0))
 	s.owned_cosmetics = d.get("owned_cosmetics", [])
 	s.preset_id = String(d.get("preset_id", "m1"))
+	s.stronghold_lat = float(d.get("stronghold_lat", 0.0))
+	s.stronghold_lon = float(d.get("stronghold_lon", 0.0))
+	s.stronghold_placed = bool(d.get("stronghold_placed", false))
+	s.last_sanctuary_claim_at = int(d.get("last_sanctuary_claim_at", 0))
+	s.discovered_lorestone_ids = d.get("discovered_lorestone_ids", [])
 	return s
 
 
