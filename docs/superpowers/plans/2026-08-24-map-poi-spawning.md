@@ -184,10 +184,21 @@ func test_spawn_sanctuaries_ids_are_unique_within_a_call() -> void:
 
 
 func test_spawn_sanctuaries_offsets_stay_within_gate_spawner_bound() -> void:
-	var sanctuaries := PoiSpawner.spawn_sanctuaries(54.5235, -1.5549, 10)
+	# Offsets are measured from the CELL's own anchor (its fixed centroid),
+	# not from the raw input point -- the input can be anywhere within the
+	# cell, up to half a cell-width from that centroid, so bounding against
+	# the raw input directly would fail even for a correct implementation.
+	var lat := 54.5235
+	var lon := -1.5549
+	var cell_lat: float = floor(lat / Incursion.AREA_CELL_DEGREES)
+	var cell_lon: float = floor(lon / Incursion.AREA_CELL_DEGREES)
+	var anchor_lat := (cell_lat + 0.5) * Incursion.AREA_CELL_DEGREES
+	var anchor_lon := (cell_lon + 0.5) * Incursion.AREA_CELL_DEGREES
+
+	var sanctuaries := PoiSpawner.spawn_sanctuaries(lat, lon, 10)
 	for s: Dictionary in sanctuaries:
-		assert_lt(absf(s["lat"] - 54.5235), GateSpawner.MAX_OFFSET_DEGREES * 1.5)
-		assert_lt(absf(s["lon"] - (-1.5549)), GateSpawner.MAX_OFFSET_DEGREES * 1.5)
+		assert_lt(absf(s["lat"] - anchor_lat), GateSpawner.MAX_OFFSET_DEGREES * 1.5)
+		assert_lt(absf(s["lon"] - anchor_lon), GateSpawner.MAX_OFFSET_DEGREES * 1.5)
 
 
 func test_spawn_lorestones_assigns_lore_index_within_snippet_bounds() -> void:
@@ -230,9 +241,18 @@ const LORESTONE_COUNT := 1
 ## pass, see the design spec's "Explicitly out of scope" section. Picked
 ## round-robin by a stone's lore_index, not randomly.
 const LORE_SNIPPETS := [
-	"The Ascendancy is not a system, not a god -- it is the pressure the world puts on those who refuse to stay ordinary.",
-	"Every family traces itself to a Gate that never closed. The families did not choose their colours; the colours chose them.",
-	"Before it was called the Nadir, it had no name at all -- because nothing had ever climbed far enough to need one.",
+	(
+		"The Ascendancy is not a system, not a god -- it is the pressure the world puts on "
+		+ "those who refuse to stay ordinary."
+	),
+	(
+		"Every family traces itself to a Gate that never closed. The families did not choose "
+		+ "their colours; the colours chose them."
+	),
+	(
+		"Before it was called the Nadir, it had no name at all -- because nothing had ever "
+		+ "climbed far enough to need one."
+	),
 	"Extraction is not domestication. What kneels in the CLAIM light remembers exactly what it was.",
 ]
 
@@ -275,8 +295,8 @@ static func _spawn_points(center_lat: float, center_lon: float, count: int, type
 ## regardless of exactly where in the cell they each are. Vector2(lon,
 ## lat), matching this project's Mercator-coordinate convention.
 static func _area_anchor(lat: float, lon: float) -> Vector2:
-	var cell_lat := floor(lat / Incursion.AREA_CELL_DEGREES)
-	var cell_lon := floor(lon / Incursion.AREA_CELL_DEGREES)
+	var cell_lat: float = floor(lat / Incursion.AREA_CELL_DEGREES)
+	var cell_lon: float = floor(lon / Incursion.AREA_CELL_DEGREES)
 	return Vector2(
 		(cell_lon + 0.5) * Incursion.AREA_CELL_DEGREES, (cell_lat + 0.5) * Incursion.AREA_CELL_DEGREES
 	)
@@ -285,6 +305,8 @@ static func _area_anchor(lat: float, lon: float) -> Vector2:
 static func _rand_offset(rng: RandomNumberGenerator) -> float:
 	return (rng.randf() - 0.5) * 2.0 * GateSpawner.MAX_OFFSET_DEGREES
 ```
+
+`_area_anchor()`'s two locals use explicit `: float =` rather than `:=` -- this project's Godot build treats `floor()`'s return here as ambiguously Variant-inferred under plain `:=` and raises a hard parse error ("Warning treated as error"), which cascades into breaking the whole script's compilation (every static func in the file becomes uncallable, surfacing as "Nonexistent function" everywhere else -- confusing to debug from that symptom alone, so noting the actual cause here). The explicit type annotation resolves it.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
