@@ -22,6 +22,9 @@ const GATE_RADIUS := 20.0  ## fallback draw_circle() radius, used only if
 ## ArtPaths.map_marker("gate") has no art yet (placeholder-first, §24).
 const GATE_MARKER_SIZE := 44.0  ## on-screen diameter for the real marker
 ## texture -- see PLAYER_MARKER_SIZE, same reasoning.
+const SANCTUARY_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
+const LORESTONE_MARKER_SIZE := 40.0  ## slightly smaller -- a discoverable
+## flavour POI, not as prominent as a Sanctuary's recurring daily stop.
 
 const RANK_COLORS := {
 	"E": Color.DIM_GRAY,
@@ -72,11 +75,19 @@ var _gate_texture: Texture2D = null  ## same fallback story as _player_texture.
 ## revealed on tap", not shown on the map) -- unlike the old per-rank
 ## RANK_COLORS circle, this doesn't vary by g["rank"] at all.
 
+var _sanctuaries: Array = []  ## Array[Dictionary]: {"id", "lat", "lon"} -- spawned
+## once at the first GPS fix, same as _gates (see show_position()).
+var _lorestones: Array = []  ## Array[Dictionary]: {"id", "lat", "lon", "lore_index"}.
+var _sanctuary_texture: Texture2D = null  ## same fallback story as _gate_texture.
+var _lorestone_texture: Texture2D = null
+
 
 func _ready() -> void:
 	_load_map_data()
 	_player_texture = ArtPaths.map_marker("player")
 	_gate_texture = ArtPaths.map_marker("gate")
+	_sanctuary_texture = ArtPaths.map_marker("sanctuary")
+	_lorestone_texture = ArtPaths.map_marker("lorestone")
 
 
 func _load_map_data() -> void:
@@ -172,6 +183,8 @@ func show_position(lat: float, lon: float, hunter_rank: String) -> void:
 			_gates = GateSpawner.spawn_gates(
 				lat, lon, hunter_rank, monsters, NORMAL_GATE_COUNT, rng
 			)
+		_sanctuaries = PoiSpawner.spawn_sanctuaries(lat, lon)
+		_lorestones = PoiSpawner.spawn_lorestones(lat, lon)
 	queue_redraw()
 
 
@@ -202,6 +215,42 @@ func remove_gate(index: int) -> void:
 		return
 	_gates.remove_at(index)
 	queue_redraw()
+
+
+## Index of the nearest Sanctuary within `radius_m` of the player's live
+## position, or -1 if none qualify. Used by the "Claim Sanctuary" button
+## (main.gd) -- pure lookup, doesn't itself check/apply the daily cooldown
+## (that's HunterState.claim_sanctuary()'s job).
+func nearest_sanctuary_index_in_range(player_lat: float, player_lon: float, radius_m: float) -> int:
+	return _nearest_in_range(_sanctuaries, player_lat, player_lon, radius_m)
+
+
+func nearest_lorestone_index_in_range(player_lat: float, player_lon: float, radius_m: float) -> int:
+	return _nearest_in_range(_lorestones, player_lat, player_lon, radius_m)
+
+
+func get_sanctuary(index: int) -> Dictionary:
+	if index < 0 or index >= _sanctuaries.size():
+		return {}
+	return _sanctuaries[index]
+
+
+func get_lorestone(index: int) -> Dictionary:
+	if index < 0 or index >= _lorestones.size():
+		return {}
+	return _lorestones[index]
+
+
+func _nearest_in_range(points: Array, player_lat: float, player_lon: float, radius_m: float) -> int:
+	var best_idx := -1
+	var best_dist := INF
+	for i in points.size():
+		var p: Dictionary = points[i]
+		var dist := MapGeometry.distance_metres(player_lat, player_lon, p["lat"], p["lon"])
+		if dist <= radius_m and dist < best_dist:
+			best_dist = dist
+			best_idx = i
+	return best_idx
 
 
 func _draw() -> void:
@@ -252,6 +301,30 @@ func _draw() -> void:
 				28,
 				Color.BLACK
 			)
+
+	for s: Dictionary in _sanctuaries:
+		var pos := _world_to_screen(_project(s["lat"], s["lon"]))
+		if _sanctuary_texture != null:
+			var size := SANCTUARY_MARKER_SIZE * marker_scale
+			draw_texture_rect(
+				_sanctuary_texture,
+				Rect2(pos - Vector2(size, size) / 2.0, Vector2(size, size)),
+				false
+			)
+		else:
+			draw_circle(pos, GATE_RADIUS * marker_scale, Color.LIGHT_GREEN)
+
+	for ls: Dictionary in _lorestones:
+		var pos := _world_to_screen(_project(ls["lat"], ls["lon"]))
+		if _lorestone_texture != null:
+			var size := LORESTONE_MARKER_SIZE * marker_scale
+			draw_texture_rect(
+				_lorestone_texture,
+				Rect2(pos - Vector2(size, size) / 2.0, Vector2(size, size)),
+				false
+			)
+		else:
+			draw_circle(pos, GATE_RADIUS * marker_scale * 0.8, Color.LIGHT_YELLOW)
 
 	var player_pos := _world_to_screen(_player_world_pos)
 	if _player_texture != null:
