@@ -18,9 +18,18 @@ const LORESTONE_COUNT := 1
 ## pass, see the design spec's "Explicitly out of scope" section. Picked
 ## round-robin by a stone's lore_index, not randomly.
 const LORE_SNIPPETS := [
-	"The Ascendancy is not a system, not a god -- it is the pressure the world puts on those who refuse to stay ordinary.",
-	"Every family traces itself to a Gate that never closed. The families did not choose their colours; the colours chose them.",
-	"Before it was called the Nadir, it had no name at all -- because nothing had ever climbed far enough to need one.",
+	(
+		"The Ascendancy is not a system, not a god -- it is the pressure the world puts on "
+		+ "those who refuse to stay ordinary."
+	),
+	(
+		"Every family traces itself to a Gate that never closed. The families did not choose "
+		+ "their colours; the colours chose them."
+	),
+	(
+		"Before it was called the Nadir, it had no name at all -- because nothing had ever "
+		+ "climbed far enough to need one."
+	),
 	"Extraction is not domestication. What kneels in the CLAIM light remembers exactly what it was.",
 ]
 
@@ -64,8 +73,8 @@ static func _spawn_points(
 ## regardless of exactly where in the cell they each are. Vector2(lon,
 ## lat), matching this project's Mercator-coordinate convention.
 static func _area_anchor(lat: float, lon: float) -> Vector2:
-	var cell_lat := floor(lat / Incursion.AREA_CELL_DEGREES)
-	var cell_lon := floor(lon / Incursion.AREA_CELL_DEGREES)
+	var cell_lat: float = floor(lat / Incursion.AREA_CELL_DEGREES)
+	var cell_lon: float = floor(lon / Incursion.AREA_CELL_DEGREES)
 	return Vector2(
 		(cell_lon + 0.5) * Incursion.AREA_CELL_DEGREES,
 		(cell_lat + 0.5) * Incursion.AREA_CELL_DEGREES

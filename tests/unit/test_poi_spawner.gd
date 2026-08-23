@@ -50,10 +50,21 @@ func test_spawn_sanctuaries_ids_are_unique_within_a_call() -> void:
 
 
 func test_spawn_sanctuaries_offsets_stay_within_gate_spawner_bound() -> void:
-	var sanctuaries := PoiSpawner.spawn_sanctuaries(54.5235, -1.5549, 10)
+	# Offsets are measured from the CELL's own anchor (its fixed centroid),
+	# not from the raw input point -- the input can be anywhere within the
+	# cell, up to half a cell-width from that centroid, so bounding against
+	# the raw input directly would fail even for a correct implementation.
+	var lat := 54.5235
+	var lon := -1.5549
+	var cell_lat: float = floor(lat / Incursion.AREA_CELL_DEGREES)
+	var cell_lon: float = floor(lon / Incursion.AREA_CELL_DEGREES)
+	var anchor_lat := (cell_lat + 0.5) * Incursion.AREA_CELL_DEGREES
+	var anchor_lon := (cell_lon + 0.5) * Incursion.AREA_CELL_DEGREES
+
+	var sanctuaries := PoiSpawner.spawn_sanctuaries(lat, lon, 10)
 	for s: Dictionary in sanctuaries:
-		assert_lt(absf(s["lat"] - 54.5235), GateSpawner.MAX_OFFSET_DEGREES * 1.5)
-		assert_lt(absf(s["lon"] - (-1.5549)), GateSpawner.MAX_OFFSET_DEGREES * 1.5)
+		assert_lt(absf(s["lat"] - anchor_lat), GateSpawner.MAX_OFFSET_DEGREES * 1.5)
+		assert_lt(absf(s["lon"] - anchor_lon), GateSpawner.MAX_OFFSET_DEGREES * 1.5)
 
 
 func test_spawn_lorestones_assigns_lore_index_within_snippet_bounds() -> void:
