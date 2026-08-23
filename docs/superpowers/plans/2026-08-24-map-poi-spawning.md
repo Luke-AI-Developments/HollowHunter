@@ -85,15 +85,23 @@ static func mercator_to_lonlat(x: float, y: float) -> Vector2:
 	return Vector2(lon, lat)
 
 
-## Straight-line distance in metres between two lat/lon points, via the same
-## Web Mercator projection everything else in this file uses -- accurate
-## enough at the sub-kilometre scale every caller needs it for (Sanctuary/
-## Lore Stone/Stronghold proximity checks), and reuses lonlat_to_mercator()
-## rather than a separate haversine formula.
+## Great-circle distance in metres between two lat/lon points (haversine).
+## Deliberately NOT built on lonlat_to_mercator() -- Web Mercator's scale
+## factor is sec(latitude), so a Mercator-space distance is inflated by
+## ~72% at Darlington's ~54.5° latitude (191.8m computed for a true 111.3m
+## gap -- caught by the Task 1 implementer's own test run). That distortion
+## is invisible for on-screen rendering (a few pixels either way) but would
+## silently break every real-world proximity check this function feeds
+## (Sanctuary/Lore Stone/Stronghold's 50m radius), so this earns its own,
+## separate, standard formula instead of reusing the projection.
 static func distance_metres(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-	var a := lonlat_to_mercator(lon1, lat1)
-	var b := lonlat_to_mercator(lon2, lat2)
-	return a.distance_to(b)
+	var lat1_rad := deg_to_rad(lat1)
+	var lat2_rad := deg_to_rad(lat2)
+	var dlat := deg_to_rad(lat2 - lat1)
+	var dlon := deg_to_rad(lon2 - lon1)
+	var a := sin(dlat / 2.0) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2.0) ** 2
+	var c := 2.0 * atan2(sqrt(a), sqrt(1.0 - a))
+	return EARTH_RADIUS_M * c
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
