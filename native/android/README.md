@@ -167,7 +167,8 @@ cd android/build
 ./gradlew.bat assembleStandardDebug --rerun-tasks \
   -Pexport_version_min_sdk=26 -Pexport_version_target_sdk=34 \
   -Pexport_package_name=com.hollowhunter.app \
-  -Pexport_version_code=1 -Pexport_version_name=0.1.0
+  -Pexport_version_code=1 -Pexport_version_name=0.1.0 \
+  -Paddons_directory=../../addons/gps_health_bridge
 
 "$ANDROID_SDK/build-tools/34.0.0/apksigner.bat" sign \
   --ks "$APPDATA/Godot/keystores/debug.keystore" \
@@ -185,3 +186,13 @@ landscape orientation** every time, since it never re-patches the two
 debug/release manifest files. Until Godot's own export step is fixed to
 stop hardcoding those, the manual re-patch + direct-`gradlew`-build
 sequence above is required for a portrait build.
+
+**The `-Paddons_directory` flag above is required, not optional** -- this
+is the same "Checkpoint 2 gotcha #3" from earlier in this file
+(`fileTree(dir: addonsDirectory, ...)` isn't recursive), but it's easy to
+drop when copy-pasting just this command block in isolation. Without it,
+the app installs and launches fine but `Engine.has_singleton("GpsHealthBridge")`
+is false at runtime -- `adb logcat` shows `GodotPluginRegistry` catching a
+`ClassNotFoundException` for `GpsHealthBridgePlugin` during startup, easy to
+miss since it's logged as a warning, not a crash. Hit again and confirmed
+during the map-vector-render on-device verification (2026-08-23).
