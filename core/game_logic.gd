@@ -59,6 +59,20 @@ const GRADE_NAME := {
 # --- Essence per mass-converted shadow, by grade (§26/§17): real source numbers ---
 const ESSENCE_PER_CONVERTED_SHADOW := {"E": 1, "D": 2, "C": 4, "B": 8, "A": 15, "S": 30}
 
+# --- §19 map POIs: invented v0 -- the source gives the mechanics (proximity
+# required, "a daily bonus", "a one-time small reward") but no exact
+# amounts for any of them. ---
+const POI_PROXIMITY_RADIUS_M := 50.0  ## how close (metres) a player must be
+## to claim a Sanctuary, discover a Lore Stone, or collect/reassign at
+## their own Stronghold.
+const SANCTUARY_ESSENCE_REWARD := 30  ## roughly an E-rank gate's worth (see
+## ESSENCE_PER_GATE_RANK above) -- a daily bonus, not a grind replacement.
+const SANCTUARY_TICKET_REWARD := 1
+const SANCTUARY_CLAIM_COOLDOWN_S := 86400  ## 24h, not calendar-day-exact --
+## avoids timezone edge cases a "same calendar date" check would introduce.
+const LORESTONE_ESSENCE_REWARD := 15  ## smaller than Sanctuary's -- a
+## one-time flavour find, not a repeatable income source.
+
 # --- Essence granted scrapping an unwanted item, by rarity (§17b): invented v0
 # numbers, a doubling curve on its own base (not reusing ESSENCE_PER_CONVERTED_SHADOW's
 # numbers), same "don't let two Essence sinks read as directly comparable"
