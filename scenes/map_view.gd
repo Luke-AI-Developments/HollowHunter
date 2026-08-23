@@ -5,10 +5,11 @@ extends Node2D
 ## extract (content/map_data/*.bin -- see tools/map_extract/fetch_and_convert.py)
 ## once at _ready(), draws it in the game's dark palette (colors/widths from
 ## core/map_geometry.gd), with the live GPS position (player, drawn centred at
-## this node's local origin) and rank-matched gates layered on top. Pan (drag)
-## and pinch-zoom are manual offsets on top of that same coordinate space --
-## see _world_to_screen(). All positions -- roads, water, gates, player --
-## share one Mercator-relative-to-origin metre space (_project()), so nothing
+## this node's local origin) and rank-matched gates layered on top. The view
+## is locked to the live GPS position -- no drag-to-pan; pinch-zoom is the
+## only manual control, layered on the same coordinate space (see
+## _world_to_screen()). All positions -- roads, water, gates, player -- share
+## one Mercator-relative-to-origin metre space (_project()), so nothing
 ## drifts out of alignment between them.
 
 const PLAYER_RADIUS := 14.0
@@ -51,15 +52,10 @@ var _origin_y: float = 0.0  ## every live GPS/gate lat-lon must subtract this sa
 var _player_world_pos: Vector2 = Vector2.ZERO  ## set by show_position() via _project()
 
 var _zoom_px_per_m: float = DEFAULT_ZOOM_PX_PER_M
-var _pan_offset: Vector2 = Vector2.ZERO  ## world metres, added to the player's own
-## world position to get the point currently at screen-centre -- manual dragging
-## adjusts this; it is NOT reset by a new GPS fix (see show_position()).
-var _drag_touch_index: int = -1
-var _drag_last_screen_pos: Vector2 = Vector2.ZERO
-var _pinch_touch_indices: Array = []  ## up to 2 active touch indices, for pinch
+var _active_touches: Dictionary = {}  ## touch index -> Vector2 screen position,
+## for pinch-zoom only -- the view stays locked to the player's live GPS
+## position, so there's no pan offset to track alongside this.
 var _pinch_last_distance: float = -1.0
-var _pinch_pos_a: Vector2 = Vector2.ZERO
-var _pinch_pos_b: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -118,10 +114,11 @@ func _project(lat: float, lon: float) -> Vector2:
 
 
 ## World metres (relative to the extract's origin) -> local draw-space
-## pixels. Centred on wherever the player currently is, offset by any
-## manual pan, then scaled by the current zoom.
+## pixels. Always centred on wherever the player currently is (the view is
+## locked to the live GPS position -- no drag-to-pan), scaled by the
+## current zoom.
 func _world_to_screen(world_pos: Vector2) -> Vector2:
-	var relative := world_pos - _player_world_pos - _pan_offset
+	var relative := world_pos - _player_world_pos
 	# Y-axis flip matches the existing gate/player marker convention: world-
 	# space Y increases northward, screen-space Y increases downward.
 	return Vector2(relative.x, -relative.y) * _zoom_px_per_m
@@ -240,13 +237,13 @@ func _draw() -> void:
 
 ## Water first (so roads draw on top of it, not the reverse), then roads by
 ## class, culled to the visible area and detail-tiered by zoom. Every world
-## position routes through _world_to_screen(), so pan/zoom apply uniformly
-## to roads, water, and markers alike.
+## position routes through _world_to_screen(), so zoom applies uniformly to
+## roads, water, and markers alike.
 func _draw_map_geometry() -> void:
 	# MapView is a bare Node2D -- it has no fill of its own, so without this
 	# the map shows whatever sits behind it in the scene tree instead of the
 	# §19b dark basemap. Screen-space, not world-space: the same flat color
-	# everywhere, so it doesn't need to move with pan/zoom, just to be big
+	# everywhere, so it doesn't need to move with the view, just to be big
 	# enough to cover any device screen regardless of where MapView sits.
 	draw_rect(Rect2(Vector2(-2000, -2000), Vector2(4000, 4000)), MapGeometry.BACKGROUND_COLOR)
 
@@ -255,9 +252,8 @@ func _draw_map_geometry() -> void:
 	## roughly ~1000px wide in the final layout, so 1200 world-space
 	## px-equivalent of margin comfortably covers it at any zoom without this
 	## function needing to know its exact on-screen rect.
-	var view_center := _player_world_pos + _pan_offset
 	var visible_rect := Rect2(
-		view_center - Vector2(half_extent_m, half_extent_m),
+		_player_world_pos - Vector2(half_extent_m, half_extent_m),
 		Vector2(half_extent_m, half_extent_m) * 2.0
 	)
 	var use_simplified := _zoom_px_per_m < LOW_ZOOM_THRESHOLD
@@ -287,12 +283,10 @@ func _draw_map_geometry() -> void:
 			)
 
 
-## `InputEventScreenDrag` only carries the position of the ONE finger that
-## moved, per event -- Godot has no "give me both current touch positions"
-## query API -- so both pinch fingers' last-known positions have to be
-## tracked explicitly (_pinch_pos_a/_pinch_pos_b above), seeded the moment
-## the second finger lands rather than left to be filled in by whichever
-## finger happens to drag first.
+## The view is locked to the live GPS position (no drag-to-pan), so the
+## only gesture this handles is a two-finger pinch. Single-finger touches/
+## drags are tracked in _active_touches so a second finger landing can be
+## recognized, but never move the view on their own.
 func _unhandled_input(event: InputEvent) -> void:
 	if not _has_fix:
 		return
@@ -300,44 +294,31 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch_event := event as InputEventScreenTouch
 		if touch_event.pressed:
-			if _drag_touch_index == -1 and _pinch_touch_indices.is_empty():
-				_drag_touch_index = touch_event.index
-				_drag_last_screen_pos = touch_event.position
-			elif _drag_touch_index != -1 and touch_event.index != _drag_touch_index:
-				# A second finger landed -- switch from drag to pinch, and seed
-				# both positions/the starting distance right now so the first
-				# subsequent drag event has something correct to compare against.
-				_pinch_touch_indices = [_drag_touch_index, touch_event.index]
-				_pinch_pos_a = _drag_last_screen_pos
-				_pinch_pos_b = touch_event.position
-				_pinch_last_distance = _pinch_pos_a.distance_to(_pinch_pos_b)
-				_drag_touch_index = -1
+			_active_touches[touch_event.index] = touch_event.position
+			if _active_touches.size() == 2:
+				_pinch_last_distance = _pinch_distance()
 		else:
-			if touch_event.index == _drag_touch_index:
-				_drag_touch_index = -1
-			_pinch_touch_indices.erase(touch_event.index)
-			if _pinch_touch_indices.size() < 2:
-				_pinch_last_distance = -1.0
+			_active_touches.erase(touch_event.index)
+			_pinch_last_distance = -1.0
 		return
 
 	if event is InputEventScreenDrag:
 		var drag_event := event as InputEventScreenDrag
-		if drag_event.index == _drag_touch_index:
-			var delta_screen := drag_event.position - _drag_last_screen_pos
-			_drag_last_screen_pos = drag_event.position
-			_pan_offset -= Vector2(delta_screen.x, -delta_screen.y) / _zoom_px_per_m
-			queue_redraw()
-		elif drag_event.index in _pinch_touch_indices:
-			if drag_event.index == _pinch_touch_indices[0]:
-				_pinch_pos_a = drag_event.position
-			else:
-				_pinch_pos_b = drag_event.position
+		if not _active_touches.has(drag_event.index):
+			return
+		_active_touches[drag_event.index] = drag_event.position
+		if _active_touches.size() == 2:
 			_update_pinch_zoom()
 			queue_redraw()
 
 
+func _pinch_distance() -> float:
+	var positions: Array = _active_touches.values()
+	return (positions[0] as Vector2).distance_to(positions[1])
+
+
 func _update_pinch_zoom() -> void:
-	var distance := _pinch_pos_a.distance_to(_pinch_pos_b)
+	var distance := _pinch_distance()
 	if _pinch_last_distance > 0.0 and distance > 0.0:
 		_zoom_px_per_m = clamp(
 			_zoom_px_per_m * (distance / _pinch_last_distance), MIN_ZOOM_PX_PER_M, MAX_ZOOM_PX_PER_M
