@@ -30,6 +30,10 @@ func test_lonlat_to_mercator_longitude_scales_linearly() -> void:
 	assert_almost_eq(b.x, a.x * 2.0, 1.0)
 
 
+func test_background_color_is_the_locked_near_black() -> void:
+	assert_eq(MapGeometry.BACKGROUND_COLOR, Color(0x05 / 255.0, 0x0b / 255.0, 0x12 / 255.0))
+
+
 func test_road_color_matches_class() -> void:
 	assert_eq(
 		MapGeometry.road_color(MapGeometry.CLASS_MAJOR_ROAD),

@@ -243,6 +243,13 @@ func _draw() -> void:
 ## position routes through _world_to_screen(), so pan/zoom apply uniformly
 ## to roads, water, and markers alike.
 func _draw_map_geometry() -> void:
+	# MapView is a bare Node2D -- it has no fill of its own, so without this
+	# the map shows whatever sits behind it in the scene tree instead of the
+	# §19b dark basemap. Screen-space, not world-space: the same flat color
+	# everywhere, so it doesn't need to move with pan/zoom, just to be big
+	# enough to cover any device screen regardless of where MapView sits.
+	draw_rect(Rect2(Vector2(-2000, -2000), Vector2(4000, 4000)), MapGeometry.BACKGROUND_COLOR)
+
 	var half_extent_m := 1200.0 / _zoom_px_per_m  ## generous margin either side
 	## of the node's local draw area -- MapView's own screen footprint is
 	## roughly ~1000px wide in the final layout, so 1200 world-space

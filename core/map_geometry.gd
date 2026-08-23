@@ -18,6 +18,13 @@ const CLASS_PATH := 2
 const CLASS_WATER_LINE := 3
 const CLASS_WATER_AREA := 4
 
+## §19b: near-black, matching this project's already-locked §9b background.
+## scenes/map_view.gd draws this explicitly as its first _draw() call --
+## MapView is a bare Node2D with no inherent fill, so without this the map
+## would show whatever panel happens to sit behind it instead of the
+## intended dark basemap.
+const BACKGROUND_COLOR := Color(0x05 / 255.0, 0x0b / 255.0, 0x12 / 255.0)
+
 
 ## Same formula as the Python conversion script -- must stay in sync.
 static func lonlat_to_mercator(lon: float, lat: float) -> Vector2:
