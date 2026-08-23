@@ -119,7 +119,7 @@ theme_override_font_sizes/font_size = 28
 text = "Waiting for location..."
 
 [node name="MapView" type="Node2D" parent="GameUI"]
-position = Vector2(540, 870)
+position = Vector2(540, 1265)
 script = ExtResource("2")
 
 [node name="EnterGateButton" type="Button" parent="GameUI"]

@@ -18,7 +18,10 @@ const PLAYER_MARKER_SIZE := 48.0  ## on-screen diameter for the real marker
 ## texture, before the zoom-scale clamp below -- bigger than PLAYER_RADIUS's
 ## 28px circle since the real icon has fine detail (an arrow/compass shape)
 ## that needs more room to read than a flat dot did.
-const GATE_RADIUS := 20.0
+const GATE_RADIUS := 20.0  ## fallback draw_circle() radius, used only if
+## ArtPaths.map_marker("gate") has no art yet (placeholder-first, §24).
+const GATE_MARKER_SIZE := 44.0  ## on-screen diameter for the real marker
+## texture -- see PLAYER_MARKER_SIZE, same reasoning.
 
 const RANK_COLORS := {
 	"E": Color.DIM_GRAY,
@@ -64,11 +67,16 @@ var _pinch_last_distance: float = -1.0
 
 var _player_texture: Texture2D = null  ## null until real art exists for it
 ## (ArtPaths.map_marker) -- _draw() falls back to the old placeholder circle.
+var _gate_texture: Texture2D = null  ## same fallback story as _player_texture.
+## One universal marker for every gate regardless of rank (§19: "rank is
+## revealed on tap", not shown on the map) -- unlike the old per-rank
+## RANK_COLORS circle, this doesn't vary by g["rank"] at all.
 
 
 func _ready() -> void:
 	_load_map_data()
 	_player_texture = ArtPaths.map_marker("player")
+	_gate_texture = ArtPaths.map_marker("gate")
 
 
 func _load_map_data() -> void:
@@ -227,17 +235,23 @@ func _draw() -> void:
 	var marker_scale: float = clamp(_zoom_px_per_m / DEFAULT_ZOOM_PX_PER_M, 0.6, 1.4)
 	for g: Dictionary in _gates:
 		var pos := _world_to_screen(_project(g["lat"], g["lon"]))
-		var color: Color = RANK_COLORS.get(g["rank"], Color.WHITE)
-		draw_circle(pos, GATE_RADIUS * marker_scale, color)
-		draw_string(
-			ThemeDB.fallback_font,
-			pos + Vector2(-8, 8) * marker_scale,
-			g["rank"],
-			HORIZONTAL_ALIGNMENT_CENTER,
-			-1,
-			28,
-			Color.BLACK
-		)
+		if _gate_texture != null:
+			var size := GATE_MARKER_SIZE * marker_scale
+			draw_texture_rect(
+				_gate_texture, Rect2(pos - Vector2(size, size) / 2.0, Vector2(size, size)), false
+			)
+		else:
+			var color: Color = RANK_COLORS.get(g["rank"], Color.WHITE)
+			draw_circle(pos, GATE_RADIUS * marker_scale, color)
+			draw_string(
+				ThemeDB.fallback_font,
+				pos + Vector2(-8, 8) * marker_scale,
+				g["rank"],
+				HORIZONTAL_ALIGNMENT_CENTER,
+				-1,
+				28,
+				Color.BLACK
+			)
 
 	var player_pos := _world_to_screen(_player_world_pos)
 	if _player_texture != null:
