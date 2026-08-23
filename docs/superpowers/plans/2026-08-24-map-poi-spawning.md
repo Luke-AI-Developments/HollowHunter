@@ -536,7 +536,11 @@ func place_stronghold(lat: float, lon: float) -> void:
 func claim_sanctuary(
 	now_unix: int, essence_reward: int, ticket_reward: int, cooldown_seconds: int
 ) -> bool:
-	if now_unix - last_sanctuary_claim_at < cooldown_seconds:
+	# last_sanctuary_claim_at == 0 means "never claimed" (its own doc comment) --
+	# exempt from the cooldown check, or a fresh hunter's very first claim
+	# would incorrectly fail (0 always looks like "within cooldown" of any
+	# small now_unix). Caught by the Task 4 implementer's own test run.
+	if last_sanctuary_claim_at != 0 and now_unix - last_sanctuary_claim_at < cooldown_seconds:
 		return false
 	essence += essence_reward
 	gate_tickets += ticket_reward
