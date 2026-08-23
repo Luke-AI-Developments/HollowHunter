@@ -12,7 +12,12 @@ extends Node2D
 ## one Mercator-relative-to-origin metre space (_project()), so nothing
 ## drifts out of alignment between them.
 
-const PLAYER_RADIUS := 14.0
+const PLAYER_RADIUS := 14.0  ## fallback draw_circle() radius, used only if
+## ArtPaths.map_marker("player") has no art yet (placeholder-first, §24).
+const PLAYER_MARKER_SIZE := 48.0  ## on-screen diameter for the real marker
+## texture, before the zoom-scale clamp below -- bigger than PLAYER_RADIUS's
+## 28px circle since the real icon has fine detail (an arrow/compass shape)
+## that needs more room to read than a flat dot did.
 const GATE_RADIUS := 20.0
 
 const RANK_COLORS := {
@@ -57,9 +62,13 @@ var _active_touches: Dictionary = {}  ## touch index -> Vector2 screen position,
 ## position, so there's no pan offset to track alongside this.
 var _pinch_last_distance: float = -1.0
 
+var _player_texture: Texture2D = null  ## null until real art exists for it
+## (ArtPaths.map_marker) -- _draw() falls back to the old placeholder circle.
+
 
 func _ready() -> void:
 	_load_map_data()
+	_player_texture = ArtPaths.map_marker("player")
 
 
 func _load_map_data() -> void:
@@ -230,9 +239,16 @@ func _draw() -> void:
 			Color.BLACK
 		)
 
-	draw_circle(
-		_world_to_screen(_player_world_pos), PLAYER_RADIUS * marker_scale, Color.DEEP_SKY_BLUE
-	)
+	var player_pos := _world_to_screen(_player_world_pos)
+	if _player_texture != null:
+		var size := PLAYER_MARKER_SIZE * marker_scale
+		draw_texture_rect(
+			_player_texture,
+			Rect2(player_pos - Vector2(size, size) / 2.0, Vector2(size, size)),
+			false
+		)
+	else:
+		draw_circle(player_pos, PLAYER_RADIUS * marker_scale, Color.DEEP_SKY_BLUE)
 
 
 ## Water first (so roads draw on top of it, not the reverse), then roads by

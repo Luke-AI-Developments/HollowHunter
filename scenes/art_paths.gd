@@ -32,3 +32,11 @@ static func set_showcase(set_id: String) -> Texture2D:
 static func preset_portrait(preset_id: String, stage: String) -> Texture2D:
 	var path := "res://art/presets/preset_hunter_%s_%s.webp" % [preset_id, stage]
 	return load(path) if ResourceLoader.exists(path) else null
+
+
+## §19: map markers (player position, gate, sanctuary, stronghold,
+## incursion, nadir, lorestone) -- marker_id is the bare name, e.g.
+## "player" for art/map/map_player.webp.
+static func map_marker(marker_id: String) -> Texture2D:
+	var path := "res://art/map/map_%s.webp" % marker_id
+	return load(path) if ResourceLoader.exists(path) else null
