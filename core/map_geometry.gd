@@ -33,6 +33,34 @@ static func lonlat_to_mercator(lon: float, lat: float) -> Vector2:
 	return Vector2(x, y)
 
 
+## Inverse of lonlat_to_mercator() -- must stay in sync with it the same way
+## the Python conversion script's own formula does. Returns Vector2(lon,
+## lat), matching this file's Vector2(x=lon, y=lat) convention throughout.
+static func mercator_to_lonlat(x: float, y: float) -> Vector2:
+	var lon := rad_to_deg(x / EARTH_RADIUS_M)
+	var lat := rad_to_deg(2.0 * atan(exp(y / EARTH_RADIUS_M)) - PI / 2.0)
+	return Vector2(lon, lat)
+
+
+## Great-circle distance in metres between two lat/lon points (haversine).
+## Deliberately NOT built on lonlat_to_mercator() -- Web Mercator's scale
+## factor is sec(latitude), so a Mercator-space distance is inflated by
+## ~72% at Darlington's ~54.5° latitude (191.8m computed for a true 111.3m
+## gap -- caught by the Task 1 implementer's own test run). That distortion
+## is invisible for on-screen rendering (a few pixels either way) but would
+## silently break every real-world proximity check this function feeds
+## (Sanctuary/Lore Stone/Stronghold's 50m radius), so this earns its own,
+## separate, standard formula instead of reusing the projection.
+static func distance_metres(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+	var lat1_rad := deg_to_rad(lat1)
+	var lat2_rad := deg_to_rad(lat2)
+	var dlat := deg_to_rad(lat2 - lat1)
+	var dlon := deg_to_rad(lon2 - lon1)
+	var a := sin(dlat / 2.0) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2.0) ** 2
+	var c := 2.0 * atan2(sqrt(a), sqrt(1.0 - a))
+	return EARTH_RADIUS_M * c
+
+
 ## §19b palette, converted to hex once here rather than duplicated at
 ## every call site.
 static func road_color(class_id: int) -> Color:

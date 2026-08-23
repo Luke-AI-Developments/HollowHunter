@@ -108,3 +108,34 @@ func test_rect_intersects_disjoint() -> void:
 	var a := Rect2(Vector2(0, 0), Vector2(10, 10))
 	var b := Rect2(Vector2(100, 100), Vector2(10, 10))
 	assert_false(MapGeometry.rect_intersects(a, b))
+
+
+func test_distance_metres_at_same_point_is_zero() -> void:
+	var d := MapGeometry.distance_metres(54.5235, -1.5549, 54.5235, -1.5549)
+	assert_almost_eq(d, 0.0, 0.01)
+
+
+func test_distance_metres_known_short_distance() -> void:
+	# Two points ~0.001 degrees of latitude apart (~111m at any longitude,
+	# since 1 degree of latitude is always ~111,320m regardless of position).
+	var d := MapGeometry.distance_metres(54.5235, -1.5549, 54.5245, -1.5549)
+	assert_almost_eq(d, 111.3, 2.0)
+
+
+func test_distance_metres_is_symmetric() -> void:
+	var a_to_b := MapGeometry.distance_metres(54.5235, -1.5549, 54.53, -1.56)
+	var b_to_a := MapGeometry.distance_metres(54.53, -1.56, 54.5235, -1.5549)
+	assert_almost_eq(a_to_b, b_to_a, 0.01)
+
+
+func test_mercator_to_lonlat_round_trips_with_lonlat_to_mercator() -> void:
+	var merc := MapGeometry.lonlat_to_mercator(-1.5549, 54.5235)
+	var back := MapGeometry.mercator_to_lonlat(merc.x, merc.y)
+	assert_almost_eq(back.x, -1.5549, 0.0001)
+	assert_almost_eq(back.y, 54.5235, 0.0001)
+
+
+func test_mercator_to_lonlat_at_origin() -> void:
+	var result := MapGeometry.mercator_to_lonlat(0.0, 0.0)
+	assert_almost_eq(result.x, 0.0, 0.0001)
+	assert_almost_eq(result.y, 0.0, 0.0001)
