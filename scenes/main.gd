@@ -64,6 +64,8 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var place_stronghold_button: Button = $GameUI/StrongholdPanel/PlaceStrongholdButton
 @onready var confirm_stronghold_button: Button = $GameUI/ConfirmStrongholdButton
 @onready var cancel_stronghold_button: Button = $GameUI/CancelStrongholdButton
+@onready var claim_sanctuary_button: Button = $GameUI/ClaimSanctuaryButton
+@onready var lorestone_button: Button = $GameUI/LoreStoneButton
 @onready var character_button: Button = $GameUI/NavScroll/NavRow/CharacterButton
 @onready var character_view: CharacterView = $GameUI/CharacterPanel
 @onready var use_ticket_button: Button = $GameUI/NavScroll/NavRow/UseTicketButton
@@ -265,6 +267,8 @@ func _setup_gear_panels() -> void:
 		place_stronghold_button.pressed.connect(_on_place_stronghold_pressed)
 		confirm_stronghold_button.pressed.connect(_on_confirm_stronghold_pressed)
 		cancel_stronghold_button.pressed.connect(_on_cancel_stronghold_pressed)
+		claim_sanctuary_button.pressed.connect(_on_claim_sanctuary_pressed)
+		lorestone_button.pressed.connect(_on_lorestone_pressed)
 		character_button.pressed.connect(_on_character_button_pressed)
 		character_view.state_changed.connect(_on_state_changed)
 		character_view.trial_result.connect(_on_character_trial_result)
@@ -673,6 +677,59 @@ func _on_cancel_stronghold_pressed() -> void:
 	map_view.end_stronghold_placement()
 	confirm_stronghold_button.visible = false
 	cancel_stronghold_button.visible = false
+
+
+## Same always-visible / message-on-press convention as
+## _on_enter_gate_pressed() -- no per-frame enable/disable bookkeeping.
+func _on_claim_sanctuary_pressed() -> void:
+	if not _has_location:
+		label.text += "\n\nNo GPS fix yet"
+		return
+	var idx := map_view.nearest_sanctuary_index_in_range(
+		_last_lat, _last_lon, GameLogic.POI_PROXIMITY_RADIUS_M
+	)
+	if idx < 0:
+		label.text += "\n\nNo Sanctuary nearby"
+		return
+	var claimed := state.claim_sanctuary(
+		Time.get_unix_time_from_system(),
+		GameLogic.SANCTUARY_ESSENCE_REWARD,
+		GameLogic.SANCTUARY_TICKET_REWARD,
+		GameLogic.SANCTUARY_CLAIM_COOLDOWN_S
+	)
+	if not claimed:
+		label.text += "\n\nAlready claimed today"
+		return
+	SaveService.save(state)
+	_refresh_label()
+	label.text += (
+		"\n\nSanctuary claimed: +%d Essence, +%d Gate Ticket"
+		% [GameLogic.SANCTUARY_ESSENCE_REWARD, GameLogic.SANCTUARY_TICKET_REWARD]
+	)
+
+
+func _on_lorestone_pressed() -> void:
+	if not _has_location:
+		label.text += "\n\nNo GPS fix yet"
+		return
+	var idx := map_view.nearest_lorestone_index_in_range(
+		_last_lat, _last_lon, GameLogic.POI_PROXIMITY_RADIUS_M
+	)
+	if idx < 0:
+		label.text += "\n\nNo Lore Stone nearby"
+		return
+	var stone := map_view.get_lorestone(idx)
+	var discovered := state.discover_lorestone(stone["id"], GameLogic.LORESTONE_ESSENCE_REWARD)
+	if not discovered:
+		label.text += "\n\nAlready discovered"
+		return
+	SaveService.save(state)
+	_refresh_label()
+	var lore_index: int = stone["lore_index"]
+	label.text += (
+		"\n\n%s\n(+%d Essence)"
+		% [PoiSpawner.LORE_SNIPPETS[lore_index], GameLogic.LORESTONE_ESSENCE_REWARD]
+	)
 
 
 func _on_shop_button_pressed() -> void:

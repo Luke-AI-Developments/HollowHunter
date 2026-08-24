@@ -130,21 +130,37 @@ offset_bottom = 270.0
 theme_override_font_sizes/font_size = 24
 text = "Enter Nearest Gate"
 
-[node name="ConfirmStrongholdButton" type="Button" parent="GameUI"]
-visible = false
+[node name="ClaimSanctuaryButton" type="Button" parent="GameUI"]
 offset_left = 40.0
 offset_top = 280.0
 offset_right = 340.0
 offset_bottom = 330.0
+theme_override_font_sizes/font_size = 20
+text = "Claim Sanctuary"
+
+[node name="LoreStoneButton" type="Button" parent="GameUI"]
+offset_left = 360.0
+offset_top = 280.0
+offset_right = 660.0
+offset_bottom = 330.0
+theme_override_font_sizes/font_size = 20
+text = "Lore Stone"
+
+[node name="ConfirmStrongholdButton" type="Button" parent="GameUI"]
+visible = false
+offset_left = 40.0
+offset_top = 340.0
+offset_right = 340.0
+offset_bottom = 390.0
 theme_override_font_sizes/font_size = 20
 text = "Confirm Location"
 
 [node name="CancelStrongholdButton" type="Button" parent="GameUI"]
 visible = false
 offset_left = 360.0
-offset_top = 280.0
+offset_top = 340.0
 offset_right = 560.0
-offset_bottom = 330.0
+offset_bottom = 390.0
 theme_override_font_sizes/font_size = 20
 text = "Cancel"
 
