@@ -130,6 +130,24 @@ offset_bottom = 270.0
 theme_override_font_sizes/font_size = 24
 text = "Enter Nearest Gate"
 
+[node name="ConfirmStrongholdButton" type="Button" parent="GameUI"]
+visible = false
+offset_left = 40.0
+offset_top = 280.0
+offset_right = 340.0
+offset_bottom = 330.0
+theme_override_font_sizes/font_size = 20
+text = "Confirm Location"
+
+[node name="CancelStrongholdButton" type="Button" parent="GameUI"]
+visible = false
+offset_left = 360.0
+offset_top = 280.0
+offset_right = 560.0
+offset_bottom = 330.0
+theme_override_font_sizes/font_size = 20
+text = "Cancel"
+
 [node name="NavScroll" type="ScrollContainer" parent="GameUI"]
 offset_left = 0.0
 offset_top = 2260.0
@@ -942,6 +960,14 @@ offset_right = 700.0
 offset_bottom = 140.0
 theme_override_font_sizes/font_size = 20
 text = "Upgrade Stronghold"
+
+[node name="PlaceStrongholdButton" type="Button" parent="GameUI/StrongholdPanel"]
+offset_left = 720.0
+offset_top = 90.0
+offset_right = 1000.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Place Stronghold"
 
 [node name="InfoLabel" type="Label" parent="GameUI/StrongholdPanel"]
 offset_left = 40.0

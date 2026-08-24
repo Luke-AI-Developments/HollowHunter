@@ -11,6 +11,9 @@ signal state_changed
 signal collected(message: String)
 
 var _state: HunterState
+var _player_lat: float = 0.0  ## fed in from main.gd's GPS callback -- used only
+var _player_lon: float = 0.0  ## by the Collect/Assign/Unassign proximity gate below.
+var _has_player_position: bool = false
 
 @onready var info_label: Label = $InfoLabel
 @onready var facility_labels: Dictionary = {
@@ -39,6 +42,18 @@ func _ready() -> void:
 ## new-game bootstrap paths) -- state isn't ready at _ready().
 func bind(state: HunterState) -> void:
 	_state = state
+
+
+## Called from main.gd's _on_location_update() every GPS fix -- this panel
+## needs the player's live position for the Collect/reassign proximity
+## gate (§22: "collect resources and reassign shadows when you're near
+## your Stronghold... remote viewing is fine, hands-on management happens
+## on-site" -- viewing/refresh/upgrades stay unrestricted, only those two
+## actions are gated).
+func update_position(lat: float, lon: float) -> void:
+	_player_lat = lat
+	_player_lon = lon
+	_has_player_position = true
 
 
 func open() -> void:
@@ -88,10 +103,22 @@ func _node_prefix(facility_id: String) -> String:
 	return ""
 
 
+func _is_near_stronghold() -> bool:
+	if not _state.stronghold_placed or not _has_player_position:
+		return false
+	var dist := MapGeometry.distance_metres(
+		_player_lat, _player_lon, _state.stronghold_lat, _state.stronghold_lon
+	)
+	return dist <= GameLogic.POI_PROXIMITY_RADIUS_M
+
+
 ## Assigns the first owned shadow not already busy elsewhere. No picker UI
 ## for choosing a specific shadow -- same auto-pick convention as
 ## Equip Best/Fuse Duplicate elsewhere in this project.
 func _on_assign_pressed(facility_id: String) -> void:
+	if not _is_near_stronghold():
+		collected.emit("\n\nNot near your Stronghold")
+		return
 	for shadow: Dictionary in _state.army:
 		var shadow_id: String = shadow["instance_id"]
 		if not _state.is_shadow_assigned(shadow_id):
@@ -102,6 +129,9 @@ func _on_assign_pressed(facility_id: String) -> void:
 
 
 func _on_unassign_pressed(facility_id: String) -> void:
+	if not _is_near_stronghold():
+		collected.emit("\n\nNot near your Stronghold")
+		return
 	var assigned: Array = _state.stronghold_facilities[facility_id]["assigned"].duplicate()
 	for shadow_id in assigned:
 		_state.unassign_shadow(shadow_id)
@@ -126,6 +156,9 @@ func _on_upgrade_stronghold_pressed() -> void:
 ## Collects everything accrued since the last visit, banking Essence/
 ## tickets and applying Training Yard level-ups, then reports a summary.
 func _on_collect_pressed() -> void:
+	if not _is_near_stronghold():
+		collected.emit("\n\nNot near your Stronghold")
+		return
 	var result := _state.collect_stronghold(Time.get_unix_time_from_system())
 	SaveService.save(_state)
 	refresh()

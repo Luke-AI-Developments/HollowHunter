@@ -61,6 +61,9 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var nadir_take_on_button: Button = $GameUI/NadirPanel/TakeOnButton
 @onready var stronghold_button: Button = $GameUI/NavScroll/NavRow/StrongholdButton
 @onready var stronghold_view: StrongholdView = $GameUI/StrongholdPanel
+@onready var place_stronghold_button: Button = $GameUI/StrongholdPanel/PlaceStrongholdButton
+@onready var confirm_stronghold_button: Button = $GameUI/ConfirmStrongholdButton
+@onready var cancel_stronghold_button: Button = $GameUI/CancelStrongholdButton
 @onready var character_button: Button = $GameUI/NavScroll/NavRow/CharacterButton
 @onready var character_view: CharacterView = $GameUI/CharacterPanel
 @onready var use_ticket_button: Button = $GameUI/NavScroll/NavRow/UseTicketButton
@@ -224,6 +227,9 @@ func _start_game() -> void:
 	hunter_gear_view.bind(state, _equipment, inventory_view)
 	shadow_gear_view.bind(state, _equipment, _monsters, inventory_view)
 	stronghold_view.bind(state)
+	map_view.set_stronghold(state.stronghold_lat, state.stronghold_lon, state.stronghold_placed)
+	if state.stronghold_placed:
+		place_stronghold_button.text = "Move Stronghold"
 	character_view.bind(state, _equipment, _monsters)
 	leaderboard_view.bind(state, _equipment)
 	army_view.bind(state, _equipment, _monsters, shadow_gear_view)
@@ -256,6 +262,9 @@ func _setup_gear_panels() -> void:
 		stronghold_button.pressed.connect(func() -> void: stronghold_view.open())
 		stronghold_view.state_changed.connect(_on_state_changed)
 		stronghold_view.collected.connect(func(msg: String) -> void: label.text += msg)
+		place_stronghold_button.pressed.connect(_on_place_stronghold_pressed)
+		confirm_stronghold_button.pressed.connect(_on_confirm_stronghold_pressed)
+		cancel_stronghold_button.pressed.connect(_on_cancel_stronghold_pressed)
 		character_button.pressed.connect(_on_character_button_pressed)
 		character_view.state_changed.connect(_on_state_changed)
 		character_view.trial_result.connect(_on_character_trial_result)
@@ -290,6 +299,7 @@ func _on_location_update(lat: float, lon: float, _accuracy: float, _timestamp_ms
 	if state == null:
 		return  # subclass not chosen yet
 	map_view.show_position(lat, lon, state.hunter_rank)
+	stronghold_view.update_position(lat, lon)
 
 
 func _on_health_connect_available(available: bool) -> void:
@@ -638,6 +648,31 @@ func _on_use_ticket_pressed() -> void:
 		label.text += "\n\nTicket gate failed to spawn -- ticket refunded"
 		return
 	_start_gate_battle(gate, "\n\n[Ticket]")
+
+
+func _on_place_stronghold_pressed() -> void:
+	stronghold_view.visible = false
+	map_view.begin_stronghold_placement()
+	confirm_stronghold_button.visible = true
+	cancel_stronghold_button.visible = true
+
+
+func _on_confirm_stronghold_pressed() -> void:
+	if map_view.has_pending_stronghold_position():
+		var lonlat := map_view.pending_stronghold_position()
+		state.place_stronghold(lonlat.y, lonlat.x)
+		SaveService.save(state)
+		map_view.set_stronghold(state.stronghold_lat, state.stronghold_lon, true)
+		place_stronghold_button.text = "Move Stronghold"
+	map_view.end_stronghold_placement()
+	confirm_stronghold_button.visible = false
+	cancel_stronghold_button.visible = false
+
+
+func _on_cancel_stronghold_pressed() -> void:
+	map_view.end_stronghold_placement()
+	confirm_stronghold_button.visible = false
+	cancel_stronghold_button.visible = false
 
 
 func _on_shop_button_pressed() -> void:
