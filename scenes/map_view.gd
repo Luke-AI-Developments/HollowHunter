@@ -26,6 +26,9 @@ const SANCTUARY_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
 const LORESTONE_MARKER_SIZE := 40.0  ## slightly smaller -- a discoverable
 ## flavour POI, not as prominent as a Sanctuary's recurring daily stop.
 const STRONGHOLD_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
+const INCURSION_BADGE_SIZE := 32.0  ## fixed screen-space size -- this is a
+## HUD badge for an area-wide effect, not a world-space marker, so it
+## doesn't scale with marker_scale/zoom like the point markers above do.
 
 const RANK_COLORS := {
 	"E": Color.DIM_GRAY,
@@ -82,6 +85,7 @@ var _lorestones: Array = []  ## Array[Dictionary]: {"id", "lat", "lon", "lore_in
 var _sanctuary_texture: Texture2D = null  ## same fallback story as _gate_texture.
 var _lorestone_texture: Texture2D = null
 var _stronghold_texture: Texture2D = null
+var _incursion_texture: Texture2D = null
 
 var _stronghold_lat: float = 0.0  ## set via set_stronghold() -- MapView doesn't
 var _stronghold_lon: float = 0.0  ## read HunterState directly, main.gd feeds it in.
@@ -102,6 +106,7 @@ func _ready() -> void:
 	_sanctuary_texture = ArtPaths.map_marker("sanctuary")
 	_lorestone_texture = ArtPaths.map_marker("lorestone")
 	_stronghold_texture = ArtPaths.map_marker("stronghold")
+	_incursion_texture = ArtPaths.map_marker("incursion")
 
 
 func _load_map_data() -> void:
@@ -331,15 +336,31 @@ func _draw() -> void:
 		return
 
 	if _active_incursion_family != "":
-		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(-100, -60),
-			"⚡ Incursion: %s" % _active_incursion_family,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			24,
-			Color.ORANGE_RED
-		)
+		if _incursion_texture != null:
+			draw_texture_rect(
+				_incursion_texture,
+				Rect2(Vector2(-140, -90), Vector2(INCURSION_BADGE_SIZE, INCURSION_BADGE_SIZE)),
+				false
+			)
+			draw_string(
+				ThemeDB.fallback_font,
+				Vector2(-100, -60),
+				_active_incursion_family,
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				24,
+				Color.ORANGE_RED
+			)
+		else:
+			draw_string(
+				ThemeDB.fallback_font,
+				Vector2(-100, -60),
+				"⚡ Incursion: %s" % _active_incursion_family,
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				24,
+				Color.ORANGE_RED
+			)
 
 	_draw_map_geometry()
 
