@@ -25,6 +25,7 @@ const GATE_MARKER_SIZE := 44.0  ## on-screen diameter for the real marker
 const SANCTUARY_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
 const LORESTONE_MARKER_SIZE := 40.0  ## slightly smaller -- a discoverable
 ## flavour POI, not as prominent as a Sanctuary's recurring daily stop.
+const STRONGHOLD_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
 
 const RANK_COLORS := {
 	"E": Color.DIM_GRAY,
@@ -80,6 +81,18 @@ var _sanctuaries: Array = []  ## Array[Dictionary]: {"id", "lat", "lon"} -- spaw
 var _lorestones: Array = []  ## Array[Dictionary]: {"id", "lat", "lon", "lore_index"}.
 var _sanctuary_texture: Texture2D = null  ## same fallback story as _gate_texture.
 var _lorestone_texture: Texture2D = null
+var _stronghold_texture: Texture2D = null
+
+var _stronghold_lat: float = 0.0  ## set via set_stronghold() -- MapView doesn't
+var _stronghold_lon: float = 0.0  ## read HunterState directly, main.gd feeds it in.
+var _stronghold_placed: bool = false
+
+var _placement_mode: bool = false  ## true between begin_stronghold_placement()
+## and end_stronghold_placement() -- while true, a single-finger tap sets a
+## pending (not-yet-saved) location instead of doing nothing.
+var _pending_stronghold_lon: float = 0.0
+var _pending_stronghold_lat: float = 0.0
+var _has_pending_stronghold: bool = false
 
 
 func _ready() -> void:
@@ -88,6 +101,7 @@ func _ready() -> void:
 	_gate_texture = ArtPaths.map_marker("gate")
 	_sanctuary_texture = ArtPaths.map_marker("sanctuary")
 	_lorestone_texture = ArtPaths.map_marker("lorestone")
+	_stronghold_texture = ArtPaths.map_marker("stronghold")
 
 
 func _load_map_data() -> void:
@@ -150,6 +164,19 @@ func _world_to_screen(world_pos: Vector2) -> Vector2:
 	# Y-axis flip matches the existing gate/player marker convention: world-
 	# space Y increases northward, screen-space Y increases downward.
 	return Vector2(relative.x, -relative.y) * _zoom_px_per_m
+
+
+## Inverse of _project()+_world_to_screen() combined: a raw viewport touch
+## position -> the real-world lon/lat it corresponds to. Used only by the
+## Stronghold placement flow below -- every other position in this file
+## flows the opposite direction (lat/lon -> screen). Vector2(lon, lat),
+## matching this file's convention.
+func _screen_to_lonlat(screen_pos: Vector2) -> Vector2:
+	var local_pos := to_local(screen_pos)
+	var relative := Vector2(local_pos.x, -local_pos.y) / _zoom_px_per_m
+	var world_pos := _player_world_pos + relative
+	var merc := world_pos + Vector2(_origin_x, _origin_y)
+	return MapGeometry.mercator_to_lonlat(merc.x, merc.y)
 
 
 ## Gates are rolled once, from the first fix -- moving around doesn't
@@ -241,6 +268,44 @@ func get_lorestone(index: int) -> Dictionary:
 	return _lorestones[index]
 
 
+## Feeds the Stronghold's saved map location in from HunterState -- called
+## by main.gd once state is loaded/whenever it changes (place/relocate).
+## MapView itself never reads HunterState directly (matches how it already
+## receives the player's own position via show_position() rather than
+## reaching for state on its own).
+func set_stronghold(lat: float, lon: float, placed: bool) -> void:
+	_stronghold_lat = lat
+	_stronghold_lon = lon
+	_stronghold_placed = placed
+	queue_redraw()
+
+
+func begin_stronghold_placement() -> void:
+	_placement_mode = true
+	_has_pending_stronghold = false
+
+
+## Called by main.gd on BOTH Confirm and Cancel -- MapView doesn't care
+## which happened, only that placement mode is over. The Confirm handler
+## reads pending_stronghold_position() before calling this (this call
+## clears the pending value).
+func end_stronghold_placement() -> void:
+	_placement_mode = false
+	_has_pending_stronghold = false
+	queue_redraw()
+
+
+func has_pending_stronghold_position() -> bool:
+	return _has_pending_stronghold
+
+
+## Vector2(lon, lat) -- matches this file's Mercator-coordinate convention
+## (see _project()/_world_to_screen()). Only meaningful when
+## has_pending_stronghold_position() is true.
+func pending_stronghold_position() -> Vector2:
+	return Vector2(_pending_stronghold_lon, _pending_stronghold_lat)
+
+
 func _nearest_in_range(points: Array, player_lat: float, player_lon: float, radius_m: float) -> int:
 	var best_idx := -1
 	var best_dist := INF
@@ -326,6 +391,11 @@ func _draw() -> void:
 		else:
 			draw_circle(pos, GATE_RADIUS * marker_scale * 0.8, Color.LIGHT_YELLOW)
 
+	if _has_pending_stronghold:
+		_draw_stronghold_marker(_pending_stronghold_lat, _pending_stronghold_lon, marker_scale)
+	elif _stronghold_placed:
+		_draw_stronghold_marker(_stronghold_lat, _stronghold_lon, marker_scale)
+
 	var player_pos := _world_to_screen(_player_world_pos)
 	if _player_texture != null:
 		var size := PLAYER_MARKER_SIZE * marker_scale
@@ -386,6 +456,17 @@ func _draw_map_geometry() -> void:
 			)
 
 
+func _draw_stronghold_marker(lat: float, lon: float, marker_scale: float) -> void:
+	var pos := _world_to_screen(_project(lat, lon))
+	if _stronghold_texture != null:
+		var size := STRONGHOLD_MARKER_SIZE * marker_scale
+		draw_texture_rect(
+			_stronghold_texture, Rect2(pos - Vector2(size, size) / 2.0, Vector2(size, size)), false
+		)
+	else:
+		draw_circle(pos, GATE_RADIUS * marker_scale, Color.YELLOW)
+
+
 ## The view is locked to the live GPS position (no drag-to-pan), so the
 ## only gesture this handles is a two-finger pinch. Single-finger touches/
 ## drags are tracked in _active_touches so a second finger landing can be
@@ -400,6 +481,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_active_touches[touch_event.index] = touch_event.position
 			if _active_touches.size() == 2:
 				_pinch_last_distance = _pinch_distance()
+			elif _placement_mode and _active_touches.size() == 1:
+				var lonlat := _screen_to_lonlat(touch_event.position)
+				_pending_stronghold_lon = lonlat.x
+				_pending_stronghold_lat = lonlat.y
+				_has_pending_stronghold = true
+				queue_redraw()
 		else:
 			_active_touches.erase(touch_event.index)
 			_pinch_last_distance = -1.0
