@@ -45,7 +45,7 @@ static func spawn_lorestones(
 ) -> Array:
 	var points := _spawn_points(center_lat, center_lon, count, "lorestone")
 	for i in points.size():
-		points[i]["lore_index"] = i % LORE_SNIPPETS.size()
+		points[i]["lore_index"] = absi(hash(points[i]["id"])) % LORE_SNIPPETS.size()
 	return points
 
 

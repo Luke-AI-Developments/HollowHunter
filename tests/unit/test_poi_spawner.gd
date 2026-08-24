@@ -76,3 +76,12 @@ func test_spawn_lorestones_assigns_lore_index_within_snippet_bounds() -> void:
 
 func test_lore_snippets_has_at_least_four_entries() -> void:
 	assert_gte(PoiSpawner.LORE_SNIPPETS.size(), 4)
+
+
+func test_spawn_lorestones_lore_index_varies_across_distant_cells() -> void:
+	# Guards against the shipped count=1 bug where lore_index was derived from
+	# the index WITHIN one call's array (always 0 at count=1) instead of from
+	# something that actually varies between different Lore Stones.
+	var here := PoiSpawner.spawn_lorestones(54.5235, -1.5549)
+	var far_away := PoiSpawner.spawn_lorestones(-33.8688, 151.2093)  # Sydney
+	assert_ne(here[0]["lore_index"], far_away[0]["lore_index"])

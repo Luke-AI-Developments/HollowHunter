@@ -335,33 +335,6 @@ func _draw() -> void:
 		)
 		return
 
-	if _active_incursion_family != "":
-		if _incursion_texture != null:
-			draw_texture_rect(
-				_incursion_texture,
-				Rect2(Vector2(-140, -90), Vector2(INCURSION_BADGE_SIZE, INCURSION_BADGE_SIZE)),
-				false
-			)
-			draw_string(
-				ThemeDB.fallback_font,
-				Vector2(-100, -60),
-				_active_incursion_family,
-				HORIZONTAL_ALIGNMENT_LEFT,
-				-1,
-				24,
-				Color.ORANGE_RED
-			)
-		else:
-			draw_string(
-				ThemeDB.fallback_font,
-				Vector2(-100, -60),
-				"⚡ Incursion: %s" % _active_incursion_family,
-				HORIZONTAL_ALIGNMENT_LEFT,
-				-1,
-				24,
-				Color.ORANGE_RED
-			)
-
 	_draw_map_geometry()
 
 	# Marker sizes/text offset scale with zoom too, clamped so they stay
@@ -427,6 +400,36 @@ func _draw() -> void:
 		)
 	else:
 		draw_circle(player_pos, PLAYER_RADIUS * marker_scale, Color.DEEP_SKY_BLUE)
+
+	# HUD badge, not a world-space marker (§19/Phase 2) -- drawn topmost, after
+	# everything else, so nothing (least of all _draw_map_geometry()'s opaque
+	# background fill) can paint over it.
+	if _active_incursion_family != "":
+		if _incursion_texture != null:
+			draw_texture_rect(
+				_incursion_texture,
+				Rect2(Vector2(-140, -90), Vector2(INCURSION_BADGE_SIZE, INCURSION_BADGE_SIZE)),
+				false
+			)
+			draw_string(
+				ThemeDB.fallback_font,
+				Vector2(-100, -60),
+				_active_incursion_family,
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				24,
+				Color.ORANGE_RED
+			)
+		else:
+			draw_string(
+				ThemeDB.fallback_font,
+				Vector2(-100, -60),
+				"⚡ Incursion: %s" % _active_incursion_family,
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				24,
+				Color.ORANGE_RED
+			)
 
 
 ## Water first (so roads draw on top of it, not the reverse), then roads by
