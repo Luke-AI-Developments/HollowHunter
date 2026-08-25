@@ -60,8 +60,6 @@ const LOW_ZOOM_THRESHOLD := 1.0  ## px/m -- below this, draw each way's cached
 ## simplified_points tier instead of full-detail points (see _load_map_data()).
 ## Half of DEFAULT_ZOOM_PX_PER_M, i.e. "zoomed out to about half the default view".
 
-var _center_lat: float = 0.0
-var _center_lon: float = 0.0
 var _has_fix := false
 var _gates: Array = []
 var _active_incursion_family := ""  ## Phase 2/P9: "" if this area+week isn't under one (§19)
@@ -203,8 +201,6 @@ func _screen_to_lonlat(screen_pos: Vector2) -> Vector2:
 func show_position(lat: float, lon: float, hunter_rank: String) -> void:
 	_player_world_pos = _project(lat, lon)
 	if not _has_fix:
-		_center_lat = lat
-		_center_lon = lon
 		_has_fix = true
 		var monsters := Content.load_monsters()
 		var rng := RandomNumberGenerator.new()
@@ -229,20 +225,11 @@ func show_position(lat: float, lon: float, hunter_rank: String) -> void:
 	queue_redraw()
 
 
-func get_nearest_gate_index() -> int:
-	if _gates.is_empty():
-		return -1
-	var best_idx := 0
-	var best_dist_sq := INF
-	for i in _gates.size():
-		var g: Dictionary = _gates[i]
-		var dlat: float = g["lat"] - _center_lat
-		var dlon: float = g["lon"] - _center_lon
-		var dist_sq := dlat * dlat + dlon * dlon
-		if dist_sq < best_dist_sq:
-			best_dist_sq = dist_sq
-			best_idx = i
-	return best_idx
+## Shared by hit_test_marker() and _draw() so marker hit radii always match
+## what's actually drawn -- markers are a UI/game-logic element, not
+## terrain, so this is clamped rather than scaling directly with zoom.
+func _marker_scale() -> float:
+	return clamp(_zoom_px_per_m / DEFAULT_ZOOM_PX_PER_M, 0.6, 1.4)
 
 
 ## Screen_pos is in global/viewport coordinates (same convention as
@@ -255,7 +242,7 @@ func get_nearest_gate_index() -> int:
 ## tappable marker yet).
 func hit_test_marker(screen_pos: Vector2) -> Dictionary:
 	var local_pos := to_local(screen_pos)
-	var marker_scale: float = clamp(_zoom_px_per_m / DEFAULT_ZOOM_PX_PER_M, 0.6, 1.4)
+	var marker_scale := _marker_scale()
 	var candidates: Array = []
 
 	for i in _gates.size():
@@ -332,18 +319,6 @@ func remove_gate(index: int) -> void:
 	queue_redraw()
 
 
-## Index of the nearest Sanctuary within `radius_m` of the player's live
-## position, or -1 if none qualify. Used by the "Claim Sanctuary" button
-## (main.gd) -- pure lookup, doesn't itself check/apply the daily cooldown
-## (that's HunterState.claim_sanctuary()'s job).
-func nearest_sanctuary_index_in_range(player_lat: float, player_lon: float, radius_m: float) -> int:
-	return _nearest_in_range(_sanctuaries, player_lat, player_lon, radius_m)
-
-
-func nearest_lorestone_index_in_range(player_lat: float, player_lon: float, radius_m: float) -> int:
-	return _nearest_in_range(_lorestones, player_lat, player_lon, radius_m)
-
-
 func get_sanctuary(index: int) -> Dictionary:
 	if index < 0 or index >= _sanctuaries.size():
 		return {}
@@ -394,18 +369,6 @@ func pending_stronghold_position() -> Vector2:
 	return Vector2(_pending_stronghold_lon, _pending_stronghold_lat)
 
 
-func _nearest_in_range(points: Array, player_lat: float, player_lon: float, radius_m: float) -> int:
-	var best_idx := -1
-	var best_dist := INF
-	for i in points.size():
-		var p: Dictionary = points[i]
-		var dist := MapGeometry.distance_metres(player_lat, player_lon, p["lat"], p["lon"])
-		if dist <= radius_m and dist < best_dist:
-			best_dist = dist
-			best_idx = i
-	return best_idx
-
-
 func _draw() -> void:
 	if not _has_fix:
 		draw_string(
@@ -423,7 +386,7 @@ func _draw() -> void:
 	# Marker sizes/text offset scale with zoom too, clamped so they stay
 	# legible rather than literally scaling with the map like a mapped
 	# feature would -- markers are a UI/game-logic element, not terrain.
-	var marker_scale: float = clamp(_zoom_px_per_m / DEFAULT_ZOOM_PX_PER_M, 0.6, 1.4)
+	var marker_scale := _marker_scale()
 	for g: Dictionary in _gates:
 		var pos := _world_to_screen(_project(g["lat"], g["lon"]))
 		if _gate_texture != null:

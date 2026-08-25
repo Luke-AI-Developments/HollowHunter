@@ -10,7 +10,6 @@ extends Node2D
 ## time a subclass is chosen.
 
 const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
-const MARKER_CARD_SIZE := Vector2(240.0, 110.0)
 const MARKER_CARD_MARGIN := 12.0  ## keeps the card off the very edge of the screen
 const MARKER_CARD_GAP := 16.0  ## vertical gap between the card and the marker it points at
 
@@ -258,16 +257,28 @@ func _setup_gear_panels() -> void:
 		hunter_gear_button.pressed.connect(_on_hunter_gear_button_pressed)
 		hunter_gear_view.state_changed.connect(_on_state_changed)
 		shadow_gear_view.state_changed.connect(_on_state_changed)
-		army_button.pressed.connect(func() -> void: army_view.open())
+		army_button.pressed.connect(
+			func() -> void:
+				_hide_marker_card()
+				army_view.open()
+		)
 		army_view.state_changed.connect(_on_state_changed)
 		army_view.mass_convert_result.connect(func(msg: String) -> void: label.text += msg)
 		army_view.squad_full_message.connect(func(msg: String) -> void: label.text += msg)
-		inventory_button.pressed.connect(func() -> void: inventory_view.open())
+		inventory_button.pressed.connect(
+			func() -> void:
+				_hide_marker_card()
+				inventory_view.open()
+		)
 		inventory_view.state_changed.connect(_on_state_changed)
 		nadir_button.pressed.connect(_on_nadir_button_pressed)
 		$GameUI/NadirPanel/CloseButton.pressed.connect(_on_nadir_close_pressed)
 		nadir_take_on_button.pressed.connect(_on_nadir_take_on_pressed)
-		stronghold_button.pressed.connect(func() -> void: stronghold_view.open())
+		stronghold_button.pressed.connect(
+			func() -> void:
+				_hide_marker_card()
+				stronghold_view.open()
+		)
 		stronghold_view.state_changed.connect(_on_state_changed)
 		stronghold_view.collected.connect(func(msg: String) -> void: label.text += msg)
 		place_stronghold_button.pressed.connect(_on_place_stronghold_pressed)
@@ -282,7 +293,11 @@ func _setup_gear_panels() -> void:
 		shop_view.buy_ticket_bundle_requested.connect(_on_buy_ticket_bundle_requested)
 		shop_view.buy_essence_bundle_requested.connect(_on_buy_essence_bundle_requested)
 		shop_view.buy_cosmetic_requested.connect(_on_buy_cosmetic_requested)
-		leaderboard_button.pressed.connect(func() -> void: leaderboard_view.open())
+		leaderboard_button.pressed.connect(
+			func() -> void:
+				_hide_marker_card()
+				leaderboard_view.open()
+		)
 		gate_break_accept_button.pressed.connect(_on_gate_break_accept_pressed)
 		gate_break_dismiss_button.pressed.connect(_on_gate_break_dismiss_pressed)
 		gate_break_timer.timeout.connect(_maybe_offer_gate_break)
@@ -477,6 +492,7 @@ func _army_synergy_bonus(chosen: Array) -> float:
 ## can't just return a result string the way _resolve_gate() used to.
 ## `prefix`/`is_break` are only remembered to shape that later message.
 func _start_gate_battle(gate: Dictionary, prefix: String = "", is_break: bool = false) -> void:
+	_hide_marker_card()
 	_pending_battle_gate = gate
 	_pending_battle_prefix = prefix
 	_pending_battle_is_break = is_break
@@ -498,6 +514,7 @@ func _start_gate_battle(gate: Dictionary, prefix: String = "", is_break: bool = 
 ## invented placeholder name; boss floors reuse Nadir.boss_monster_id's
 ## real monster. Army Synergy applies here, unlike gates.
 func _start_nadir_battle() -> void:
+	_hide_marker_card()
 	var floor_n := state.nadir_current_floor()
 	_pending_nadir_floor = floor_n
 	_pending_nadir_is_boss = Nadir.is_boss_floor(floor_n)
@@ -578,34 +595,51 @@ func _on_battle_finished(won: bool) -> void:
 func _on_marker_tapped(info: Dictionary) -> void:
 	match info["type"]:
 		"gate":
-			marker_card.visible = false
+			_hide_marker_card()
 			_enter_gate(info["index"])
 		"sanctuary":
 			_show_sanctuary_card(info["index"], info["screen_pos"])
 		"lorestone":
 			_show_lorestone_card(info["index"], info["screen_pos"])
 		"stronghold":
-			marker_card.visible = false
+			_hide_marker_card()
 			stronghold_view.open()
 
 
 func _on_map_tapped_empty() -> void:
+	_hide_marker_card()
+
+
+## Clears MarkerCard's visibility and which POI it was showing (the latter
+## also guards _on_marker_card_action_pressed() against acting on a stale
+## POI). Called both on ordinary dismissal (tap elsewhere, action taken)
+## and before any other full-screen panel/popup opens, so MarkerCard can
+## never be left showing -- and its now-inert action button hittable --
+## underneath a later-opened panel (Godot picks input by tree order, not
+## z_index, so a later GameUI sibling always wins the touch).
+func _hide_marker_card() -> void:
 	marker_card.visible = false
+	_card_poi_type = ""
+	_card_poi_index = -1
 
 
 ## Positions MarkerCard above marker_screen_pos, clamped to stay fully
 ## on-screen -- flips below the marker instead when there isn't enough
-## room above it (near the top of the screen). 1080.0 is this project's
-## fixed viewport width (project.godot's window/size/viewport_width),
-## same hardcoded-pixel convention every other node in main.tscn already
-## uses -- there's no responsive layout system in this codebase.
+## room above it (near the top of the screen), and never low enough to
+## overlap NavScroll (offset_top = 2260.0 in main.tscn) at the bottom.
+## 1080.0 is this project's fixed viewport width (project.godot's
+## window/size/viewport_width), same hardcoded-pixel convention every
+## other node in main.tscn already uses -- there's no responsive layout
+## system in this codebase. marker_card.size (not a separate constant)
+## reads the panel's actual .tscn geometry, so resizing it in the editor
+## can't silently break this math.
 func _position_marker_card(marker_screen_pos: Vector2) -> void:
-	var pos := (
-		marker_screen_pos - Vector2(MARKER_CARD_SIZE.x / 2.0, MARKER_CARD_SIZE.y + MARKER_CARD_GAP)
-	)
+	var card_size := marker_card.size
+	var pos := marker_screen_pos - Vector2(card_size.x / 2.0, card_size.y + MARKER_CARD_GAP)
 	if pos.y < MARKER_CARD_MARGIN:
 		pos.y = marker_screen_pos.y + MARKER_CARD_GAP
-	pos.x = clamp(pos.x, MARKER_CARD_MARGIN, 1080.0 - MARKER_CARD_SIZE.x - MARKER_CARD_MARGIN)
+	pos.y = clamp(pos.y, MARKER_CARD_MARGIN, 2260.0 - card_size.y - MARKER_CARD_MARGIN)
+	pos.x = clamp(pos.x, MARKER_CARD_MARGIN, 1080.0 - card_size.x - MARKER_CARD_MARGIN)
 	marker_card.position = pos
 	marker_card.visible = true
 
@@ -699,6 +733,7 @@ func _maybe_offer_gate_break() -> void:
 					"⚠ Gate break!\nA %s gate ruptured nearby -- %s is loose.\nAnswer it?"
 					% [gate["rank"], gate["monster_name"]]
 				)
+				_hide_marker_card()
 				gate_break_panel.visible = true
 
 
@@ -770,8 +805,9 @@ func _on_cancel_stronghold_pressed() -> void:
 
 
 func _on_marker_card_action_pressed() -> void:
-	marker_card.visible = false
-	match _card_poi_type:
+	var poi_type := _card_poi_type
+	_hide_marker_card()
+	match poi_type:
 		"sanctuary":
 			_claim_sanctuary()
 		"lorestone":
@@ -812,6 +848,7 @@ func _discover_lorestone() -> void:
 
 
 func _on_shop_button_pressed() -> void:
+	_hide_marker_card()
 	shop_view.visible = true
 	_refresh_shop_view()
 
@@ -883,10 +920,12 @@ func _refresh_label() -> void:
 
 
 func _on_hunter_gear_button_pressed() -> void:
+	_hide_marker_card()
 	hunter_gear_view.open()
 
 
 func _on_nadir_button_pressed() -> void:
+	_hide_marker_card()
 	nadir_panel.visible = true
 	_refresh_nadir_panel()
 
@@ -979,6 +1018,7 @@ func _apply_nadir_battle_result(won: bool) -> void:
 
 
 func _on_character_button_pressed() -> void:
+	_hide_marker_card()
 	character_view.open(_steps, _workouts_json, _gps_status, _health_status)
 
 
