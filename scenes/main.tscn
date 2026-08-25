@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/map_view.gd" id="2"]
@@ -12,6 +12,8 @@
 [ext_resource type="Script" path="res://scenes/leaderboard_view.gd" id="10"]
 [ext_resource type="Script" path="res://scenes/army_view.gd" id="11"]
 [ext_resource type="Script" path="res://scenes/inventory_view.gd" id="12"]
+[ext_resource type="Script" path="res://scenes/system_toast.gd" id="13"]
+[ext_resource type="Texture2D" path="res://art/ui/ui_system_frame.webp" id="15"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -1200,6 +1202,39 @@ offset_right = 780.0
 offset_bottom = 1010.0
 theme_override_font_sizes/font_size = 24
 text = "Ignore"
+
+[node name="SystemToast" type="Control" parent="GameUI"]
+visible = false
+z_index = 1
+offset_left = 660.0
+offset_top = 210.0
+offset_right = 1040.0
+offset_bottom = 290.0
+script = ExtResource("13")
+
+[node name="Frame" type="NinePatchRect" parent="GameUI/SystemToast"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 380.0
+offset_bottom = 80.0
+texture = ExtResource("15")
+patch_margin_left = 64
+patch_margin_top = 64
+patch_margin_right = 64
+patch_margin_bottom = 64
+
+[node name="Label" type="Label" parent="GameUI/SystemToast/Frame"]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 364.0
+offset_bottom = 68.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1.0)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+text = ""
+
+[node name="FadeTimer" type="Timer" parent="GameUI/SystemToast"]
+one_shot = true
 
 [node name="BattlePanel" type="Node2D" parent="GameUI"]
 visible = false

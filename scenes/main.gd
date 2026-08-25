@@ -54,6 +54,7 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var map_view: MapView = $GameUI/MapView
 @onready var marker_card: Panel = $GameUI/MarkerCard
 @onready var marker_card_type_label: Label = $GameUI/MarkerCard/TypeLabel
+@onready var system_toast: SystemToast = $GameUI/SystemToast
 @onready var marker_card_subtitle_label: Label = $GameUI/MarkerCard/SubtitleLabel
 @onready var marker_card_action_button: Button = $GameUI/MarkerCard/ActionButton
 @onready var inventory_button: Button = $GameUI/NavScroll/NavRow/InventoryButton
@@ -124,7 +125,7 @@ func _ready() -> void:
 	if not Engine.has_singleton("GpsHealthBridge"):
 		_gps_status = "Bridge not found"
 		_health_status = "Bridge not found"
-		label.text += "\n\nGpsHealthBridge singleton not found"
+		system_toast.show_toast("GpsHealthBridge singleton not found")
 		return
 	bridge = Engine.get_singleton("GpsHealthBridge")
 
@@ -263,8 +264,12 @@ func _setup_gear_panels() -> void:
 				army_view.open()
 		)
 		army_view.state_changed.connect(_on_state_changed)
-		army_view.mass_convert_result.connect(func(msg: String) -> void: label.text += msg)
-		army_view.squad_full_message.connect(func(msg: String) -> void: label.text += msg)
+		army_view.mass_convert_result.connect(
+			func(msg: String) -> void: system_toast.show_toast(msg.lstrip("\n"))
+		)
+		army_view.squad_full_message.connect(
+			func(msg: String) -> void: system_toast.show_toast(msg.lstrip("\n"))
+		)
 		inventory_button.pressed.connect(
 			func() -> void:
 				_hide_marker_card()
@@ -312,7 +317,7 @@ func _on_location_permission_result(granted: bool) -> void:
 		bridge.startLocationUpdates()
 	else:
 		_gps_status = "Permission denied"
-		label.text += "\n\nGPS permission denied"
+		system_toast.show_toast("GPS permission denied")
 
 
 func _on_location_update(lat: float, lon: float, _accuracy: float, _timestamp_ms: int) -> void:
@@ -334,7 +339,7 @@ func _on_health_connect_available(available: bool) -> void:
 		bridge.requestHealthPermissions()
 	else:
 		_health_status = "Health Connect not available"
-		label.text += "\n\nHealth Connect not available"
+		system_toast.show_toast("Health Connect not available")
 
 
 func _on_health_permission_result(granted: bool) -> void:
@@ -344,7 +349,7 @@ func _on_health_permission_result(granted: bool) -> void:
 		bridge.readRecentWorkouts(24)
 	else:
 		_health_status = "Permission denied"
-		label.text += "\n\nHealth permission denied"
+		system_toast.show_toast("Health permission denied")
 
 
 func _on_steps_result(count: int) -> void:
@@ -404,7 +409,7 @@ func _maybe_apply_daily_exp() -> void:
 	if rest_bonus:
 		# Positive, non-comparative framing (§27) -- a welcome-back note,
 		# not a "you fell behind" one.
-		label.text += "\n\nWelcome back -- rest bonus applied to today's EXP!"
+		system_toast.show_toast("Welcome back -- rest bonus applied to today's EXP!")
 	if levels_gained > 0:
 		label.text += "\n\nLEVEL UP! (+%d)" % levels_gained
 	print(
@@ -758,10 +763,10 @@ func _on_gate_break_dismiss_pressed() -> void:
 ## ticket to spend or no GPS fix yet to place it at.
 func _on_use_ticket_pressed() -> void:
 	if not _has_location:
-		label.text += "\n\nNo GPS fix yet -- can't place a ticket gate"
+		system_toast.show_toast("No GPS fix yet -- can't place a ticket gate")
 		return
 	if not state.spend_gate_ticket():
-		label.text += "\n\nNo gate tickets"
+		system_toast.show_toast("No gate tickets")
 		return
 
 	var rng := RandomNumberGenerator.new()
@@ -774,7 +779,7 @@ func _on_use_ticket_pressed() -> void:
 		# happen with the real monsters.json, but refund rather than eat
 		# the ticket on a gate that can't exist.
 		state.gate_tickets += 1
-		label.text += "\n\nTicket gate failed to spawn -- ticket refunded"
+		system_toast.show_toast("Ticket gate failed to spawn -- ticket refunded")
 		return
 	_start_gate_battle(gate, "\n\n[Ticket]")
 
@@ -822,13 +827,15 @@ func _claim_sanctuary() -> void:
 		GameLogic.SANCTUARY_CLAIM_COOLDOWN_S
 	)
 	if not claimed:
-		label.text += "\n\nAlready claimed today"
+		system_toast.show_toast("Already claimed today")
 		return
 	SaveService.save(state)
 	_refresh_label()
-	label.text += (
-		"\n\nSanctuary claimed: +%d Essence, +%d Gate Ticket"
-		% [GameLogic.SANCTUARY_ESSENCE_REWARD, GameLogic.SANCTUARY_TICKET_REWARD]
+	system_toast.show_toast(
+		(
+			"Sanctuary claimed: +%d Essence, +%d Gate Ticket"
+			% [GameLogic.SANCTUARY_ESSENCE_REWARD, GameLogic.SANCTUARY_TICKET_REWARD]
+		)
 	)
 
 
@@ -836,7 +843,7 @@ func _discover_lorestone() -> void:
 	var stone := map_view.get_lorestone(_card_poi_index)
 	var discovered := state.discover_lorestone(stone["id"], GameLogic.LORESTONE_ESSENCE_REWARD)
 	if not discovered:
-		label.text += "\n\nAlready discovered"
+		system_toast.show_toast("Already discovered")
 		return
 	SaveService.save(state)
 	_refresh_label()
