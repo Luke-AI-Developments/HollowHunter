@@ -329,10 +329,23 @@ func _on_skip_pressed() -> void:
 	_show_results()
 
 
+## Hides everything the mid-battle layout used (enemy/party slots, turn
+## order, log) so result_label/close_button -- which occupy the same
+## screen space those did, not empty space of their own -- aren't drawn
+## over/under still-visible combat UI. Before this, close_button rendered
+## squeezed between two still-visible party slot buttons, easy to miss
+## entirely (found via on-device report: "no close button after winning
+## or losing a battle").
 func _show_results() -> void:
 	waiting_label.visible = false
 	for b in action_buttons:
 		b.visible = false
+	for slot in enemy_slots:
+		slot.visible = false
+	for slot in party_slots:
+		slot.visible = false
+	turn_order_label.visible = false
+	log_label.visible = false
 	result_label.visible = true
 	result_label.text = "VICTORY!" if _battle.won else "DEFEAT"
 	close_button.visible = true
