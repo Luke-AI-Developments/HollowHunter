@@ -563,10 +563,12 @@ func _on_battle_finished(won: bool) -> void:
 	var gate := _pending_battle_gate
 	var is_break := _pending_battle_is_break
 	var header := "VICTORY!" if won else "DEFEAT"
+	var prefix := _pending_battle_prefix.lstrip("\n")
 	var body := (
-		_pending_battle_prefix.lstrip("\n")
-		+ "%s gate (%s): %s" % [gate["rank"], gate["monster_name"], "CLEARED" if won else "LOST"]
+		"%s gate (%s): %s" % [gate["rank"], gate["monster_name"], "CLEARED" if won else "LOST"]
 	)
+	if not prefix.is_empty():
+		body = prefix + "\n" + body
 	_pending_battle_gate = {}
 	_pending_battle_prefix = ""
 	_pending_battle_is_break = false

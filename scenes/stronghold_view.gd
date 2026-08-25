@@ -3,9 +3,9 @@ extends Node2D
 ## The Stronghold panel (§22) as its own controller script -- see
 ## HunterGearView's doc comment for the split-out rationale. Self-
 ## contained: only touches state.stronghold_*/army, no cross-panel data
-## needed. `collected` carries the one-off summary message main.gd
-## appends to the shared main label -- the one thing this panel doesn't
-## have its own place to show.
+## needed. `collected` carries the one-off reward summary shown via
+## SystemPanel; `proximity_denied` (below) covers the "not near enough"
+## case shown via SystemToast instead.
 
 signal state_changed
 signal collected(message: String)
