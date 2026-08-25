@@ -55,6 +55,7 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var marker_card: Panel = $GameUI/MarkerCard
 @onready var marker_card_type_label: Label = $GameUI/MarkerCard/TypeLabel
 @onready var system_toast: SystemToast = $GameUI/SystemToast
+@onready var system_panel: SystemPanel = $GameUI/SystemPanel
 @onready var marker_card_subtitle_label: Label = $GameUI/MarkerCard/SubtitleLabel
 @onready var marker_card_action_button: Button = $GameUI/MarkerCard/ActionButton
 @onready var inventory_button: Button = $GameUI/NavScroll/NavRow/InventoryButton
@@ -285,7 +286,12 @@ func _setup_gear_panels() -> void:
 				stronghold_view.open()
 		)
 		stronghold_view.state_changed.connect(_on_state_changed)
-		stronghold_view.collected.connect(func(msg: String) -> void: label.text += msg)
+		stronghold_view.collected.connect(
+			func(msg: String) -> void: system_panel.show_panel("STRONGHOLD", msg.lstrip("\n"))
+		)
+		stronghold_view.proximity_denied.connect(
+			func() -> void: system_toast.show_toast("Not near your Stronghold")
+		)
 		place_stronghold_button.pressed.connect(_on_place_stronghold_pressed)
 		confirm_stronghold_button.pressed.connect(_on_confirm_stronghold_pressed)
 		cancel_stronghold_button.pressed.connect(_on_cancel_stronghold_pressed)
@@ -411,7 +417,7 @@ func _maybe_apply_daily_exp() -> void:
 		# not a "you fell behind" one.
 		system_toast.show_toast("Welcome back -- rest bonus applied to today's EXP!")
 	if levels_gained > 0:
-		label.text += "\n\nLEVEL UP! (+%d)" % levels_gained
+		system_panel.show_panel("LEVEL UP!", "+%d" % levels_gained)
 	print(
 		(
 			"PHASE1: steps=%d workouts=%s exp=%d levels_gained=%d"
@@ -848,9 +854,12 @@ func _discover_lorestone() -> void:
 	SaveService.save(state)
 	_refresh_label()
 	var lore_index: int = stone["lore_index"]
-	label.text += (
-		"\n\n%s\n(+%d Essence)"
-		% [PoiSpawner.LORE_SNIPPETS[lore_index], GameLogic.LORESTONE_ESSENCE_REWARD]
+	system_panel.show_panel(
+		"LORE STONE",
+		(
+			"%s\n(+%d Essence)"
+			% [PoiSpawner.LORE_SNIPPETS[lore_index], GameLogic.LORESTONE_ESSENCE_REWARD]
+		)
 	)
 
 
@@ -1041,4 +1050,4 @@ func _on_state_changed() -> void:
 
 func _on_character_trial_result(msg: String) -> void:
 	character_view.refresh(_steps, _workouts_json, _gps_status, _health_status)
-	label.text += msg
+	system_panel.show_panel("RANK TRIAL", msg.lstrip("\n"))

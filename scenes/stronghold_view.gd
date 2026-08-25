@@ -9,6 +9,7 @@ extends Node2D
 
 signal state_changed
 signal collected(message: String)
+signal proximity_denied
 
 var _state: HunterState
 var _player_lat: float = 0.0  ## fed in from main.gd's GPS callback -- used only
@@ -117,7 +118,7 @@ func _is_near_stronghold() -> bool:
 ## Equip Best/Fuse Duplicate elsewhere in this project.
 func _on_assign_pressed(facility_id: String) -> void:
 	if not _is_near_stronghold():
-		collected.emit("\n\nNot near your Stronghold")
+		proximity_denied.emit()
 		return
 	for shadow: Dictionary in _state.army:
 		var shadow_id: String = shadow["instance_id"]
@@ -130,7 +131,7 @@ func _on_assign_pressed(facility_id: String) -> void:
 
 func _on_unassign_pressed(facility_id: String) -> void:
 	if not _is_near_stronghold():
-		collected.emit("\n\nNot near your Stronghold")
+		proximity_denied.emit()
 		return
 	var assigned: Array = _state.stronghold_facilities[facility_id]["assigned"].duplicate()
 	for shadow_id in assigned:
@@ -157,7 +158,7 @@ func _on_upgrade_stronghold_pressed() -> void:
 ## tickets and applying Training Yard level-ups, then reports a summary.
 func _on_collect_pressed() -> void:
 	if not _is_near_stronghold():
-		collected.emit("\n\nNot near your Stronghold")
+		proximity_denied.emit()
 		return
 	var result := _state.collect_stronghold(Time.get_unix_time_from_system())
 	SaveService.save(_state)
