@@ -141,3 +141,24 @@ static func way_bounds(points: PackedVector2Array) -> Rect2:
 
 static func rect_intersects(a: Rect2, b: Rect2) -> bool:
 	return a.intersects(b)
+
+
+## Given a tap point and a list of candidate markers (each a Dictionary with
+## at least "screen_pos": Vector2 and "radius": float, plus whatever other
+## keys the caller wants carried through untouched -- e.g. "type"/"index"),
+## returns whichever candidate's screen_pos is closest to tap_pos among all
+## candidates within their OWN radius of it, or {} if none qualify. Ties
+## (exact equal distance) resolve to whichever candidate appears earlier in
+## the array. Used by scenes/map_view.gd's hit_test_marker() -- kept here,
+## not there, because "which marker did this tap land on" is a pure
+## geometric decision with no engine dependency, same reasoning as every
+## other function in this file.
+static func closest_marker_within_radius(tap_pos: Vector2, candidates: Array) -> Dictionary:
+	var best: Dictionary = {}
+	var best_dist := INF
+	for candidate: Dictionary in candidates:
+		var dist: float = tap_pos.distance_to(candidate["screen_pos"])
+		if dist <= candidate["radius"] and dist < best_dist:
+			best_dist = dist
+			best = candidate
+	return best

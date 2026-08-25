@@ -139,3 +139,48 @@ func test_mercator_to_lonlat_at_origin() -> void:
 	var result := MapGeometry.mercator_to_lonlat(0.0, 0.0)
 	assert_almost_eq(result.x, 0.0, 0.0001)
 	assert_almost_eq(result.y, 0.0, 0.0001)
+
+
+func test_closest_marker_within_radius_returns_only_candidate_when_within_range() -> void:
+	var candidates := [{"screen_pos": Vector2(100, 100), "radius": 30.0, "type": "gate"}]
+	var hit := MapGeometry.closest_marker_within_radius(Vector2(105, 100), candidates)
+	assert_eq(hit["type"], "gate")
+
+
+func test_closest_marker_within_radius_returns_empty_when_out_of_range() -> void:
+	var candidates := [{"screen_pos": Vector2(100, 100), "radius": 30.0, "type": "gate"}]
+	var hit := MapGeometry.closest_marker_within_radius(Vector2(200, 200), candidates)
+	assert_eq(hit, {})
+
+
+func test_closest_marker_within_radius_returns_empty_for_no_candidates() -> void:
+	var hit := MapGeometry.closest_marker_within_radius(Vector2(0, 0), [])
+	assert_eq(hit, {})
+
+
+func test_closest_marker_within_radius_picks_nearer_of_two_candidates() -> void:
+	var candidates := [
+		{"screen_pos": Vector2(100, 100), "radius": 50.0, "type": "a"},
+		{"screen_pos": Vector2(110, 100), "radius": 50.0, "type": "b"},
+	]
+	# tap at (102, 100): 2px from "a", 8px from "b" -- "a" is nearer.
+	var hit := MapGeometry.closest_marker_within_radius(Vector2(102, 100), candidates)
+	assert_eq(hit["type"], "a")
+
+
+func test_closest_marker_within_radius_ignores_candidate_outside_its_own_radius() -> void:
+	var candidates := [
+		# geometrically nearer to the tap (10px away) but outside its own 5px radius
+		{"screen_pos": Vector2(100, 100), "radius": 5.0, "type": "small"},
+		# farther away (40px) but within its own larger 60px radius
+		{"screen_pos": Vector2(150, 100), "radius": 60.0, "type": "large"},
+	]
+	var hit := MapGeometry.closest_marker_within_radius(Vector2(110, 100), candidates)
+	assert_eq(hit["type"], "large")
+
+
+func test_closest_marker_within_radius_preserves_extra_keys_on_winner() -> void:
+	var candidates := [{"screen_pos": Vector2(0, 0), "radius": 10.0, "type": "lorestone", "index": 7}]
+	var hit := MapGeometry.closest_marker_within_radius(Vector2(0, 0), candidates)
+	assert_eq(hit["type"], "lorestone")
+	assert_eq(hit["index"], 7)
