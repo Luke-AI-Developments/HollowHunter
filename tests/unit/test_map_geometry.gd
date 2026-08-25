@@ -180,7 +180,9 @@ func test_closest_marker_within_radius_ignores_candidate_outside_its_own_radius(
 
 
 func test_closest_marker_within_radius_preserves_extra_keys_on_winner() -> void:
-	var candidates := [{"screen_pos": Vector2(0, 0), "radius": 10.0, "type": "lorestone", "index": 7}]
+	var candidates := [
+		{"screen_pos": Vector2(0, 0), "radius": 10.0, "type": "lorestone", "index": 7}
+	]
 	var hit := MapGeometry.closest_marker_within_radius(Vector2(0, 0), candidates)
 	assert_eq(hit["type"], "lorestone")
 	assert_eq(hit["index"], 7)
