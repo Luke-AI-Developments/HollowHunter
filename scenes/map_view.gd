@@ -12,6 +12,12 @@ extends Node2D
 ## one Mercator-relative-to-origin metre space (_project()), so nothing
 ## drifts out of alignment between them.
 
+signal marker_tapped(info: Dictionary)  ## emitted by _unhandled_input() when a
+## plain single-finger tap (outside placement mode) lands on a marker --
+## info is a hit_test_marker() result, always non-empty when this fires.
+signal map_tapped_empty  ## emitted instead of marker_tapped when that same
+## tap doesn't land on anything -- main.gd uses this to dismiss MarkerCard.
+
 const PLAYER_RADIUS := 14.0  ## fallback draw_circle() radius, used only if
 ## ArtPaths.map_marker("player") has no art yet (placeholder-first, §24).
 const PLAYER_MARKER_SIZE := 48.0  ## on-screen diameter for the real marker
@@ -26,6 +32,9 @@ const SANCTUARY_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
 const LORESTONE_MARKER_SIZE := 40.0  ## slightly smaller -- a discoverable
 ## flavour POI, not as prominent as a Sanctuary's recurring daily stop.
 const STRONGHOLD_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
+const TAP_TOLERANCE_PX := 16.0  ## extra hit-test radius beyond a marker's own
+## on-screen half-size, so small icons stay comfortably tappable with a
+## finger without the icon itself needing to grow.
 const INCURSION_BADGE_SIZE := 32.0  ## fixed screen-space size -- this is a
 ## HUD badge for an area-wide effect, not a world-space marker, so it
 ## doesn't scale with marker_scale/zoom like the point markers above do.
@@ -234,6 +243,80 @@ func get_nearest_gate_index() -> int:
 			best_dist_sq = dist_sq
 			best_idx = i
 	return best_idx
+
+
+## Screen_pos is in global/viewport coordinates (same convention as
+## touch_event.position, passed straight through from _unhandled_input()).
+## Returns the closest marker within its own tap-tolerance radius across
+## all four marker types, or {} if nothing qualifies -- see
+## MapGeometry.closest_marker_within_radius() for the actual selection
+## rule. The stronghold is only a candidate when it's actually placed and
+## not mid-relocation (a pending placement-mode position isn't a real,
+## tappable marker yet).
+func hit_test_marker(screen_pos: Vector2) -> Dictionary:
+	var local_pos := to_local(screen_pos)
+	var marker_scale: float = clamp(_zoom_px_per_m / DEFAULT_ZOOM_PX_PER_M, 0.6, 1.4)
+	var candidates: Array = []
+
+	for i in _gates.size():
+		var g: Dictionary = _gates[i]
+		(
+			candidates
+			. append(
+				{
+					"type": "gate",
+					"index": i,
+					"screen_pos": _world_to_screen(_project(g["lat"], g["lon"])),
+					"radius": GATE_MARKER_SIZE * marker_scale / 2.0 + TAP_TOLERANCE_PX,
+				}
+			)
+		)
+
+	for i in _sanctuaries.size():
+		var s: Dictionary = _sanctuaries[i]
+		(
+			candidates
+			. append(
+				{
+					"type": "sanctuary",
+					"index": i,
+					"screen_pos": _world_to_screen(_project(s["lat"], s["lon"])),
+					"radius": SANCTUARY_MARKER_SIZE * marker_scale / 2.0 + TAP_TOLERANCE_PX,
+				}
+			)
+		)
+
+	for i in _lorestones.size():
+		var ls: Dictionary = _lorestones[i]
+		(
+			candidates
+			. append(
+				{
+					"type": "lorestone",
+					"index": i,
+					"screen_pos": _world_to_screen(_project(ls["lat"], ls["lon"])),
+					"radius": LORESTONE_MARKER_SIZE * marker_scale / 2.0 + TAP_TOLERANCE_PX,
+				}
+			)
+		)
+
+	if _stronghold_placed and not _has_pending_stronghold:
+		(
+			candidates
+			. append(
+				{
+					"type": "stronghold",
+					"index": -1,
+					"screen_pos": _world_to_screen(_project(_stronghold_lat, _stronghold_lon)),
+					"radius": STRONGHOLD_MARKER_SIZE * marker_scale / 2.0 + TAP_TOLERANCE_PX,
+				}
+			)
+		)
+
+	var hit := MapGeometry.closest_marker_within_radius(local_pos, candidates)
+	if hit.is_empty():
+		return {}
+	return {"type": hit["type"], "index": hit["index"], "screen_pos": to_global(hit["screen_pos"])}
 
 
 func get_gate(index: int) -> Dictionary:
@@ -511,6 +594,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				_pending_stronghold_lat = lonlat.y
 				_has_pending_stronghold = true
 				queue_redraw()
+			elif not _placement_mode and _active_touches.size() == 1:
+				var hit := hit_test_marker(touch_event.position)
+				if hit.is_empty():
+					map_tapped_empty.emit()
+				else:
+					marker_tapped.emit(hit)
 		else:
 			_active_touches.erase(touch_event.index)
 			_pinch_last_distance = -1.0
