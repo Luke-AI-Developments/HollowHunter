@@ -562,12 +562,10 @@ func _on_battle_finished(won: bool) -> void:
 
 	var gate := _pending_battle_gate
 	var is_break := _pending_battle_is_break
-	var msg := (
-		_pending_battle_prefix
-		+ (
-			"\n\n%s gate (%s): %s"
-			% [gate["rank"], gate["monster_name"], "CLEARED" if won else "LOST"]
-		)
+	var header := "VICTORY!" if won else "DEFEAT"
+	var body := (
+		_pending_battle_prefix.lstrip("\n")
+		+ "%s gate (%s): %s" % [gate["rank"], gate["monster_name"], "CLEARED" if won else "LOST"]
 	)
 	_pending_battle_gate = {}
 	_pending_battle_prefix = ""
@@ -578,29 +576,29 @@ func _on_battle_finished(won: bool) -> void:
 		rng.randomize()
 		if GameLogic.attempt_claim(gate.get("monster_extract_chance", 0.0), state.level, rng):
 			state.claim_shadow(gate["monster_id"], gate["rank"])
-			msg += "\nCLAIMED! %s joins your army." % gate["monster_name"]
+			body += "\nCLAIMED! %s joins your army." % gate["monster_name"]
 		else:
-			msg += "\nBoss escaped (claim failed)."
+			body += "\nBoss escaped (claim failed)."
 
 		var drop := Loot.roll_drop(gate["rank"], _equipment, rng)
 		if not drop.is_empty():
 			state.add_to_inventory(drop["id"])
-			msg += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
+			body += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
 		var essence_gain := GameLogic.essence_for_gate(gate["rank"])
 		if is_break:
 			essence_gain = GateBreak.bonus_essence(essence_gain)
 			state.gate_tickets += GateBreak.BREAK_TICKET_BONUS
-			msg += "\n+%d Gate Ticket(s) (Gate Break bonus)" % GateBreak.BREAK_TICKET_BONUS
+			body += "\n+%d Gate Ticket(s) (Gate Break bonus)" % GateBreak.BREAK_TICKET_BONUS
 		elif gate.get("incursion_bonus", false):
 			essence_gain = Incursion.bonus_essence(essence_gain)
-			msg += "\n(Incursion bonus)"
+			body += "\n(Incursion bonus)"
 		state.essence += essence_gain
-		msg += "\nEssence +%d" % essence_gain
+		body += "\nEssence +%d" % essence_gain
 
 	SaveService.save(state)
 	_refresh_label()
 	army_view.refresh_if_open()
-	label.text += msg
+	system_panel.show_panel(header, body)
 
 
 func _on_marker_tapped(info: Dictionary) -> void:
@@ -1003,7 +1001,8 @@ func _apply_nadir_battle_result(won: bool) -> void:
 	_pending_nadir_is_boss = false
 	_pending_nadir_boss_id = ""
 
-	var msg := "\n\nNadir Floor %d: %s" % [floor_n, "CLEARED" if won else "LOST"]
+	var header := "FLOOR CLEARED" if won else "FLOOR FAILED"
+	var body := "Nadir Floor %d" % floor_n
 	if won:
 		state.clear_nadir_floor(floor_n)
 		var rng := RandomNumberGenerator.new()
@@ -1011,26 +1010,26 @@ func _apply_nadir_battle_result(won: bool) -> void:
 
 		var essence_gain := Nadir.essence_for_floor(floor_n)
 		state.essence += essence_gain
-		msg += "\nEssence +%d" % essence_gain
+		body += "\nEssence +%d" % essence_gain
 
 		var drop := Loot.roll_drop(Nadir.rank_for_floor(floor_n), _equipment, rng)
 		if not drop.is_empty():
 			state.add_to_inventory(drop["id"])
-			msg += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
+			body += "\nLoot: %s (%s)" % [drop["name"], drop["rarity"]]
 
 		if is_boss and boss_id != "":
 			var boss_monster := Content.monster_by_id(_monsters, boss_id)
 			if GameLogic.attempt_claim(boss_monster.get("extract_chance", 0.0), state.level, rng):
 				state.claim_shadow(boss_id, Nadir.rank_for_floor(floor_n))
-				msg += "\nBOSS CLAIMED! %s joins your army." % boss_monster.get("name", "")
+				body += "\nBOSS CLAIMED! %s joins your army." % boss_monster.get("name", "")
 			else:
-				msg += "\nBoss floor -- boss escaped (claim failed)."
+				body += "\nBoss floor -- boss escaped (claim failed)."
 
 	SaveService.save(state)
 	_refresh_nadir_panel()
 	army_view.refresh_if_open()
 	_refresh_label()
-	label.text += msg
+	system_panel.show_panel(header, body)
 
 
 func _on_character_button_pressed() -> void:
