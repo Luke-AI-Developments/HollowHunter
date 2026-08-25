@@ -124,45 +124,53 @@ autowrap_mode = 3
 position = Vector2(540, 1265)
 script = ExtResource("2")
 
-[node name="EnterGateButton" type="Button" parent="GameUI"]
-offset_left = 40.0
-offset_top = 210.0
-offset_right = 340.0
-offset_bottom = 270.0
-theme_override_font_sizes/font_size = 24
-text = "Enter Nearest Gate"
+[node name="MarkerCard" type="Panel" parent="GameUI"]
+visible = false
+z_index = 1
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 240.0
+offset_bottom = 110.0
 
-[node name="ClaimSanctuaryButton" type="Button" parent="GameUI"]
-offset_left = 40.0
-offset_top = 280.0
-offset_right = 340.0
-offset_bottom = 330.0
-theme_override_font_sizes/font_size = 20
-text = "Claim Sanctuary"
+[node name="TypeLabel" type="Label" parent="GameUI/MarkerCard"]
+offset_left = 12.0
+offset_top = 8.0
+offset_right = 228.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 16
+text = "SANCTUARY"
 
-[node name="LoreStoneButton" type="Button" parent="GameUI"]
-offset_left = 360.0
-offset_top = 280.0
-offset_right = 660.0
-offset_bottom = 330.0
-theme_override_font_sizes/font_size = 20
-text = "Lore Stone"
+[node name="SubtitleLabel" type="Label" parent="GameUI/MarkerCard"]
+offset_left = 12.0
+offset_top = 36.0
+offset_right = 228.0
+offset_bottom = 62.0
+theme_override_font_sizes/font_size = 14
+text = "0m away"
+
+[node name="ActionButton" type="Button" parent="GameUI/MarkerCard"]
+offset_left = 12.0
+offset_top = 68.0
+offset_right = 228.0
+offset_bottom = 102.0
+theme_override_font_sizes/font_size = 18
+text = "Claim"
 
 [node name="ConfirmStrongholdButton" type="Button" parent="GameUI"]
 visible = false
 offset_left = 40.0
-offset_top = 340.0
+offset_top = 210.0
 offset_right = 340.0
-offset_bottom = 390.0
+offset_bottom = 270.0
 theme_override_font_sizes/font_size = 20
 text = "Confirm Location"
 
 [node name="CancelStrongholdButton" type="Button" parent="GameUI"]
 visible = false
 offset_left = 360.0
-offset_top = 340.0
+offset_top = 210.0
 offset_right = 560.0
-offset_bottom = 390.0
+offset_bottom = 270.0
 theme_override_font_sizes/font_size = 20
 text = "Cancel"
 

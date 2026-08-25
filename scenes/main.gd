@@ -10,6 +10,9 @@ extends Node2D
 ## time a subclass is chosen.
 
 const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
+const MARKER_CARD_SIZE := Vector2(240.0, 110.0)
+const MARKER_CARD_MARGIN := 12.0  ## keeps the card off the very edge of the screen
+const MARKER_CARD_GAP := 16.0  ## vertical gap between the card and the marker it points at
 
 var bridge: Object
 var state: HunterState
@@ -28,6 +31,9 @@ var _has_location := false  ## Phase 2/P7 step 1: whether _last_lat/_last_lon ar
 var _last_lat: float = 0.0  ## most recent GPS fix -- §8a's ticket gate spawns "where you are"
 var _last_lon: float = 0.0
 var _pending_break_gate: Dictionary = {}  ## Phase 2/P8: the offered-but-not-yet-answered §8b gate
+var _card_poi_type: String = ""  ## which POI MarkerCard's action button currently
+var _card_poi_index: int = -1  ## acts on -- set by _show_sanctuary_card()/
+## _show_lorestone_card(), read by _on_marker_card_action_pressed().
 var _moves: Array = []  ## Phase 3/step 5: content/moves.json, loaded once (§16 combat overhaul)
 var _shop_catalog: Dictionary = {}  ## Phase 4/shop step 1: content/shop.json, loaded once
 var _pending_battle_gate: Dictionary = {}  ## the gate a live BattlePanel fight will resolve into
@@ -47,7 +53,10 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var game_ui: Node2D = $GameUI
 @onready var label: Label = $GameUI/Label
 @onready var map_view: MapView = $GameUI/MapView
-@onready var enter_gate_button: Button = $GameUI/EnterGateButton
+@onready var marker_card: Panel = $GameUI/MarkerCard
+@onready var marker_card_type_label: Label = $GameUI/MarkerCard/TypeLabel
+@onready var marker_card_subtitle_label: Label = $GameUI/MarkerCard/SubtitleLabel
+@onready var marker_card_action_button: Button = $GameUI/MarkerCard/ActionButton
 @onready var inventory_button: Button = $GameUI/NavScroll/NavRow/InventoryButton
 @onready var inventory_view: InventoryView = $GameUI/InventoryPanel
 @onready var hunter_gear_button: Button = $GameUI/NavScroll/NavRow/HunterGearButton
@@ -64,8 +73,6 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var place_stronghold_button: Button = $GameUI/StrongholdPanel/PlaceStrongholdButton
 @onready var confirm_stronghold_button: Button = $GameUI/ConfirmStrongholdButton
 @onready var cancel_stronghold_button: Button = $GameUI/CancelStrongholdButton
-@onready var claim_sanctuary_button: Button = $GameUI/ClaimSanctuaryButton
-@onready var lorestone_button: Button = $GameUI/LoreStoneButton
 @onready var character_button: Button = $GameUI/NavScroll/NavRow/CharacterButton
 @onready var character_view: CharacterView = $GameUI/CharacterPanel
 @onready var use_ticket_button: Button = $GameUI/NavScroll/NavRow/UseTicketButton
@@ -223,8 +230,6 @@ func _on_onboarding_continue_pressed() -> void:
 
 func _start_game() -> void:
 	_refresh_label()
-	if not enter_gate_button.pressed.is_connected(_on_enter_gate_pressed):
-		enter_gate_button.pressed.connect(_on_enter_gate_pressed)
 	inventory_view.bind(state, _equipment, _monsters)
 	hunter_gear_view.bind(state, _equipment, inventory_view)
 	shadow_gear_view.bind(state, _equipment, _monsters, inventory_view)
@@ -239,10 +244,11 @@ func _start_game() -> void:
 	_setup_gear_panels()
 
 
-## Wires every button once. Idempotency guard (mirrors enter_gate_button
-## above) -- _start_game() can run again (e.g. after picking a subclass)
-## without double-connecting. Per-panel row-building/button-wiring now
-## lives in each panel's own controller script (HunterGearView etc.) --
+## Wires every button once. Idempotency guard (checks
+## hunter_gear_button.pressed first) -- _start_game() can run again (e.g.
+## after picking a subclass) without double-connecting. Per-panel
+## row-building/button-wiring now lives in each panel's own controller
+## script (HunterGearView etc.) --
 ## this only wires the OPEN buttons and the cross-panel signals those
 ## controllers emit (state_changed for the shared HUD, plus the couple of
 ## one-off messages -- Stronghold's collect summary, a Trial result --
@@ -267,8 +273,6 @@ func _setup_gear_panels() -> void:
 		place_stronghold_button.pressed.connect(_on_place_stronghold_pressed)
 		confirm_stronghold_button.pressed.connect(_on_confirm_stronghold_pressed)
 		cancel_stronghold_button.pressed.connect(_on_cancel_stronghold_pressed)
-		claim_sanctuary_button.pressed.connect(_on_claim_sanctuary_pressed)
-		lorestone_button.pressed.connect(_on_lorestone_pressed)
 		character_button.pressed.connect(_on_character_button_pressed)
 		character_view.state_changed.connect(_on_state_changed)
 		character_view.trial_result.connect(_on_character_trial_result)
@@ -282,6 +286,9 @@ func _setup_gear_panels() -> void:
 		gate_break_accept_button.pressed.connect(_on_gate_break_accept_pressed)
 		gate_break_dismiss_button.pressed.connect(_on_gate_break_dismiss_pressed)
 		gate_break_timer.timeout.connect(_maybe_offer_gate_break)
+		map_view.marker_tapped.connect(_on_marker_tapped)
+		map_view.map_tapped_empty.connect(_on_map_tapped_empty)
+		marker_card_action_button.pressed.connect(_on_marker_card_action_pressed)
 
 
 func _on_location_permission_result(granted: bool) -> void:
@@ -568,14 +575,97 @@ func _on_battle_finished(won: bool) -> void:
 	label.text += msg
 
 
-func _on_enter_gate_pressed() -> void:
-	var idx := map_view.get_nearest_gate_index()
-	if idx < 0:
-		label.text += "\n\nNo gates nearby"
+func _on_marker_tapped(info: Dictionary) -> void:
+	match info["type"]:
+		"gate":
+			marker_card.visible = false
+			_enter_gate(info["index"])
+		"sanctuary":
+			_show_sanctuary_card(info["index"], info["screen_pos"])
+		"lorestone":
+			_show_lorestone_card(info["index"], info["screen_pos"])
+		"stronghold":
+			marker_card.visible = false
+			stronghold_view.open()
+
+
+func _on_map_tapped_empty() -> void:
+	marker_card.visible = false
+
+
+## Positions MarkerCard above marker_screen_pos, clamped to stay fully
+## on-screen -- flips below the marker instead when there isn't enough
+## room above it (near the top of the screen). 1080.0 is this project's
+## fixed viewport width (project.godot's window/size/viewport_width),
+## same hardcoded-pixel convention every other node in main.tscn already
+## uses -- there's no responsive layout system in this codebase.
+func _position_marker_card(marker_screen_pos: Vector2) -> void:
+	var pos := (
+		marker_screen_pos - Vector2(MARKER_CARD_SIZE.x / 2.0, MARKER_CARD_SIZE.y + MARKER_CARD_GAP)
+	)
+	if pos.y < MARKER_CARD_MARGIN:
+		pos.y = marker_screen_pos.y + MARKER_CARD_GAP
+	pos.x = clamp(pos.x, MARKER_CARD_MARGIN, 1080.0 - MARKER_CARD_SIZE.x - MARKER_CARD_MARGIN)
+	marker_card.position = pos
+	marker_card.visible = true
+
+
+func _enter_gate(index: int) -> void:
+	var gate := map_view.get_gate(index)
+	if gate.is_empty():
 		return
-	var gate := map_view.get_gate(idx)
-	map_view.remove_gate(idx)
+	map_view.remove_gate(index)
 	_start_gate_battle(gate)
+
+
+func _show_sanctuary_card(index: int, screen_pos: Vector2) -> void:
+	var poi := map_view.get_sanctuary(index)
+	var distance := MapGeometry.distance_metres(_last_lat, _last_lon, poi["lat"], poi["lon"])
+	var in_range := distance <= GameLogic.POI_PROXIMITY_RADIUS_M
+	var now := int(Time.get_unix_time_from_system())
+	var on_cooldown := (
+		state.last_sanctuary_claim_at != 0
+		and now - state.last_sanctuary_claim_at < GameLogic.SANCTUARY_CLAIM_COOLDOWN_S
+	)
+	_card_poi_type = "sanctuary"
+	_card_poi_index = index
+	marker_card_type_label.text = "SANCTUARY"
+	if not in_range:
+		marker_card_subtitle_label.text = "%dm away — too far" % int(distance)
+		marker_card_action_button.text = "Too far away"
+		marker_card_action_button.disabled = true
+	elif on_cooldown:
+		marker_card_subtitle_label.text = "%dm away" % int(distance)
+		marker_card_action_button.text = "Already claimed today"
+		marker_card_action_button.disabled = true
+	else:
+		marker_card_subtitle_label.text = "%dm away" % int(distance)
+		marker_card_action_button.text = "Claim"
+		marker_card_action_button.disabled = false
+	_position_marker_card(screen_pos)
+
+
+func _show_lorestone_card(index: int, screen_pos: Vector2) -> void:
+	var poi := map_view.get_lorestone(index)
+	var distance := MapGeometry.distance_metres(_last_lat, _last_lon, poi["lat"], poi["lon"])
+	var in_range := distance <= GameLogic.POI_PROXIMITY_RADIUS_M
+	var discovered: bool = state.discovered_lorestone_ids.has(poi["id"])
+	_card_poi_type = "lorestone"
+	_card_poi_index = index
+	marker_card_type_label.text = "LORE STONE"
+	if not in_range:
+		marker_card_subtitle_label.text = "%dm away — too far" % int(distance)
+		marker_card_action_button.text = "Too far away"
+		marker_card_action_button.disabled = true
+	elif discovered:
+		marker_card_subtitle_label.text = "%dm away" % int(distance)
+		marker_card_action_button.text = "Already discovered"
+		marker_card_action_button.disabled = true
+	else:
+		marker_card_subtitle_label.text = "%dm away" % int(distance)
+		marker_card_action_button.text = "Discover"
+		marker_card_action_button.disabled = false
+	_position_marker_card(screen_pos)
 
 
 ## Phase 2/P8: probabilistic Gate Break offer (§8b), checked on a timer
@@ -679,18 +769,16 @@ func _on_cancel_stronghold_pressed() -> void:
 	cancel_stronghold_button.visible = false
 
 
-## Same always-visible / message-on-press convention as
-## _on_enter_gate_pressed() -- no per-frame enable/disable bookkeeping.
-func _on_claim_sanctuary_pressed() -> void:
-	if not _has_location:
-		label.text += "\n\nNo GPS fix yet"
-		return
-	var idx := map_view.nearest_sanctuary_index_in_range(
-		_last_lat, _last_lon, GameLogic.POI_PROXIMITY_RADIUS_M
-	)
-	if idx < 0:
-		label.text += "\n\nNo Sanctuary nearby"
-		return
+func _on_marker_card_action_pressed() -> void:
+	marker_card.visible = false
+	match _card_poi_type:
+		"sanctuary":
+			_claim_sanctuary()
+		"lorestone":
+			_discover_lorestone()
+
+
+func _claim_sanctuary() -> void:
 	var claimed := state.claim_sanctuary(
 		Time.get_unix_time_from_system(),
 		GameLogic.SANCTUARY_ESSENCE_REWARD,
@@ -708,17 +796,8 @@ func _on_claim_sanctuary_pressed() -> void:
 	)
 
 
-func _on_lorestone_pressed() -> void:
-	if not _has_location:
-		label.text += "\n\nNo GPS fix yet"
-		return
-	var idx := map_view.nearest_lorestone_index_in_range(
-		_last_lat, _last_lon, GameLogic.POI_PROXIMITY_RADIUS_M
-	)
-	if idx < 0:
-		label.text += "\n\nNo Lore Stone nearby"
-		return
-	var stone := map_view.get_lorestone(idx)
+func _discover_lorestone() -> void:
+	var stone := map_view.get_lorestone(_card_poi_index)
 	var discovered := state.discover_lorestone(stone["id"], GameLogic.LORESTONE_ESSENCE_REWARD)
 	if not discovered:
 		label.text += "\n\nAlready discovered"
