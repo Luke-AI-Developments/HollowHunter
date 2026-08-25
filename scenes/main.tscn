@@ -113,6 +113,18 @@ text = "Support"
 [node name="GameUI" type="Node2D" parent="."]
 visible = false
 
+[node name="HudFrame" type="NinePatchRect" parent="GameUI"]
+z_index = 1
+offset_left = 20.0
+offset_top = 0.0
+offset_right = 1060.0
+offset_bottom = 210.0
+texture = ExtResource("15")
+patch_margin_left = 64
+patch_margin_top = 64
+patch_margin_right = 64
+patch_margin_bottom = 64
+
 [node name="Label" type="Label" parent="GameUI"]
 z_index = 1
 offset_left = 40.0
