@@ -1203,39 +1203,6 @@ offset_bottom = 1010.0
 theme_override_font_sizes/font_size = 24
 text = "Ignore"
 
-[node name="SystemToast" type="Control" parent="GameUI"]
-visible = false
-z_index = 1
-offset_left = 660.0
-offset_top = 210.0
-offset_right = 1040.0
-offset_bottom = 290.0
-script = ExtResource("13")
-
-[node name="Frame" type="NinePatchRect" parent="GameUI/SystemToast"]
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 380.0
-offset_bottom = 80.0
-texture = ExtResource("15")
-patch_margin_left = 64
-patch_margin_top = 64
-patch_margin_right = 64
-patch_margin_bottom = 64
-
-[node name="Label" type="Label" parent="GameUI/SystemToast/Frame"]
-offset_left = 16.0
-offset_top = 12.0
-offset_right = 364.0
-offset_bottom = 68.0
-theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1.0)
-theme_override_font_sizes/font_size = 18
-autowrap_mode = 3
-text = ""
-
-[node name="FadeTimer" type="Timer" parent="GameUI/SystemToast"]
-one_shot = true
-
 [node name="BattlePanel" type="Node2D" parent="GameUI"]
 visible = false
 script = ExtResource("3")
@@ -1425,4 +1392,37 @@ text = "Continue"
 
 [node name="AdvanceTimer" type="Timer" parent="GameUI/BattlePanel"]
 wait_time = 0.6
+one_shot = true
+
+[node name="SystemToast" type="Control" parent="GameUI"]
+visible = false
+z_index = 1
+offset_left = 660.0
+offset_top = 210.0
+offset_right = 1040.0
+offset_bottom = 290.0
+script = ExtResource("13")
+
+[node name="Frame" type="NinePatchRect" parent="GameUI/SystemToast"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 380.0
+offset_bottom = 80.0
+texture = ExtResource("15")
+patch_margin_left = 64
+patch_margin_top = 64
+patch_margin_right = 64
+patch_margin_bottom = 64
+
+[node name="Label" type="Label" parent="GameUI/SystemToast/Frame"]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 364.0
+offset_bottom = 68.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1.0)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+text = ""
+
+[node name="FadeTimer" type="Timer" parent="GameUI/SystemToast"]
 one_shot = true
