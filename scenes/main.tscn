@@ -1192,6 +1192,17 @@ offset_right = 1080.0
 offset_bottom = 2424.0
 color = Color(0.2, 0.02, 0.02, 0.95)
 
+[node name="Frame" type="NinePatchRect" parent="GameUI/GateBreakPanel"]
+offset_left = 20.0
+offset_top = 380.0
+offset_right = 1060.0
+offset_bottom = 1030.0
+texture = ExtResource("15")
+patch_margin_left = 64
+patch_margin_top = 64
+patch_margin_right = 64
+patch_margin_bottom = 64
+
 [node name="InfoLabel" type="Label" parent="GameUI/GateBreakPanel"]
 offset_left = 40.0
 offset_top = 400.0
