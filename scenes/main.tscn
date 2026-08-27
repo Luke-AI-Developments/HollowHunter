@@ -1462,6 +1462,7 @@ offset_bottom = 2424.0
 script = ExtResource("14")
 
 [node name="Bg" type="ColorRect" parent="GameUI/SystemPanel"]
+mouse_filter = 2
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
@@ -1469,6 +1470,7 @@ offset_bottom = 2424.0
 color = Color(0.05, 0.05, 0.05, 0.95)
 
 [node name="Frame" type="NinePatchRect" parent="GameUI/SystemPanel"]
+mouse_filter = 2
 offset_left = 140.0
 offset_top = 900.0
 offset_right = 940.0
@@ -1490,6 +1492,7 @@ horizontal_alignment = 1
 text = ""
 
 [node name="Divider" type="ColorRect" parent="GameUI/SystemPanel/Frame"]
+mouse_filter = 2
 offset_left = 40.0
 offset_top = 100.0
 offset_right = 760.0
