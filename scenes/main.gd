@@ -32,7 +32,9 @@ var _last_lon: float = 0.0
 var _pending_break_gate: Dictionary = {}  ## Phase 2/P8: the offered-but-not-yet-answered §8b gate
 var _card_poi_type: String = ""  ## which POI MarkerCard's action button currently
 var _card_poi_index: int = -1  ## acts on -- set by _show_sanctuary_card()/
-## _show_lorestone_card(), read by _on_marker_card_action_pressed().
+## _show_lorestone_card()/_show_gate_card(), read by _on_marker_card_action_pressed().
+var _card_gate: Dictionary = {}  ## the gate dict for a "gate"/"ticket_gate" card --
+## a ticket gate has no map index to re-fetch by, so the whole dict is stashed here.
 var _moves: Array = []  ## Phase 3/step 5: content/moves.json, loaded once (§16 combat overhaul)
 var _shop_catalog: Dictionary = {}  ## Phase 4/shop step 1: content/shop.json, loaded once
 var _pending_battle_gate: Dictionary = {}  ## the gate a live BattlePanel fight will resolve into
@@ -632,6 +634,7 @@ func _hide_marker_card() -> void:
 	marker_card.visible = false
 	_card_poi_type = ""
 	_card_poi_index = -1
+	_card_gate = {}
 
 
 ## Positions MarkerCard above marker_screen_pos, clamped to stay fully
@@ -817,12 +820,13 @@ func _on_cancel_stronghold_pressed() -> void:
 
 func _on_marker_card_action_pressed() -> void:
 	var poi_type := _card_poi_type
+	var poi_index := _card_poi_index
 	_hide_marker_card()
 	match poi_type:
 		"sanctuary":
 			_claim_sanctuary()
 		"lorestone":
-			_discover_lorestone()
+			_discover_lorestone(poi_index)
 
 
 func _claim_sanctuary() -> void:
@@ -845,8 +849,8 @@ func _claim_sanctuary() -> void:
 	)
 
 
-func _discover_lorestone() -> void:
-	var stone := map_view.get_lorestone(_card_poi_index)
+func _discover_lorestone(index: int) -> void:
+	var stone := map_view.get_lorestone(index)
 	var discovered := state.discover_lorestone(stone["id"], GameLogic.LORESTONE_ESSENCE_REWARD)
 	if not discovered:
 		system_toast.show_toast("Already discovered")
