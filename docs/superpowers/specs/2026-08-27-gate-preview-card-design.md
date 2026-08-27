@@ -99,12 +99,23 @@ Reordered so nothing is spent until the player confirms on the card:
 1. `if not _has_location:` → existing "No GPS fix yet" toast, return.
 2. **Peek** ticket count without spending: `if state.gate_tickets <= 0:`
    → existing "No gate tickets" toast, return.
-3. `var gate := GateSpawner.spawn_ticket_gate(_last_lat, _last_lon,
-   state.hunter_rank, _monsters, rng)`.
-4. `if gate.is_empty():` → "Ticket gate failed to spawn" toast, return.
-   The current refund line is removed — it is now unreachable, because
-   the ticket has not been spent at this point.
-5. `_show_ticket_gate_card(gate)`.
+3. **Reuse or roll:** `if _pending_ticket_gate.is_empty():` roll
+   `GateSpawner.spawn_ticket_gate(_last_lat, _last_lon, state.hunter_rank,
+   _monsters, rng)` into `_pending_ticket_gate`. Otherwise keep the
+   existing cached roll — see the re-roll note below.
+4. `if _pending_ticket_gate.is_empty():` (spawn failed) → "Ticket gate
+   failed to spawn" toast, return. The current refund line is removed —
+   it is now unreachable, because the ticket has not been spent.
+5. `_show_ticket_gate_card(_pending_ticket_gate)`.
+
+**`_pending_ticket_gate` (new member var).** Because the ticket is spent
+only on "Enter Gate" (step 5 below), a naive re-roll on every press of
+Use Ticket would let a player tap away and re-press to re-roll the gate's
+rank for free — and rank drives loot tier, Essence, and claimed-shadow
+grade. Caching the roll in `_pending_ticket_gate` and reusing it until the
+ticket is actually spent keeps the pre-feature property that one press
+commits one roll. Cleared in the `"ticket_gate"` dispatch arm right after
+`state.spend_gate_ticket()` succeeds.
 
 ```gdscript
 func _show_ticket_gate_card(gate: Dictionary) -> void:
@@ -161,6 +172,7 @@ func _on_marker_card_action_pressed() -> void:
 			_enter_gate(poi_index)
 		"ticket_gate":
 			if state.spend_gate_ticket():
+				_pending_ticket_gate = {}
 				_start_gate_battle(gate, "\n\n[Ticket]")
 			else:
 				system_toast.show_toast("No gate tickets")
@@ -187,10 +199,16 @@ func _on_marker_card_action_pressed() -> void:
   `_start_gate_battle()` already call `_hide_marker_card()`, so a stale
   card cannot sit under the break panel. No new guard.
 - **Card up, player taps empty map:** existing `map_tapped_empty` →
-  `_hide_marker_card()`. Ticket gate: card gone, ticket never spent, no
-  gate created — the spawned dict is just dropped.
+  `_hide_marker_card()`. Ticket gate: card gone, ticket never spent. The
+  rolled gate stays in `_pending_ticket_gate` — see next.
+- **Player dismisses a ticket card, then presses Use Ticket again:** they
+  get the **same** rolled gate back (from `_pending_ticket_gate`), not a
+  fresh roll. This is deliberate — re-rolling the rank for free by
+  tap-away-and-retry would matter (rank drives loot/Essence/claim grade).
+  The cache is only cleared when the ticket is actually spent.
 - **Ticket peek finds 0 / spawn returns `{}`:** handled in the reordered
-  `_on_use_ticket_pressed()` above; card never shows.
+  `_on_use_ticket_pressed()` above; card never shows. A failed spawn
+  leaves `_pending_ticket_gate` empty, so the next press retries.
 
 ## Non-goals
 

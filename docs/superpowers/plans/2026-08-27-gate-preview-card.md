@@ -1,5 +1,12 @@
 # Gate Preview Card (§18) Implementation Plan
 
+> **STATUS: IMPLEMENTED 2026-08-27** — all 3 tasks + a whole-branch-review fix landed on `master`:
+> `31578cd` (Task 1, dispatch-locals + Lore Stone fix), `eb0ed89` (Task 2, map-tap card),
+> `f511740` (Task 3, ticket card), `5b62023` (fix: cache the ticket-gate roll).
+> Per-task reviews + whole-branch review all clean; GUT held at 511/511 throughout.
+> **Outstanding:** interactive/on-device manual verification (no display in the build env) — see
+> the per-task "Manual verification" steps and the post-plan checklist.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Show a small preview card stating a gate's rank and boss name before the fight starts, for both map-tapped gates and ticket gates.
