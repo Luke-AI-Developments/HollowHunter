@@ -657,6 +657,17 @@ func _position_marker_card(marker_screen_pos: Vector2) -> void:
 	marker_card.visible = true
 
 
+## Centre MarkerCard in the viewport -- for cards with no marker to anchor
+## to (a ticket gate isn't drawn on the map). 1080x2424 is the project's
+## fixed viewport (project.godot), same hardcoded-pixel convention as
+## _position_marker_card(). marker_card.size reads the .tscn geometry so a
+## resize in the editor can't silently break this.
+func _position_marker_card_centered() -> void:
+	var card_size := marker_card.size
+	marker_card.position = (Vector2(1080.0, 2424.0) - card_size) / 2.0
+	marker_card.visible = true
+
+
 func _enter_gate(index: int) -> void:
 	var gate := map_view.get_gate(index)
 	if gate.is_empty():
@@ -733,6 +744,21 @@ func _show_gate_card(index: int, screen_pos: Vector2) -> void:
 	_position_marker_card(screen_pos)
 
 
+## §8a ticket gate: same card as _show_gate_card(), but centred (no map
+## marker to anchor to) and shown BEFORE the ticket is spent -- the
+## "ticket_gate" dispatch arm does state.spend_gate_ticket(), so tapping
+## empty map here costs the player nothing.
+func _show_ticket_gate_card(gate: Dictionary) -> void:
+	_card_poi_type = "ticket_gate"
+	_card_poi_index = -1
+	_card_gate = gate
+	marker_card_type_label.text = "RANK %s GATE" % gate["rank"]
+	marker_card_subtitle_label.text = String(gate["monster_name"])
+	marker_card_action_button.text = "Enter Gate"
+	marker_card_action_button.disabled = false
+	_position_marker_card_centered()
+
+
 ## Phase 2/P8: probabilistic Gate Break offer (§8b), checked on a timer
 ## (GateBreakTimer, main.tscn) rather than on GPS location updates -- a
 ## stationary phone gets its location updates throttled/deduped by the OS
@@ -791,7 +817,7 @@ func _on_use_ticket_pressed() -> void:
 	if not _has_location:
 		system_toast.show_toast("No GPS fix yet -- can't place a ticket gate")
 		return
-	if not state.spend_gate_ticket():
+	if state.gate_tickets <= 0:
 		system_toast.show_toast("No gate tickets")
 		return
 
@@ -801,13 +827,11 @@ func _on_use_ticket_pressed() -> void:
 		_last_lat, _last_lon, state.hunter_rank, _monsters, rng
 	)
 	if gate.is_empty():
-		# Content has no monster anywhere in the rank pool -- shouldn't
-		# happen with the real monsters.json, but refund rather than eat
-		# the ticket on a gate that can't exist.
-		state.gate_tickets += 1
-		system_toast.show_toast("Ticket gate failed to spawn -- ticket refunded")
+		# Content has no monster in the rank pool -- shouldn't happen with
+		# the real monsters.json. Nothing was spent, so nothing to refund.
+		system_toast.show_toast("Ticket gate failed to spawn")
 		return
-	_start_gate_battle(gate, "\n\n[Ticket]")
+	_show_ticket_gate_card(gate)
 
 
 func _on_place_stronghold_pressed() -> void:
@@ -838,6 +862,7 @@ func _on_cancel_stronghold_pressed() -> void:
 func _on_marker_card_action_pressed() -> void:
 	var poi_type := _card_poi_type
 	var poi_index := _card_poi_index
+	var gate := _card_gate
 	_hide_marker_card()
 	match poi_type:
 		"sanctuary":
@@ -846,6 +871,11 @@ func _on_marker_card_action_pressed() -> void:
 			_discover_lorestone(poi_index)
 		"gate":
 			_enter_gate(poi_index)
+		"ticket_gate":
+			if state.spend_gate_ticket():
+				_start_gate_battle(gate, "\n\n[Ticket]")
+			else:
+				system_toast.show_toast("No gate tickets")
 
 
 func _claim_sanctuary() -> void:
