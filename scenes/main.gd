@@ -608,8 +608,7 @@ func _on_battle_finished(won: bool) -> void:
 func _on_marker_tapped(info: Dictionary) -> void:
 	match info["type"]:
 		"gate":
-			_hide_marker_card()
-			_enter_gate(info["index"])
+			_show_gate_card(info["index"], info["screen_pos"])
 		"sanctuary":
 			_show_sanctuary_card(info["index"], info["screen_pos"])
 		"lorestone":
@@ -713,6 +712,24 @@ func _show_lorestone_card(index: int, screen_pos: Vector2) -> void:
 		marker_card_subtitle_label.text = "%dm away" % int(distance)
 		marker_card_action_button.text = "Discover"
 		marker_card_action_button.disabled = false
+	_position_marker_card(screen_pos)
+
+
+## §18: tapping a gate marker opens this card instead of dropping straight
+## into the fight -- it states the rank (the map's single universal marker
+## no longer encodes it, §19) and names the boss. "Enter Gate" runs the
+## existing _enter_gate() path unchanged; tapping empty map cancels.
+func _show_gate_card(index: int, screen_pos: Vector2) -> void:
+	var gate := map_view.get_gate(index)
+	if gate.is_empty():
+		return
+	_card_poi_type = "gate"
+	_card_poi_index = index
+	_card_gate = gate
+	marker_card_type_label.text = "RANK %s GATE" % gate["rank"]
+	marker_card_subtitle_label.text = String(gate["monster_name"])
+	marker_card_action_button.text = "Enter Gate"
+	marker_card_action_button.disabled = false
 	_position_marker_card(screen_pos)
 
 
@@ -827,6 +844,8 @@ func _on_marker_card_action_pressed() -> void:
 			_claim_sanctuary()
 		"lorestone":
 			_discover_lorestone(poi_index)
+		"gate":
+			_enter_gate(poi_index)
 
 
 func _claim_sanctuary() -> void:
