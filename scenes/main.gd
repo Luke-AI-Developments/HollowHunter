@@ -35,6 +35,9 @@ var _card_poi_index: int = -1  ## acts on -- set by _show_sanctuary_card()/
 ## _show_lorestone_card()/_show_gate_card(), read by _on_marker_card_action_pressed().
 var _card_gate: Dictionary = {}  ## the gate dict for a "gate"/"ticket_gate" card --
 ## a ticket gate has no map index to re-fetch by, so the whole dict is stashed here.
+var _pending_ticket_gate: Dictionary = {}  ## §8a: the ticket gate rolled but not
+## yet paid for -- reused across re-presses of Use Ticket so tapping away and
+## re-pressing can't re-roll the rank for free. Cleared when the ticket is spent.
 var _moves: Array = []  ## Phase 3/step 5: content/moves.json, loaded once (§16 combat overhaul)
 var _shop_catalog: Dictionary = {}  ## Phase 4/shop step 1: content/shop.json, loaded once
 var _pending_battle_gate: Dictionary = {}  ## the gate a live BattlePanel fight will resolve into
@@ -821,17 +824,19 @@ func _on_use_ticket_pressed() -> void:
 		system_toast.show_toast("No gate tickets")
 		return
 
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var gate := GateSpawner.spawn_ticket_gate(
-		_last_lat, _last_lon, state.hunter_rank, _monsters, rng
-	)
-	if gate.is_empty():
-		# Content has no monster in the rank pool -- shouldn't happen with
-		# the real monsters.json. Nothing was spent, so nothing to refund.
-		system_toast.show_toast("Ticket gate failed to spawn")
-		return
-	_show_ticket_gate_card(gate)
+	if _pending_ticket_gate.is_empty():
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		var gate := GateSpawner.spawn_ticket_gate(
+			_last_lat, _last_lon, state.hunter_rank, _monsters, rng
+		)
+		if gate.is_empty():
+			# Content has no monster in the rank pool -- shouldn't happen with
+			# the real monsters.json. Nothing was spent, so nothing to refund.
+			system_toast.show_toast("Ticket gate failed to spawn")
+			return
+		_pending_ticket_gate = gate
+	_show_ticket_gate_card(_pending_ticket_gate)
 
 
 func _on_place_stronghold_pressed() -> void:
@@ -873,6 +878,7 @@ func _on_marker_card_action_pressed() -> void:
 			_enter_gate(poi_index)
 		"ticket_gate":
 			if state.spend_gate_ticket():
+				_pending_ticket_gate = {}
 				_start_gate_battle(gate, "\n\n[Ticket]")
 			else:
 				system_toast.show_toast("No gate tickets")
