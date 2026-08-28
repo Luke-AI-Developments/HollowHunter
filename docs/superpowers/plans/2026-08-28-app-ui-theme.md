@@ -1,5 +1,18 @@
 # App-Wide UI Theme + Map Palette Implementation Plan
 
+> **STATUS: TASKS 1–4 IMPLEMENTED 2026-08-28** on `master`:
+> `b005eea` (T1 theme + project default), `2dc4f7b` (T2 panel Bg fills),
+> `83ca489` (T3 strip overrides + BannerButton/Title), `e39e391` (T4 map palette, TDD),
+> then whole-branch-review fixes `6a21a03` + `f59a9bb` (stronghold button size,
+> DetailBg colour, MarkerCard 18pt, build_theme.gd dedupe/typing). Per-task +
+> whole-branch reviews all clean. GUT held 532.
+> **TASK 5 (Chakra Petch font) BLOCKED** — needs `ui/fonts/ChakraPetch-{Regular,SemiBold}.ttf`
+> from the user; then re-run `godot --headless --script res://tools/build_theme.gd`.
+> The theme works on the engine default font until then.
+> **Outstanding:** device screenshot pass (every panel, small BannerButton buttons,
+> onboarding screens, MarkerCard, the lighter map). Deferred: a `font_size = 20`
+> unify pass (~50 `.tscn` lines + 5 code overrides opt out of the theme).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Give every panel a consistent cyan-glass look via one project-default `Theme`, and lighten the map palette so streets read on a phone.
