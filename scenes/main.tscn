@@ -342,6 +342,40 @@ offset_bottom = 140.0
 theme_override_font_sizes/font_size = 20
 text = "Close"
 
+[node name="RenameButton" type="Button" parent="GameUI/ShadowGearPanel"]
+offset_left = 820.0
+offset_top = 90.0
+offset_right = 1040.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 20
+text = "Rename"
+
+[node name="RenameInput" type="LineEdit" parent="GameUI/ShadowGearPanel"]
+visible = false
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 700.0
+offset_bottom = 140.0
+placeholder_text = "Nickname (optional)"
+
+[node name="RenameSaveButton" type="Button" parent="GameUI/ShadowGearPanel"]
+visible = false
+offset_left = 720.0
+offset_top = 90.0
+offset_right = 860.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 18
+text = "Save"
+
+[node name="RenameCancelButton" type="Button" parent="GameUI/ShadowGearPanel"]
+visible = false
+offset_left = 880.0
+offset_top = 90.0
+offset_right = 1040.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 18
+text = "Cancel"
+
 [node name="LevelUpButton" type="Button" parent="GameUI/ShadowGearPanel"]
 offset_left = 40.0
 offset_top = 160.0

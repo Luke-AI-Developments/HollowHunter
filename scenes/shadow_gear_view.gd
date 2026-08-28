@@ -21,6 +21,10 @@ var _rows: Array = []
 @onready var lore_label: Label = $LoreLabel
 @onready var lock_button: Button = $LockButton
 @onready var favorite_button: Button = $FavoriteButton
+@onready var rename_button: Button = $RenameButton
+@onready var rename_input: LineEdit = $RenameInput
+@onready var rename_save_button: Button = $RenameSaveButton
+@onready var rename_cancel_button: Button = $RenameCancelButton
 
 
 func _ready() -> void:
@@ -33,6 +37,9 @@ func _ready() -> void:
 	$ConvertButton.pressed.connect(_on_convert_pressed)
 	lock_button.pressed.connect(_on_lock_pressed)
 	favorite_button.pressed.connect(_on_favorite_pressed)
+	rename_button.pressed.connect(_on_rename_pressed)
+	rename_save_button.pressed.connect(_on_rename_save_pressed)
+	rename_cancel_button.pressed.connect(_on_rename_cancel_pressed)
 	_rows = GearPanelHelpers.build_gear_rows($Rows, 250.0)
 	for row: Dictionary in _rows:
 		var slot: String = row["slot"]
@@ -219,6 +226,42 @@ func _on_favorite_pressed() -> void:
 	refresh()
 
 
+## Opens the rename strip, pre-filled with the current nickname (empty if
+## none). The strip overlays the nav-button row while visible -- Save /
+## Cancel return you to it. No separate panel, same "small transient
+## overlay" weight as this panel's other actions.
+func _on_rename_pressed() -> void:
+	if _state.army.is_empty():
+		return
+	rename_input.text = String(_state.army[_index].get("nickname", ""))
+	rename_input.visible = true
+	rename_save_button.visible = true
+	rename_cancel_button.visible = true
+	rename_input.grab_focus()
+
+
+## No error UI on an invalid name (too long / blocked word) -- same
+## placeholder-simplicity as the rest of this panel; the strip just stays
+## open with the rejected text so the player can edit and retry.
+func _on_rename_save_pressed() -> void:
+	var shadow_id := _current_shadow_instance_id()
+	if shadow_id == "":
+		return
+	if _state.set_shadow_nickname(shadow_id, rename_input.text):
+		_close_rename()
+		_after_mutation()
+
+
+func _on_rename_cancel_pressed() -> void:
+	_close_rename()
+
+
+func _close_rename() -> void:
+	rename_input.visible = false
+	rename_save_button.visible = false
+	rename_cancel_button.visible = false
+
+
 func _shadow_index(shadow_id: String) -> int:
 	return _state.army.find_custom(
 		func(s: Dictionary) -> bool: return s["instance_id"] == shadow_id
@@ -238,6 +281,7 @@ func refresh() -> void:
 			row["label"].text = "%s: --" % row["slot"]
 		sets_label.text = "Active sets: (none)"
 		lore_label.text = ""
+		_close_rename()
 		return
 
 	_index = clampi(_index, 0, _state.army.size() - 1)
@@ -246,12 +290,14 @@ func refresh() -> void:
 	var locked: bool = shadow.get("locked", false)
 	var favorite: bool = shadow.get("favorite", false)
 	var family: String = monster.get("family", "?")
+	var nickname: String = shadow.get("nickname", "")
+	var shown_name: String = nickname if nickname != "" else String(monster.get("name", "?"))
 	title_label.text = (
 		"%s%s%s (%s·%s Lv%d/%d %s · %s)  [%d/%d]"
 		% [
 			"★" if favorite else "",
 			"🔒" if locked else "",
-			monster.get("name", "?"),
+			shown_name,
 			GameLogic.grade_name(shadow.get("grade", "")),
 			shadow.get("grade", ""),
 			shadow.get("level", 1),
