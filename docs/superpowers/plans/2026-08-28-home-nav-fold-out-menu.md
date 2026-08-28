@@ -1,5 +1,13 @@
 # Home-Screen Fold-Out Nav Menu Implementation Plan
 
+> **STATUS: IMPLEMENTED 2026-08-28** — both tasks + a whole-branch-review fix on `master`:
+> `1830ef8` (T1 tscn restructure + main.gd rewiring), `f15485a` (T2 dismissal edge cases +
+> stale-comment cleanup), `ce9af0d` (fix: hide open MarkerCard on menu open; connect-order tidy).
+> Per-task + whole-branch reviews all clean; GUT stayed 532 (scene-only).
+> **Outstanding:** interactive/on-device pass (no display in the build env) + a `devmedia/` screenshot;
+> and a logged follow-up — `_position_marker_card()`'s `2260.0` bottom clamp is now arbitrary
+> (was avoiding the deleted nav bar); `2424.0` would give marker cards ~164px more room.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the home screen's bottom horizontal scrolling nav bar with a top-left `☰ Menu` button that unfolds a vertical stack of 9 full-width cyan-glass navigation banners over the map.
