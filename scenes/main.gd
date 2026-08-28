@@ -1057,7 +1057,7 @@ func _refresh_label() -> void:
 	var stats := state.stats()
 	label.text = (
 		(
-			"Lv %d %s\nEXP: %d / %d\nEssence: %d  Tickets: %d  Crystals: %d\n"
+			"Lv %d %s\nEXP: %d / %d\n"
 			+ "STR %d AGI %d VIT %d END %d SEN %d\nPower: %d"
 		)
 		% [
@@ -1065,9 +1065,6 @@ func _refresh_label() -> void:
 			state.subclass,
 			state.exp_into_level,
 			GameLogic.exp_to_next(state.level),
-			state.essence,
-			state.gate_tickets,
-			state.crystals,
 			stats["STR"],
 			stats["AGI"],
 			stats["VIT"],
