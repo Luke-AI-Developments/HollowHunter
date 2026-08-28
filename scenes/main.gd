@@ -630,6 +630,8 @@ func _on_battle_finished(won: bool) -> void:
 func _on_system_panel_dismissed() -> void:
 	if _pending_nickname_shadow_id == "":
 		return
+	if claim_nickname_panel.visible:
+		return
 	claim_nickname_info_label.text = (
 		"CLAIMED %s! Give it a nickname? (optional, max %d chars)"
 		% [_pending_nickname_species, TextFilter.MAX_LENGTH]

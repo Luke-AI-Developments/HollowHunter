@@ -1,4 +1,3 @@
-# core/text_filter.gd
 class_name TextFilter
 ## Pure text-input validation for anywhere the player types a short custom
 ## name -- currently just shadow nicknames (§6c). Factored out on its own,
@@ -9,6 +8,7 @@ class_name TextFilter
 ## library -- it won't catch l33tspeak / spacing evasion. Flagged as a real
 ## gap if this ever needs to be robust, same "good enough for v0" bar as
 ## every other invented number in this project (see ShadowLeveling).
+## MAX_LENGTH (20) is an invented v0 cap, not a product decision.
 
 const MAX_LENGTH := 20
 
@@ -49,7 +49,7 @@ static func sanitize_nickname(text: String) -> String:
 
 static func _contains_blocked_word(text: String) -> bool:
 	var lower := text.to_lower()
-	for word in _BLOCKED_SUBSTRINGS:
+	for word: String in _BLOCKED_SUBSTRINGS:
 		if lower.contains(word):
 			return true
 	return false

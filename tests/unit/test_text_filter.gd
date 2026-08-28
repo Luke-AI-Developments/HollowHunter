@@ -1,4 +1,3 @@
-# tests/unit/test_text_filter.gd
 extends GutTest
 ## TextFilter: nickname length + v0 profanity-blocklist validation.
 
@@ -41,3 +40,7 @@ func test_leading_trailing_whitespace_does_not_count_toward_length() -> void:
 
 func test_sanitize_trims_leading_and_trailing_whitespace() -> void:
 	assert_eq(TextFilter.sanitize_nickname("  Duskfang  "), "Duskfang")
+
+
+func test_sanitize_nickname_whitespace_only_becomes_empty() -> void:
+	assert_eq(TextFilter.sanitize_nickname("   "), "")
