@@ -9,13 +9,14 @@ const FRAME_TEX := "res://art/ui/ui_system_frame.webp"
 const FONT_PATH := "res://ui/fonts/ChakraPetch-SemiBold.ttf"
 
 const CYAN := Color(0.498, 0.941, 1.0, 1.0)
-const CYAN_DIM := Color(0.498, 0.941, 1.0, 0.4)
 
 
-func _flat(bg: Color, border_a: float, radius: int, mh: int, mv: int) -> StyleBoxFlat:
+func _flat(
+	bg: Color, border_a: float, radius: int, mh: int, mv: int, border_w: int = 2
+) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
-	sb.set_border_width_all(2)
+	sb.set_border_width_all(border_w)
 	sb.border_color = Color(0.498, 0.941, 1.0, border_a)
 	sb.set_corner_radius_all(radius)
 	sb.content_margin_left = mh
@@ -52,22 +53,23 @@ func _initialize() -> void:
 	t.set_color("font_focus_color", "Button", CYAN)
 	t.set_color("font_disabled_color", "Button", Color(0.498, 0.941, 1.0, 0.35))
 	t.set_font_size("font_size", "Button", 22)
+	var btn_hover := _flat(Color(0.09, 0.15, 0.22, 0.98), 0.6, 6, 10, 6)
 	t.set_stylebox("normal", "Button", _flat(Color(0.06, 0.10, 0.15, 0.95), 0.35, 6, 10, 6))
-	t.set_stylebox("hover", "Button", _flat(Color(0.09, 0.15, 0.22, 0.98), 0.6, 6, 10, 6))
+	t.set_stylebox("hover", "Button", btn_hover)
 	t.set_stylebox("pressed", "Button", _flat(Color(0.04, 0.07, 0.11, 1.0), 0.8, 6, 10, 6))
-	t.set_stylebox("focus", "Button", _flat(Color(0.09, 0.15, 0.22, 0.98), 0.6, 6, 10, 6))
+	t.set_stylebox("focus", "Button", btn_hover)
 	t.set_stylebox("disabled", "Button", _flat(Color(0.05, 0.07, 0.09, 0.6), 0.12, 6, 10, 6))
 
 	# --- BannerButton (variation of Button) ---
 	t.add_type("BannerButton")
 	t.set_type_variation("BannerButton", "Button")
 	t.set_font_size("font_size", "BannerButton", 26)
-	for s in ["normal", "hover", "pressed", "focus"]:
-		t.set_stylebox(s, "BannerButton", _banner_box())
+	var banner_box := _banner_box()
+	for s: String in ["normal", "hover", "pressed", "focus"]:
+		t.set_stylebox(s, "BannerButton", banner_box)
 
 	# --- Panel ---
-	var panel_sb := _flat(Color(0.03, 0.06, 0.10, 0.98), 0.20, 4, 0, 0)
-	panel_sb.set_border_width_all(1)
+	var panel_sb := _flat(Color(0.03, 0.06, 0.10, 0.98), 0.20, 4, 0, 0, 1)
 	t.set_stylebox("panel", "Panel", panel_sb)
 
 	# --- Label ---
@@ -90,18 +92,18 @@ func _initialize() -> void:
 	t.set_stylebox("focus", "LineEdit", _flat(Color(0.04, 0.08, 0.12, 0.95), 0.7, 6, 10, 6))
 
 	# --- Scrollbars ---
-	for cls in ["VScrollBar", "HScrollBar"]:
-		var g := StyleBoxFlat.new()
-		g.bg_color = Color(0.498, 0.941, 1.0, 0.25)
-		g.set_corner_radius_all(4)
-		var gh := StyleBoxFlat.new()
-		gh.bg_color = Color(0.498, 0.941, 1.0, 0.4)
-		gh.set_corner_radius_all(4)
-		var gp := StyleBoxFlat.new()
-		gp.bg_color = Color(0.498, 0.941, 1.0, 0.55)
-		gp.set_corner_radius_all(4)
-		var track := StyleBoxFlat.new()
-		track.bg_color = Color(1, 1, 1, 0.03)
+	var g := StyleBoxFlat.new()
+	g.bg_color = Color(0.498, 0.941, 1.0, 0.25)
+	g.set_corner_radius_all(4)
+	var gh := StyleBoxFlat.new()
+	gh.bg_color = Color(0.498, 0.941, 1.0, 0.4)
+	gh.set_corner_radius_all(4)
+	var gp := StyleBoxFlat.new()
+	gp.bg_color = Color(0.498, 0.941, 1.0, 0.55)
+	gp.set_corner_radius_all(4)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(1, 1, 1, 0.03)
+	for cls: String in ["VScrollBar", "HScrollBar"]:
 		t.set_stylebox("grabber", cls, g)
 		t.set_stylebox("grabber_highlight", cls, gh)
 		t.set_stylebox("grabber_pressed", cls, gp)
