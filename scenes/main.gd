@@ -47,6 +47,9 @@ var _pending_nadir_floor: int = -1  ## Phase 3/P3-Nadir: >=0 while a BattlePanel
 ## resolving a Nadir floor instead of a gate -- _on_battle_finished branches on this
 var _pending_nadir_is_boss: bool = false  ## whether that floor is a boss floor (§20)
 var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss monster id
+var _pending_nickname_shadow_id: String = ""  ## §6c: shadow instance_id awaiting an
+## optional post-CLAIM nickname prompt; "" when nothing is pending.
+var _pending_nickname_species: String = ""  ## species name for that prompt's label text.
 
 @onready var preset_picker: Node2D = $PresetPicker
 @onready var preset_grid: GridContainer = $PresetPicker/Grid
@@ -92,6 +95,11 @@ var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss mons
 @onready var gate_break_dismiss_button: Button = $GameUI/GateBreakPanel/DismissButton
 @onready var gate_break_timer: Timer = $GateBreakTimer
 @onready var battle_view: BattleView = $GameUI/BattlePanel
+@onready var claim_nickname_panel: Node2D = $GameUI/ClaimNicknamePanel
+@onready var claim_nickname_info_label: Label = $GameUI/ClaimNicknamePanel/InfoLabel
+@onready var claim_nickname_input: LineEdit = $GameUI/ClaimNicknamePanel/NicknameInput
+@onready var claim_nickname_save_button: Button = $GameUI/ClaimNicknamePanel/SaveButton
+@onready var claim_nickname_skip_button: Button = $GameUI/ClaimNicknamePanel/SkipButton
 
 
 func _ready() -> void:
@@ -320,6 +328,9 @@ func _setup_gear_panels() -> void:
 		map_view.marker_tapped.connect(_on_marker_tapped)
 		map_view.map_tapped_empty.connect(_on_map_tapped_empty)
 		marker_card_action_button.pressed.connect(_on_marker_card_action_pressed)
+		system_panel.dismissed.connect(_on_system_panel_dismissed)
+		claim_nickname_save_button.pressed.connect(_on_claim_nickname_save_pressed)
+		claim_nickname_skip_button.pressed.connect(_on_claim_nickname_skip_pressed)
 
 
 func _on_location_permission_result(granted: bool) -> void:
@@ -582,7 +593,9 @@ func _on_battle_finished(won: bool) -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
 		if GameLogic.attempt_claim(gate.get("monster_extract_chance", 0.0), state.level, rng):
-			state.claim_shadow(gate["monster_id"], gate["rank"])
+			var claimed := state.claim_shadow(gate["monster_id"], gate["rank"])
+			_pending_nickname_shadow_id = claimed["instance_id"]
+			_pending_nickname_species = gate["monster_name"]
 			body += "\nCLAIMED! %s joins your army." % gate["monster_name"]
 		else:
 			body += "\nBoss escaped (claim failed)."
@@ -606,6 +619,46 @@ func _on_battle_finished(won: bool) -> void:
 	_refresh_label()
 	army_view.refresh_if_open()
 	system_panel.show_panel(header, body)
+
+
+## §6c: fires on every SystemPanel dismissal (shared signal). Only a real
+## gate / Nadir CLAIM arms _pending_nickname_shadow_id, so the guard makes
+## this a no-op for level-ups, rewards, stronghold, rank trials, etc. The
+## onboarding starter / scripted-first-gate claims never route through
+## _on_battle_finished / _apply_nadir_battle_result, so they're excluded
+## structurally -- no guard needed for §25's fast onboarding CLAIM.
+func _on_system_panel_dismissed() -> void:
+	if _pending_nickname_shadow_id == "":
+		return
+	claim_nickname_info_label.text = (
+		"CLAIMED %s! Give it a nickname? (optional, max %d chars)"
+		% [_pending_nickname_species, TextFilter.MAX_LENGTH]
+	)
+	claim_nickname_input.text = ""
+	claim_nickname_panel.visible = true
+	claim_nickname_input.grab_focus()
+
+
+## No error UI on an invalid name -- the prompt stays open with the text so
+## the player can edit and retry, or Skip.
+func _on_claim_nickname_save_pressed() -> void:
+	if _pending_nickname_shadow_id == "":
+		return
+	if state.set_shadow_nickname(_pending_nickname_shadow_id, claim_nickname_input.text):
+		SaveService.save(state)
+		army_view.refresh_if_open()
+		_refresh_label()
+		_close_claim_nickname_panel()
+
+
+func _on_claim_nickname_skip_pressed() -> void:
+	_close_claim_nickname_panel()
+
+
+func _close_claim_nickname_panel() -> void:
+	_pending_nickname_shadow_id = ""
+	_pending_nickname_species = ""
+	claim_nickname_panel.visible = false
 
 
 func _on_marker_tapped(info: Dictionary) -> void:
@@ -1081,7 +1134,9 @@ func _apply_nadir_battle_result(won: bool) -> void:
 		if is_boss and boss_id != "":
 			var boss_monster := Content.monster_by_id(_monsters, boss_id)
 			if GameLogic.attempt_claim(boss_monster.get("extract_chance", 0.0), state.level, rng):
-				state.claim_shadow(boss_id, Nadir.rank_for_floor(floor_n))
+				var claimed := state.claim_shadow(boss_id, Nadir.rank_for_floor(floor_n))
+				_pending_nickname_shadow_id = claimed["instance_id"]
+				_pending_nickname_species = String(boss_monster.get("name", ""))
 				body += "\nBOSS CLAIMED! %s joins your army." % boss_monster.get("name", "")
 			else:
 				body += "\nBoss floor -- boss escaped (claim failed)."
