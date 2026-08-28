@@ -84,10 +84,15 @@ parenthetical already right after it is the secondary text. All read from
 | `scenes/squad_view.gd:82` (`refresh()`) | squad row label: `member["monster_name"]` → `member["display_name"]` |
 | `scenes/squad_view.gd:98` (`refresh()`) | `chosen_names` map (the "fielded: …" line): `m["monster_name"]` → `m["display_name"]` |
 | `scenes/main.gd:476` (`_build_battle_party()`) | `Battle.make_ally_combatant(...)` name arg → `member["display_name"]` |
+| `scenes/inventory_view.gd` (item detail "Currently equipped by: %s") | resolve the wearer name from the army entry's own `nickname` (`nickname if nickname != "" else species`), NOT via `enrich_army` — this surface never enriches |
 
 `army_view.gd::_refresh_squad()` (:223) only forwards to
-`squad_view.refresh()` — covered above. No other `enrich_army` consumer in
-`scenes/`.
+`squad_view.refresh()` — covered above. The four `enrich_army`-derived
+surfaces plus the one hand-resolved `inventory_view.gd` surface are the
+complete set of player-facing shadow-name displays (whole-branch review
+swept for others: mass-convert is count-only, fuse/convert have no
+confirmation UI, every other `main.gd` `monster_name` is an enemy/gate
+name). Added to scope during the whole-branch review.
 
 ## Part 3a — Rename control in Shadow Gear (replaces old plan Task 6)
 
