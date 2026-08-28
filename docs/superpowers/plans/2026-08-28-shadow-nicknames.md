@@ -1,5 +1,14 @@
 # Custom Shadow Nicknames (§6c) Implementation Plan
 
+> **STATUS: IMPLEMENTED 2026-08-28** — all 6 tasks + a whole-branch-review fix wave landed on `master`:
+> `58d0cbb` (T1 TextFilter), `98aab9d` (T2 HunterState + gdlintrc cap 120→140),
+> `7a3d330` (T3 enrich_army), `ce240ff` (T4 display surfaces), `cd1cbc1` (T5 Rename control),
+> `a9a3b3e` (T6 post-CLAIM prompt); then `7eeecca` / `79ae1d5` / `76c6829` fix wave
+> (rename-strip wrong-target write; inventory_view name surface; doc/typing/guard nits).
+> Per-task + whole-branch reviews all clean. GUT 511 → 532 (+21).
+> **Outstanding:** interactive/on-device manual pass (no display in the build env) — see the
+> per-task "Manual verification" steps and the post-plan checklist.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let a player give any owned shadow an optional, editable, per-instance nickname that replaces its species name everywhere it's listed.
