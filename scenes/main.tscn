@@ -123,9 +123,9 @@ visible = false
 [node name="HudFrame" type="NinePatchRect" parent="GameUI"]
 z_index = 1
 offset_left = 20.0
-offset_top = 0.0
+offset_top = 48.0
 offset_right = 1060.0
-offset_bottom = 210.0
+offset_bottom = 320.0
 texture = ExtResource("15")
 patch_margin_left = 64
 patch_margin_top = 64
@@ -135,9 +135,9 @@ patch_margin_bottom = 64
 [node name="Label" type="Label" parent="GameUI"]
 z_index = 1
 offset_left = 40.0
-offset_top = 10.0
+offset_top = 64.0
 offset_right = 1040.0
-offset_bottom = 200.0
+offset_bottom = 300.0
 theme_override_font_sizes/font_size = 28
 text = "Waiting for location..."
 autowrap_mode = 3
@@ -150,9 +150,9 @@ script = ExtResource("2")
 
 [node name="MenuButton" type="Button" parent="GameUI/NavMenu"]
 offset_left = 20.0
-offset_top = 220.0
+offset_top = 340.0
 offset_right = 200.0
-offset_bottom = 290.0
+offset_bottom = 410.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -169,9 +169,9 @@ visible = false
 
 [node name="ArmyBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 300.0
+offset_top = 424.0
 offset_right = 1060.0
-offset_bottom = 396.0
+offset_bottom = 520.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -185,9 +185,9 @@ text = "Army"
 
 [node name="HunterGearBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 408.0
+offset_top = 532.0
 offset_right = 1060.0
-offset_bottom = 504.0
+offset_bottom = 628.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -201,9 +201,9 @@ text = "Hunter Gear"
 
 [node name="InventoryBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 516.0
+offset_top = 640.0
 offset_right = 1060.0
-offset_bottom = 612.0
+offset_bottom = 736.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -217,9 +217,9 @@ text = "Inventory"
 
 [node name="StrongholdBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 624.0
+offset_top = 748.0
 offset_right = 1060.0
-offset_bottom = 720.0
+offset_bottom = 844.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -233,9 +233,9 @@ text = "Stronghold"
 
 [node name="CharacterBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 732.0
+offset_top = 856.0
 offset_right = 1060.0
-offset_bottom = 828.0
+offset_bottom = 952.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -249,9 +249,9 @@ text = "Character"
 
 [node name="NadirBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 840.0
+offset_top = 964.0
 offset_right = 1060.0
-offset_bottom = 936.0
+offset_bottom = 1060.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -265,9 +265,9 @@ text = "The Nadir"
 
 [node name="ShopBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 948.0
+offset_top = 1072.0
 offset_right = 1060.0
-offset_bottom = 1044.0
+offset_bottom = 1168.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -281,9 +281,9 @@ text = "Shop"
 
 [node name="LeaderboardBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 1056.0
+offset_top = 1180.0
 offset_right = 1060.0
-offset_bottom = 1152.0
+offset_bottom = 1276.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -297,9 +297,9 @@ text = "Leaderboard"
 
 [node name="UseTicketBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
 offset_left = 20.0
-offset_top = 1164.0
+offset_top = 1288.0
 offset_right = 1060.0
-offset_bottom = 1260.0
+offset_bottom = 1384.0
 theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
 theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
@@ -346,18 +346,18 @@ text = "Claim"
 [node name="ConfirmStrongholdButton" type="Button" parent="GameUI"]
 visible = false
 offset_left = 40.0
-offset_top = 210.0
+offset_top = 340.0
 offset_right = 340.0
-offset_bottom = 270.0
+offset_bottom = 410.0
 theme_override_font_sizes/font_size = 20
 text = "Confirm Location"
 
 [node name="CancelStrongholdButton" type="Button" parent="GameUI"]
 visible = false
 offset_left = 360.0
-offset_top = 210.0
+offset_top = 340.0
 offset_right = 560.0
-offset_bottom = 270.0
+offset_bottom = 410.0
 theme_override_font_sizes/font_size = 20
 text = "Cancel"
 
@@ -1572,9 +1572,9 @@ visible = false
 z_index = 1
 mouse_filter = 2
 offset_left = 660.0
-offset_top = 210.0
+offset_top = 340.0
 offset_right = 1040.0
-offset_bottom = 370.0
+offset_bottom = 500.0
 script = ExtResource("13")
 
 [node name="Frame" type="NinePatchRect" parent="GameUI/SystemToast"]
