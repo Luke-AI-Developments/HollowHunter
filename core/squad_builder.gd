@@ -42,13 +42,17 @@ static func enrich_army(
 			gear_stat_sum
 		)
 		power = GameLogic.apply_set_power_pct(power, set_bonus["power_pct"])
+		var nickname: String = shadow.get("nickname", "")
+		var monster_name: String = monster.get("name", "")
 		(
 			enriched
 			. append(
 				{
 					"instance_id": shadow.get("instance_id", ""),
 					"monster_id": shadow.get("monster_id", ""),
-					"monster_name": monster.get("name", ""),
+					"monster_name": monster_name,
+					"nickname": nickname,
+					"display_name": nickname if nickname != "" else monster_name,
 					"grade": shadow.get("grade", ""),
 					"grade_name": GameLogic.grade_name(shadow.get("grade", "")),
 					"level": shadow.get("level", 1),

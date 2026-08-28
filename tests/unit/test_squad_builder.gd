@@ -156,6 +156,22 @@ func test_enrich_army_includes_grade_name() -> void:
 	assert_eq(enriched[0]["grade_name"], "General")
 
 
+func test_enrich_army_display_name_falls_back_to_monster_name() -> void:
+	var shadow := _shadow("mon_ashen_warden")
+	var enriched := SquadBuilder.enrich_army([shadow], monsters, 10)
+	assert_eq(enriched[0]["nickname"], "")
+	assert_eq(enriched[0]["display_name"], "Ashen Warden")
+
+
+func test_enrich_army_display_name_uses_nickname_when_set() -> void:
+	var shadow := _shadow("mon_ashen_warden")
+	shadow["nickname"] = "Duskfang"
+	var enriched := SquadBuilder.enrich_army([shadow], monsters, 10)
+	assert_eq(enriched[0]["nickname"], "Duskfang")
+	assert_eq(enriched[0]["display_name"], "Duskfang")
+	assert_eq(enriched[0]["monster_name"], "Ashen Warden")
+
+
 func test_surplus_shadow_ids_excludes_the_squad() -> void:
 	var army := [
 		_shadow("mon_tuskrend"),  # WARRIOR, base 350 -- class slot
