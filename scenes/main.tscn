@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/map_view.gd" id="2"]
@@ -15,6 +15,13 @@
 [ext_resource type="Script" path="res://scenes/system_toast.gd" id="13"]
 [ext_resource type="Script" path="res://scenes/system_panel.gd" id="14"]
 [ext_resource type="Texture2D" path="res://art/ui/ui_system_frame.webp" id="15"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_navbanner"]
+texture = ExtResource("15")
+texture_margin_left = 64.0
+texture_margin_top = 64.0
+texture_margin_right = 64.0
+texture_margin_bottom = 64.0
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -139,6 +146,171 @@ autowrap_mode = 3
 position = Vector2(540, 1265)
 script = ExtResource("2")
 
+[node name="NavMenu" type="Node2D" parent="GameUI"]
+
+[node name="MenuButton" type="Button" parent="GameUI/NavMenu"]
+offset_left = 20.0
+offset_top = 220.0
+offset_right = 200.0
+offset_bottom = 290.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "☰ Menu"
+
+[node name="BannerList" type="Node2D" parent="GameUI/NavMenu"]
+visible = false
+
+[node name="ArmyBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 300.0
+offset_right = 1060.0
+offset_bottom = 396.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "Army"
+
+[node name="HunterGearBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 408.0
+offset_right = 1060.0
+offset_bottom = 504.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "Hunter Gear"
+
+[node name="InventoryBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 516.0
+offset_right = 1060.0
+offset_bottom = 612.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "Inventory"
+
+[node name="StrongholdBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 624.0
+offset_right = 1060.0
+offset_bottom = 720.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "Stronghold"
+
+[node name="CharacterBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 732.0
+offset_right = 1060.0
+offset_bottom = 828.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "Character"
+
+[node name="NadirBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 840.0
+offset_right = 1060.0
+offset_bottom = 936.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "The Nadir"
+
+[node name="ShopBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 948.0
+offset_right = 1060.0
+offset_bottom = 1044.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "Shop"
+
+[node name="LeaderboardBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 1056.0
+offset_right = 1060.0
+offset_bottom = 1152.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "Leaderboard"
+
+[node name="UseTicketBanner" type="Button" parent="GameUI/NavMenu/BannerList"]
+offset_left = 20.0
+offset_top = 1164.0
+offset_right = 1060.0
+offset_bottom = 1260.0
+theme_override_colors/font_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_pressed_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_colors/font_focus_color = Color(0.498, 0.941, 1.0, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/hover = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_navbanner")
+theme_override_styles/focus = SubResource("StyleBoxTexture_navbanner")
+text = "Use Ticket"
+
 [node name="MarkerCard" type="Panel" parent="GameUI"]
 visible = false
 z_index = 1
@@ -188,63 +360,6 @@ offset_right = 560.0
 offset_bottom = 270.0
 theme_override_font_sizes/font_size = 20
 text = "Cancel"
-
-[node name="NavScroll" type="ScrollContainer" parent="GameUI"]
-offset_left = 0.0
-offset_top = 2260.0
-offset_right = 1080.0
-offset_bottom = 2380.0
-horizontal_scroll_mode = 3
-vertical_scroll_mode = 0
-
-[node name="NavRow" type="HBoxContainer" parent="GameUI/NavScroll"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="HunterGearButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(160, 60)
-theme_override_font_sizes/font_size = 18
-text = "Hunter Gear"
-
-[node name="ArmyButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(160, 60)
-theme_override_font_sizes/font_size = 18
-text = "Army"
-
-[node name="InventoryButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(160, 60)
-theme_override_font_sizes/font_size = 18
-text = "Inventory"
-
-[node name="NadirButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(160, 60)
-theme_override_font_sizes/font_size = 18
-text = "The Nadir"
-
-[node name="StrongholdButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(180, 60)
-theme_override_font_sizes/font_size = 18
-text = "Stronghold"
-
-[node name="CharacterButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(160, 60)
-theme_override_font_sizes/font_size = 18
-text = "Character"
-
-[node name="UseTicketButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(160, 60)
-theme_override_font_sizes/font_size = 18
-text = "Use Ticket"
-
-[node name="ShopButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(140, 60)
-theme_override_font_sizes/font_size = 18
-text = "Shop"
-
-[node name="LeaderboardButton" type="Button" parent="GameUI/NavScroll/NavRow"]
-custom_minimum_size = Vector2(200, 60)
-theme_override_font_sizes/font_size = 18
-text = "Leaderboard"
 
 [node name="HunterGearPanel" type="Node2D" parent="GameUI"]
 visible = false

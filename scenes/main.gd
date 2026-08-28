@@ -66,28 +66,30 @@ var _pending_nickname_species: String = ""  ## species name for that prompt's la
 @onready var system_panel: SystemPanel = $GameUI/SystemPanel
 @onready var marker_card_subtitle_label: Label = $GameUI/MarkerCard/SubtitleLabel
 @onready var marker_card_action_button: Button = $GameUI/MarkerCard/ActionButton
-@onready var inventory_button: Button = $GameUI/NavScroll/NavRow/InventoryButton
+@onready var menu_button: Button = $GameUI/NavMenu/MenuButton
+@onready var banner_list: Node2D = $GameUI/NavMenu/BannerList
+@onready var inventory_button: Button = $GameUI/NavMenu/BannerList/InventoryBanner
 @onready var inventory_view: InventoryView = $GameUI/InventoryPanel
-@onready var hunter_gear_button: Button = $GameUI/NavScroll/NavRow/HunterGearButton
+@onready var hunter_gear_button: Button = $GameUI/NavMenu/BannerList/HunterGearBanner
 @onready var hunter_gear_view: HunterGearView = $GameUI/HunterGearPanel
 @onready var shadow_gear_view: ShadowGearView = $GameUI/ShadowGearPanel
-@onready var army_button: Button = $GameUI/NavScroll/NavRow/ArmyButton
+@onready var army_button: Button = $GameUI/NavMenu/BannerList/ArmyBanner
 @onready var army_view: ArmyView = $GameUI/ArmyPanel
-@onready var nadir_button: Button = $GameUI/NavScroll/NavRow/NadirButton
+@onready var nadir_button: Button = $GameUI/NavMenu/BannerList/NadirBanner
 @onready var nadir_panel: Node2D = $GameUI/NadirPanel
 @onready var nadir_info_label: Label = $GameUI/NadirPanel/InfoLabel
 @onready var nadir_take_on_button: Button = $GameUI/NadirPanel/TakeOnButton
-@onready var stronghold_button: Button = $GameUI/NavScroll/NavRow/StrongholdButton
+@onready var stronghold_button: Button = $GameUI/NavMenu/BannerList/StrongholdBanner
 @onready var stronghold_view: StrongholdView = $GameUI/StrongholdPanel
 @onready var place_stronghold_button: Button = $GameUI/StrongholdPanel/PlaceStrongholdButton
 @onready var confirm_stronghold_button: Button = $GameUI/ConfirmStrongholdButton
 @onready var cancel_stronghold_button: Button = $GameUI/CancelStrongholdButton
-@onready var character_button: Button = $GameUI/NavScroll/NavRow/CharacterButton
+@onready var character_button: Button = $GameUI/NavMenu/BannerList/CharacterBanner
 @onready var character_view: CharacterView = $GameUI/CharacterPanel
-@onready var use_ticket_button: Button = $GameUI/NavScroll/NavRow/UseTicketButton
-@onready var shop_button: Button = $GameUI/NavScroll/NavRow/ShopButton
+@onready var use_ticket_button: Button = $GameUI/NavMenu/BannerList/UseTicketBanner
+@onready var shop_button: Button = $GameUI/NavMenu/BannerList/ShopBanner
 @onready var shop_view: ShopView = $GameUI/ShopPanel
-@onready var leaderboard_button: Button = $GameUI/NavScroll/NavRow/LeaderboardButton
+@onready var leaderboard_button: Button = $GameUI/NavMenu/BannerList/LeaderboardBanner
 @onready var leaderboard_view: LeaderboardView = $GameUI/LeaderboardPanel
 @onready var gate_break_panel: Node2D = $GameUI/GateBreakPanel
 @onready var gate_break_info_label: Label = $GameUI/GateBreakPanel/InfoLabel
@@ -270,6 +272,8 @@ func _start_game() -> void:
 func _setup_gear_panels() -> void:
 	if not hunter_gear_button.pressed.is_connected(_on_hunter_gear_button_pressed):
 		hunter_gear_button.pressed.connect(_on_hunter_gear_button_pressed)
+		menu_button.pressed.connect(_on_menu_button_pressed)
+		hunter_gear_button.pressed.connect(_close_nav_menu)
 		hunter_gear_view.state_changed.connect(_on_state_changed)
 		shadow_gear_view.state_changed.connect(_on_state_changed)
 		army_button.pressed.connect(
@@ -277,6 +281,7 @@ func _setup_gear_panels() -> void:
 				_hide_marker_card()
 				army_view.open()
 		)
+		army_button.pressed.connect(_close_nav_menu)
 		army_view.state_changed.connect(_on_state_changed)
 		army_view.mass_convert_result.connect(
 			func(msg: String) -> void: system_toast.show_toast(msg.lstrip("\n"))
@@ -289,8 +294,10 @@ func _setup_gear_panels() -> void:
 				_hide_marker_card()
 				inventory_view.open()
 		)
+		inventory_button.pressed.connect(_close_nav_menu)
 		inventory_view.state_changed.connect(_on_state_changed)
 		nadir_button.pressed.connect(_on_nadir_button_pressed)
+		nadir_button.pressed.connect(_close_nav_menu)
 		$GameUI/NadirPanel/CloseButton.pressed.connect(_on_nadir_close_pressed)
 		nadir_take_on_button.pressed.connect(_on_nadir_take_on_pressed)
 		stronghold_button.pressed.connect(
@@ -298,6 +305,7 @@ func _setup_gear_panels() -> void:
 				_hide_marker_card()
 				stronghold_view.open()
 		)
+		stronghold_button.pressed.connect(_close_nav_menu)
 		stronghold_view.state_changed.connect(_on_state_changed)
 		stronghold_view.collected.connect(
 			func(msg: String) -> void: system_panel.show_panel("STRONGHOLD", msg.lstrip("\n"))
@@ -309,10 +317,13 @@ func _setup_gear_panels() -> void:
 		confirm_stronghold_button.pressed.connect(_on_confirm_stronghold_pressed)
 		cancel_stronghold_button.pressed.connect(_on_cancel_stronghold_pressed)
 		character_button.pressed.connect(_on_character_button_pressed)
+		character_button.pressed.connect(_close_nav_menu)
 		character_view.state_changed.connect(_on_state_changed)
 		character_view.trial_result.connect(_on_character_trial_result)
 		use_ticket_button.pressed.connect(_on_use_ticket_pressed)
+		use_ticket_button.pressed.connect(_close_nav_menu)
 		shop_button.pressed.connect(_on_shop_button_pressed)
+		shop_button.pressed.connect(_close_nav_menu)
 		shop_view.close_requested.connect(func() -> void: shop_view.visible = false)
 		shop_view.buy_ticket_bundle_requested.connect(_on_buy_ticket_bundle_requested)
 		shop_view.buy_essence_bundle_requested.connect(_on_buy_essence_bundle_requested)
@@ -322,6 +333,7 @@ func _setup_gear_panels() -> void:
 				_hide_marker_card()
 				leaderboard_view.open()
 		)
+		leaderboard_button.pressed.connect(_close_nav_menu)
 		gate_break_accept_button.pressed.connect(_on_gate_break_accept_pressed)
 		gate_break_dismiss_button.pressed.connect(_on_gate_break_dismiss_pressed)
 		gate_break_timer.timeout.connect(_maybe_offer_gate_break)
@@ -892,6 +904,14 @@ func _on_use_ticket_pressed() -> void:
 			return
 		_pending_ticket_gate = gate
 	_show_ticket_gate_card(_pending_ticket_gate)
+
+
+func _on_menu_button_pressed() -> void:
+	banner_list.visible = not banner_list.visible
+
+
+func _close_nav_menu() -> void:
+	banner_list.visible = false
 
 
 func _on_place_stronghold_pressed() -> void:
