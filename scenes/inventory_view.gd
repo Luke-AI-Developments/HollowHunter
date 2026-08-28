@@ -334,7 +334,10 @@ func _show_detail() -> void:
 				var monster := Content.monster_by_id(
 					_monsters, _state.army[shadow_idx].get("monster_id", "")
 				)
-				shadow_name = monster.get("name", "a shadow")
+				var nickname: String = _state.army[shadow_idx].get("nickname", "")
+				shadow_name = (
+					nickname if nickname != "" else String(monster.get("name", "a shadow"))
+				)
 			wearer_label.text = "Currently equipped by: %s" % shadow_name
 		_:
 			wearer_label.text = "Unequipped"
