@@ -23,7 +23,7 @@ const CLASS_WATER_AREA := 4
 ## MapView is a bare Node2D with no inherent fill, so without this the map
 ## would show whatever panel happens to sit behind it instead of the
 ## intended dark basemap.
-const BACKGROUND_COLOR := Color(0x05 / 255.0, 0x0b / 255.0, 0x12 / 255.0)
+const BACKGROUND_COLOR := Color(0x0c / 255.0, 0x14 / 255.0, 0x20 / 255.0)
 
 
 ## Same formula as the Python conversion script -- must stay in sync.
@@ -66,15 +66,15 @@ static func distance_metres(lat1: float, lon1: float, lat2: float, lon2: float) 
 static func road_color(class_id: int) -> Color:
 	match class_id:
 		CLASS_MAJOR_ROAD:
-			return Color(0x1b / 255.0, 0x25 / 255.0, 0x32 / 255.0)
+			return Color(0x3a / 255.0, 0x4a / 255.0, 0x5e / 255.0)
 		CLASS_MINOR_ROAD:
-			return Color(0x0f / 255.0, 0x16 / 255.0, 0x20 / 255.0)
+			return Color(0x26 / 255.0, 0x31 / 255.0, 0x3f / 255.0)
 		CLASS_PATH:
-			return Color(0x0a / 255.0, 0x0f / 255.0, 0x16 / 255.0)
+			return Color(0x1c / 255.0, 0x24 / 255.0, 0x30 / 255.0)
 		CLASS_WATER_LINE, CLASS_WATER_AREA:
-			return Color(0x02 / 255.0, 0x04 / 255.0, 0x0a / 255.0)
+			return Color(0x07 / 255.0, 0x0d / 255.0, 0x16 / 255.0)
 		_:
-			return Color(0x0f / 255.0, 0x16 / 255.0, 0x20 / 255.0)
+			return Color(0x26 / 255.0, 0x31 / 255.0, 0x3f / 255.0)
 
 
 ## Base on-screen width in pixels, BEFORE any zoom scaling scenes/

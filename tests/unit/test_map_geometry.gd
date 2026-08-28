@@ -31,29 +31,29 @@ func test_lonlat_to_mercator_longitude_scales_linearly() -> void:
 
 
 func test_background_color_is_the_locked_near_black() -> void:
-	assert_eq(MapGeometry.BACKGROUND_COLOR, Color(0x05 / 255.0, 0x0b / 255.0, 0x12 / 255.0))
+	assert_eq(MapGeometry.BACKGROUND_COLOR, Color(0x0c / 255.0, 0x14 / 255.0, 0x20 / 255.0))
 
 
 func test_road_color_matches_class() -> void:
 	assert_eq(
 		MapGeometry.road_color(MapGeometry.CLASS_MAJOR_ROAD),
-		Color(0x1b / 255.0, 0x25 / 255.0, 0x32 / 255.0)
+		Color(0x3a / 255.0, 0x4a / 255.0, 0x5e / 255.0)
 	)
 	assert_eq(
 		MapGeometry.road_color(MapGeometry.CLASS_MINOR_ROAD),
-		Color(0x0f / 255.0, 0x16 / 255.0, 0x20 / 255.0)
+		Color(0x26 / 255.0, 0x31 / 255.0, 0x3f / 255.0)
 	)
 	assert_eq(
 		MapGeometry.road_color(MapGeometry.CLASS_PATH),
-		Color(0x0a / 255.0, 0x0f / 255.0, 0x16 / 255.0)
+		Color(0x1c / 255.0, 0x24 / 255.0, 0x30 / 255.0)
 	)
 	assert_eq(
 		MapGeometry.road_color(MapGeometry.CLASS_WATER_AREA),
-		Color(0x02 / 255.0, 0x04 / 255.0, 0x0a / 255.0)
+		Color(0x07 / 255.0, 0x0d / 255.0, 0x16 / 255.0)
 	)
 	assert_eq(
 		MapGeometry.road_color(MapGeometry.CLASS_WATER_LINE),
-		Color(0x02 / 255.0, 0x04 / 255.0, 0x0a / 255.0)
+		Color(0x07 / 255.0, 0x0d / 255.0, 0x16 / 255.0)
 	)
 
 

@@ -1425,7 +1425,7 @@ The map isn't only gates — a few POI types give the world texture and reasons 
 ### Target treatment per layer
 | Layer | Treatment |
 |---|---|
-| Background / land | Near-black (`#03070d`–`#080d14`), flat, no texture |
+| Background / land | Near-black (`#03070d`–`#0c1420`), flat, no texture |
 | Water | Slightly *darker* and cooler than land — reads as void, never bright blue |
 | Major roads | Dark grey, faintly lighter than land — enough to read the street grid, no more |
 | Minor roads / paths | Barely visible; present for orientation, not emphasis |
@@ -1434,6 +1434,8 @@ The map isn't only gates — a few POI types give the world texture and reasons 
 | POI labels/icons | **Off.** The game supplies its own POIs; OSM shop/cafe pins are pure clutter |
 | Place labels | Minimal — a few major place names for orientation, dim grey, small |
 | Road labels | Off, or very sparse on major roads only |
+
+**Palette lifted for on-device daylight legibility (2026-08-28):** the original near-blacks were unreadable on a phone outdoors at midday, so the `core/map_geometry.gd` constants were bumped — background `#050b12`→`#0c1420`, major roads `#1b2532`→`#3a4a5e`, minor roads `#0f1620`→`#26313f`, paths `#0a0f16`→`#1c2430`, water `#02040a`→`#070d16`. Still quiet; cyan markers still pop. Concrete values live in `core/map_geometry.gd` (`tests/unit/test_map_geometry.gd` locks them).
 
 ### Implementation notes
 - **Start from an existing open dark style, don't author from scratch.** Protomaps publishes an open basemap style with a dark theme that already maps cleanly onto their tile schema — retinting that is hours of work; writing a full style from zero is days. *(Verify the current Protomaps style/schema docs before starting — their basemap schema has versioned.)*
