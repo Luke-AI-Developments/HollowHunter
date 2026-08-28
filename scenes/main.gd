@@ -676,6 +676,7 @@ func _close_claim_nickname_panel() -> void:
 
 
 func _on_marker_tapped(info: Dictionary) -> void:
+	_close_nav_menu()
 	match info["type"]:
 		"gate":
 			_show_gate_card(info["index"], info["screen_pos"])
@@ -690,6 +691,7 @@ func _on_marker_tapped(info: Dictionary) -> void:
 
 func _on_map_tapped_empty() -> void:
 	_hide_marker_card()
+	_close_nav_menu()
 
 
 ## Clears MarkerCard's visibility and which POI it was showing (the latter
@@ -709,7 +711,8 @@ func _hide_marker_card() -> void:
 ## Positions MarkerCard above marker_screen_pos, clamped to stay fully
 ## on-screen -- flips below the marker instead when there isn't enough
 ## room above it (near the top of the screen), and never low enough to
-## overlap NavScroll (offset_top = 2260.0 in main.tscn) at the bottom.
+## reach the bottom safe-margin (y 2260, a holdover from the old bottom
+## nav bar; kept as a simple bottom inset).
 ## 1080.0 is this project's fixed viewport width (project.godot's
 ## window/size/viewport_width), same hardcoded-pixel convention every
 ## other node in main.tscn already uses -- there's no responsive layout
@@ -919,6 +922,8 @@ func _on_place_stronghold_pressed() -> void:
 	map_view.begin_stronghold_placement()
 	confirm_stronghold_button.visible = true
 	cancel_stronghold_button.visible = true
+	menu_button.visible = false
+	_close_nav_menu()
 
 
 func _on_confirm_stronghold_pressed() -> void:
@@ -931,12 +936,14 @@ func _on_confirm_stronghold_pressed() -> void:
 	map_view.end_stronghold_placement()
 	confirm_stronghold_button.visible = false
 	cancel_stronghold_button.visible = false
+	menu_button.visible = true
 
 
 func _on_cancel_stronghold_pressed() -> void:
 	map_view.end_stronghold_placement()
 	confirm_stronghold_button.visible = false
 	cancel_stronghold_button.visible = false
+	menu_button.visible = true
 
 
 func _on_marker_card_action_pressed() -> void:
