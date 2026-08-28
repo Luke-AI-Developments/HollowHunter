@@ -134,9 +134,9 @@ patch_margin_bottom = 64
 
 [node name="Label" type="Label" parent="GameUI"]
 z_index = 1
-offset_left = 40.0
+offset_left = 72.0
 offset_top = 84.0
-offset_right = 1040.0
+offset_right = 1008.0
 offset_bottom = 300.0
 theme_override_font_sizes/font_size = 28
 text = "Waiting for location..."
