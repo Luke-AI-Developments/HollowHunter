@@ -272,8 +272,8 @@ func _start_game() -> void:
 func _setup_gear_panels() -> void:
 	if not hunter_gear_button.pressed.is_connected(_on_hunter_gear_button_pressed):
 		hunter_gear_button.pressed.connect(_on_hunter_gear_button_pressed)
-		menu_button.pressed.connect(_on_menu_button_pressed)
 		hunter_gear_button.pressed.connect(_close_nav_menu)
+		menu_button.pressed.connect(_on_menu_button_pressed)
 		hunter_gear_view.state_changed.connect(_on_state_changed)
 		shadow_gear_view.state_changed.connect(_on_state_changed)
 		army_button.pressed.connect(
@@ -910,6 +910,8 @@ func _on_use_ticket_pressed() -> void:
 
 
 func _on_menu_button_pressed() -> void:
+	if not banner_list.visible:
+		_hide_marker_card()
 	banner_list.visible = not banner_list.visible
 
 
