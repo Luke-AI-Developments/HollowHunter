@@ -169,6 +169,7 @@ func claim_shadow(monster_id: String, grade: String) -> Dictionary:
 		"locked": false,
 		"favorite": false,
 		"idle_progress": 0.0,
+		"nickname": "",
 	}
 	army.append(shadow)
 	return shadow
@@ -194,6 +195,23 @@ func set_shadow_favorite(shadow_instance_id: String, favorite: bool) -> bool:
 	if idx < 0:
 		return false
 	army[idx]["favorite"] = favorite
+	return true
+
+
+## §6c: sets a per-instance custom nickname, shown in place of the species
+## name across the roster / squad picker / battle screen / Shadow Gear
+## title (SquadBuilder.enrich_army resolves nickname -> display_name). An
+## empty string clears it back to the species name -- always allowed, same
+## "skip is always valid" rule TextFilter.is_valid_nickname encodes. False
+## (no-op) if the shadow is unknown or the text fails TextFilter (too long
+## / blocked word).
+func set_shadow_nickname(shadow_instance_id: String, nickname: String) -> bool:
+	var idx := _army_index(shadow_instance_id)
+	if idx < 0:
+		return false
+	if not TextFilter.is_valid_nickname(nickname):
+		return false
+	army[idx]["nickname"] = TextFilter.sanitize_nickname(nickname)
 	return true
 
 

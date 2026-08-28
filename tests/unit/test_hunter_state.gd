@@ -620,6 +620,63 @@ func test_set_shadow_favorite_toggles_the_flag() -> void:
 	assert_true(s.army[0]["favorite"])
 
 
+func test_claim_shadow_starts_with_no_nickname() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	assert_eq(shadow["nickname"], "")
+
+
+func test_set_shadow_nickname_sets_it() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	assert_true(s.set_shadow_nickname(shadow["instance_id"], "Duskfang"))
+	assert_eq(s.army[0]["nickname"], "Duskfang")
+
+
+func test_set_shadow_nickname_trims_whitespace() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	s.set_shadow_nickname(shadow["instance_id"], "  Duskfang  ")
+	assert_eq(s.army[0]["nickname"], "Duskfang")
+
+
+func test_set_shadow_nickname_can_clear_back_to_empty() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	s.set_shadow_nickname(shadow["instance_id"], "Duskfang")
+	assert_true(s.set_shadow_nickname(shadow["instance_id"], ""))
+	assert_eq(s.army[0]["nickname"], "")
+
+
+func test_set_shadow_nickname_rejects_too_long() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	var ok := s.set_shadow_nickname(shadow["instance_id"], "a".repeat(TextFilter.MAX_LENGTH + 1))
+	assert_false(ok)
+	assert_eq(s.army[0]["nickname"], "")
+
+
+func test_set_shadow_nickname_rejects_blocked_word() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	assert_false(s.set_shadow_nickname(shadow["instance_id"], "fuck"))
+	assert_eq(s.army[0]["nickname"], "")
+
+
+func test_set_shadow_nickname_unknown_shadow_is_a_noop() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	assert_false(s.set_shadow_nickname("does_not_exist", "Duskfang"))
+
+
+func test_set_shadow_nickname_is_per_instance_not_per_species() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_ashen_warden", "C")
+	s.claim_shadow("mon_ashen_warden", "C")
+	s.set_shadow_nickname(a["instance_id"], "Duskfang")
+	assert_eq(s.army[0]["nickname"], "Duskfang")
+	assert_eq(s.army[1]["nickname"], "")
+
+
 func test_locked_shadow_can_still_be_explicitly_converted() -> void:
 	# Locking protects from mass-convert specifically, not a single
 	# deliberate convert_shadow() call.
