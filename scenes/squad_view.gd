@@ -79,7 +79,7 @@ func refresh(squad: Array, active_party_ids: Array, resolved_party: Array) -> vo
 			row["label"].text = (
 				"%s (%s·%s Lv%d) pwr:%d"
 				% [
-					member["monster_name"],
+					member["display_name"],
 					member["grade_name"],
 					member["grade"],
 					member["level"],
@@ -95,7 +95,7 @@ func refresh(squad: Array, active_party_ids: Array, resolved_party: Array) -> vo
 			row["toggle_btn"].disabled = true
 
 	var chosen_names: Array = resolved_party.map(
-		func(m: Dictionary) -> String: return String(m["monster_name"])
+		func(m: Dictionary) -> String: return String(m["display_name"])
 	)
 	var manual_note := "" if active_party_ids.is_empty() else " (manual)"
 	info_label.text = (

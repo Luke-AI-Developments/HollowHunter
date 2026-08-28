@@ -473,7 +473,7 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 				member["clazz"],
 				member["level"],
 				shadow_stats,
-				member["monster_name"],
+				member["display_name"],
 				synergy_bonus
 			)
 		)

@@ -160,7 +160,7 @@ func _refresh_roster() -> void:
 			marker += " [F]" if e["favorite"] else ""
 			row.text = (
 				"%s (%s·%s Lv%d) pwr:%d%s"
-				% [e["monster_name"], e["grade_name"], e["grade"], e["level"], e["power"], marker]
+				% [e["display_name"], e["grade_name"], e["grade"], e["level"], e["power"], marker]
 			)
 			row.pressed.connect(_on_shadow_row_pressed.bind(e["instance_id"]))
 			sections_container.add_child(row)
