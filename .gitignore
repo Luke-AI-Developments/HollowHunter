@@ -31,8 +31,13 @@ Thumbs.db
 # binary, build-in-public content for the user, not project source. Local only.
 devmedia/
 
-# Visual brainstorming companion scratch (superpowers skill) -- local only.
+# Local-only working notes / tooling config
 .superpowers/
+.claude/
+docs/superpowers/
+prompts/
+logs/
+docs/HollowHunter_ContentPlan.md
 
 # Python (tools/ scripts)
 __pycache__/

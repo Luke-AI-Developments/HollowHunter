@@ -1,8 +1,7 @@
 # HollowHunter — Conventions
 
 Godot 4 mobile game. Android first, foreground-only GPS, native Health Connect
-+ GPS plugins. No game code before the environment/plugin setup checklist
-(see chat history / setup prompt) is done.
++ GPS plugins. Native GPS / Health Connect bridges are prototyped on a physical device before any game code depends on them.
 
 ## Folder layout
 
@@ -33,10 +32,10 @@ game, that's a sign the logic needs to move to `core/` and get a test.
 - Prefer signals over polling for cross-node communication.
 - `class_name` only on classes referenced from other files/scenes; skip it
   for anything used in exactly one place.
-- Format with `gdformat`, lint with `gdlint` before every commit — the
-  post-edit hook does this automatically (see `.claude/settings.json`).
+- Format with `gdformat`, lint with `gdlint` before every commit (an
+  editor / pre-commit hook handles this).
 
-## Engineering principles (Karpathy)
+## Engineering principles
 
 - **Think before coding.** State assumptions explicitly; if uncertain, ask.
   Present real interpretations rather than silently picking one. Push back

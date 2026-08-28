@@ -233,7 +233,7 @@ Solo gameplay, but a leaderboard gives it a competitive spine. Kept simple — i
 
 ## 9b. Art direction & character creation
 
-> **Production order: placeholder-first.** Build the whole game with placeholder art (colored shapes + labels, or free CC0 packs from **Kenney.nl**) and do the real art as a single pass at the end. This section is the *target* for that final pass, not day-one work. **Critical enabler:** reference every sprite by a data ID → art-path (never hardcode sprites), so final assets swap in by editing data, not code. Consequence: keep the art MCPs (PixelLab/Aseprite/Blender) **off** during systems development — enable them only for the art phase.
+> **Production order: placeholder-first.** Build the whole game with placeholder art (colored shapes + labels, or free CC0 packs from **Kenney.nl**) and do the real art as a single pass at the end. This section is the *target* for that final pass, not day-one work. **Critical enabler:** reference every sprite by a data ID → art-path (never hardcode sprites), so final assets swap in by editing data, not code. Keep asset generation out of the systems-development phase — do it as one dedicated pass at the end.
 
 ### Art identity — LOCKED v1 (supersedes earlier palette notes)
 *Decided with the founder during the marketing key-art work.*
@@ -269,22 +269,12 @@ The look comes from **rendering, not sprite detail**: pixel-art sprites placed i
 
 **Rank visual language (ties art to progression):** E-rank = ragged, desaturated, no glow → higher ranks add gear detail, aura intensity, particle density, and shadow-army presence. Progression is *visible*.
 
-**Consistency rig:** a fixed generation prompt template + fixed seed + reference image, and every output post-processed (downscale to target res + palette-snap to the locked palette). *Consistency across assets — not single-image quality — is the real challenge with AI art.*
+**Consistency rig:** a fixed generation prompt template + fixed seed + reference image, and every output post-processed (downscale to target res + palette-snap to the locked palette). *Consistency across assets — not single-image quality — is the real challenge.*
 
 **Reusable prompt template (fill the brackets):**
 > *"[subject], pixel art game sprite, [64x64], dark fantasy, moody cinematic lighting, limited palette of charcoal-black + electric cyan accent, subtle dark outline, dramatic rim light, glowing cyan [element] magic, clean readable silhouette, [front/8-direction] view, transparent background, HD-2D asset"*
 >
 > Shadow variant: append *"rendered as an inky black shadow silhouette with glowing cyan inner light and smoky edges."*
-
-### Recommended art tooling (Claude Code + external)
-Minimal stack — generate → clean → integrate:
-- **PixelLab MCP** — game-ready pixel sprites (characters, 4/8-dir views, idle/walk/run animations, tilesets); plugs into Claude Code *and* Godot. Your primary sprite generator.
-- **Godot MCP** (e.g. mkdevkit/godot-mcp or GDAI) — lets Claude control the Godot 4 editor: build scenes/nodes/scripts and **read editor errors**. Biggest offset to Claude's weaker Godot training. ~15-min setup.
-- **Aseprite + `pixel-plugin`** — the standard pixel editor, drivable by natural language, for the essential cleanup/palette-snap/animation/export step.
-- **Blender MCP** — *later*, for HD-2D battle backdrops: rough 3D layout + lighting + Poly Haven HDRIs. Good for blockouts, weak on organic detail.
-- **Raw image gens (optional):** Sprite AI, Flux 2 (concept art), SDXL + pixel-art LoRA, Leonardo.Ai. For hard consistency, local Stable Diffusion (ComfyUI) + a LoRA trained on your own style.
-
-*Rule of thumb from the field: pipeline + post-processing beat prompt-crafting. Raw AI output is never a drop-in asset — build a repeatable clean-up pass.*
 
 ### Character creation — preset-first, progression-driven
 - **No full modular creator.** AI can't keep mix-and-match parts consistent, and it's a solo-dev trap.
@@ -346,7 +336,7 @@ Minimal stack — generate → clean → integrate:
 | Backend (rankings + events) | **Supabase/Firebase via REST** | Godot calls HTTP from GDScript |
 | Game logic | pure GDScript/C# modules | formulas live here, fully testable |
 
-**⚠ The risk to plan around first:** Godot's GPS + HealthKit/Health Connect + push story is far less mature than React Native's. Expect to write or adapt **native plugins** (Kotlin for Android, Swift/Obj-C for iOS) to bridge health + location into the engine — the spiciest, least AI-assisted part of the project. **Prototype this bridge before building the game on top of it.**
+**⚠ The risk to plan around first:** Godot's GPS + HealthKit/Health Connect + push story is far less mature than React Native's. Expect to write or adapt **native plugins** (Kotlin for Android, Swift/Obj-C for iOS) to bridge health + location into the engine — the spiciest, most manual part of the project. **Prototype this bridge before building the game on top of it.**
 
 **Architecture principle:** keep all game logic (EXP, power, clear-probability, loot rolls) as pure, testable GDScript/C# independent of scenes — same discipline as before, just in Godot.
 
@@ -368,97 +358,7 @@ Aim for the smallest thing that proves the core fantasy: **train → get stronge
 
 **Then layer in the rest as patches — full ordered roadmap in §24** (equipment & sets → shadow grades → Nadir → stationary play → Stronghold → incursions → backend + rankings → shop).
 
-**Rough effort:** the MVP is a realistic few-weekends vibe-coding target. The long tail (content, balance, art, polish) is where the real time goes — true of every game, not a tech limit.
-
----
-
-## 11b. Dev environment setup — install before coding
-
-> **When you're ready to start coding, ask Claude Code to audit what you already have vs. what's missing.** Suggested opening prompt:
->
-> *"Before we write any code, audit my dev environment for a Godot 4 mobile game targeting Android and iOS with native GPS + health-data plugins. Check what's installed vs. missing and give exact install commands for my OS: Godot 4 (the .NET build if we'll use C#), Git, Android Studio + Android SDK/NDK + a JDK (for Android export and native plugins), and — if I'm on a Mac — Xcode + CocoaPods (for iOS export and native plugins). Confirm Godot's Android and iOS export templates are installed. Then set up a Git repo, a Godot .gitignore, a project structure that keeps game logic in pure testable scripts, the GUT unit-test addon, and gdtoolkit (gdformat/gdlint) with post-edit hooks that run format + lint + tests.*
-> *Also review every Claude Code plugin and MCP server I currently have enabled, and DISABLE any that aren't useful for a Godot/GDScript game — they load tool definitions into context every session and waste tokens. Keep only what's relevant to Godot, code quality, and the art pipeline (see the keep/disable list below)."*
-
-**The checklist it should verify (skip anything you already have):**
-
-| Tool | Why | Note |
-|------|-----|------|
-| **Godot 4** (.NET build if using C#) | the engine | Forward+ renderer for HD-2D |
-| **Git + GitHub account** | version control / rollback safety | commit often |
-| **Android Studio + SDK + NDK + JDK** | Android export **and** native GPS/health plugins | required for the plugin bridge |
-| **Xcode + CocoaPods** | iOS export + native plugins | Mac only |
-| **Godot export templates** (Android/iOS) | needed to build to a device | install from Godot |
-| **VS Code** | edit GDScript + native (Kotlin/Swift) plugin code | run Claude Code in its terminal |
-| **GUT (Godot Unit Test) addon** | unit-test the game-logic math | per-project |
-| **gdtoolkit** (`gdformat` + `gdlint`) | auto-format + lint GDScript; wire into post-edit hooks | `pip install gdtoolkit` |
-| **Physical Android/iOS device** | GPS + health need real hardware | simulators won't cut it |
-
-**Claude Code MCPs & plugins — enable vs. disable (prune to save context tokens):**
-
-| Enable — useful here | For |
-|----------------------|-----|
-| **Godot MCP** (mkdevkit/godot-mcp or GDAI) | Claude builds scenes/nodes/scripts + reads editor errors — on the whole time |
-| **PixelLab MCP** | game-ready pixel sprites — *art phase only; keep OFF during systems dev* |
-| **Aseprite + `pixel-plugin`** | pixel cleanup/palette-snap/export — *art phase only; OFF during systems dev* |
-| **Blender MCP** | *art phase only* — HD-2D battle backdrops + lighting blockouts |
-| **context7** | live Godot / plugin docs (offsets weaker Godot training) |
-| **karpathy-skills** | code-quality guardrails (merge into `CLAUDE.md`) |
-| **code-review, code-simplifier** | the check-then-clean quality loop |
-| **github, claude-md-management, feature-dev** | version control + workflow |
-| **frontend-design** (situational) | UI mockups only — sketch the "System" look as web mockups, then rebuild in Godot; **OFF during core coding** |
-| **Figma MCP** (optional) | only if you design UI in Figma — bridges designs toward implementation specs |
-
-| Disable — dead weight for a Godot game | Why |
-|----------------------------------------|-----|
-| **caveman** | forces terse replies — counterproductive while learning Godot |
-| **typescript-lsp, playwright** | web/TS-oriented; irrelevant unless you later build a web leaderboard |
-| **gstack** | shelve until the project has real momentum |
-
-> Every enabled MCP/plugin loads its tool definitions into the context window each session, so prune aggressively — e.g. keep Blender MCP off until you actually reach backdrops.
-
-**Setup steps beyond installs (highest-leverage):**
-- **Prototype the native GPS + health plugin FIRST** — it's the #1 technical risk; prove it before building the game on top.
-- Generate a **`CLAUDE.md`** (`/init`) with conventions: GDScript style, folder layout, "game logic stays pure & testable," naming.
-- Keep game logic pure and covered by **GUT** tests; commit whenever tests are green.
-- Wire **post-edit hooks** to run `gdformat` + `gdlint` + GUT, so Claude auto-formats, lints, and tests its own GDScript (the quality loop for Godot).
-- Loop: small change → format/lint/tests green → commit → repeat.
-
-*Note: Claude is less trained on GDScript + Godot native plugins than on mainstream web stacks, so expect to lean on Godot docs/community for the plugin-bridging parts.*
-
----
-
-## 11c. First build — the Android health/GPS spike (do this before anything else)
-
-**Decisions locked:** target **Android first**, **foreground-only** location. The spike is a *throwaway* prototype whose only job is to prove real GPS + real step/workout data reach GDScript on a physical phone. No game, no art. If it works, the rest is normal Godot dev; if it doesn't, you've learned that cheaply.
-
-### Native pieces involved
-- **GPS:** Android `FusedLocationProviderClient` (Kotlin), foreground, `ACCESS_FINE_LOCATION` only — no background permission needed.
-- **Health:** **Health Connect** (`androidx.health.connect:connect-client`, Kotlin) — read Steps, ExerciseSession, ActiveCaloriesBurned, HeartRate, Distance.
-- **Bridge:** a Godot 4 **Android plugin** — a Kotlin class extending `GodotPlugin`, methods exposed with `@UsedByGodot`, async results returned to GDScript via **signals** (`emitSignal`), built as an AAR with Gradle. Use Godot 4.2+ v2 Android plugin system. Device-only — none of this runs in the editor.
-
-### Checkpoints (each is a go/no-go gate)
-1. **Blank Godot app runs on your real phone.** Android export preset + export templates + USB debugging + one-click deploy. *Biggest hidden hurdle — prove the whole pipeline before touching native code.*
-2. **Hello-world plugin.** GDScript calls a plugin method, gets a string back. Proves the bridge + Gradle build independent of the messy platform APIs.
-3. **GPS.** Plugin requests location permission at runtime, returns live lat/long to GDScript via a signal, shown on a label. Walk around, watch it update.
-4. **Health Connect.** Request Health Connect permissions (its own permission flow, *not* standard runtime perms), read today's aggregated steps + most recent ExerciseSession, return to GDScript via signal, show on screen.
-
-**Done when:** one screen shows your live location + today's steps + last workout, pulled from GDScript, on device.
-
-**Immediately after (still simple):** feed those numbers into the §4 EXP formula so a workout visibly raises a number. That closes the core input loop and de-risks everything downstream.
-
-### Android-specific gotchas
-- **Health Connect availability:** needs Android 8+ (API 26); it's built into the OS on Android 14+, a separate installable app below that. Confirm your test device before starting.
-- **Everything is async** — return data through signals, never method return values.
-- **Health Connect permissions** use a dedicated permission contract, separate from location's runtime permission.
-- **Release (not spike-blocking):** Health Connect requires declaring the data types you read + a privacy policy; plan for it at store-submission time.
-
-### How to work it with your tooling
-- **context7** — pull current Health Connect + Godot Android-plugin docs (this is the exact spot Claude's training is thin).
-- **Godot MCP** — let Claude build the test scene, wire the label + signal, and read editor/export errors.
-- Expect to **hand-write the Kotlin** with Claude assisting — the plugin bridge is the least-automatable part.
-
-### Fallback gate
-If checkpoints 1–2 become a multi-week fight, that's the native-plugin risk materializing → pivot to the React Native route (mature health/GPS libraries) + an embedded engine view for HD-2D combat. Decide by the end of checkpoint 2, not later.
+**Rough effort:** the MVP is a realistic few-weekends target. The long tail (content, balance, art, polish) is where the real time goes — true of every game, not a tech limit.
 
 ---
 

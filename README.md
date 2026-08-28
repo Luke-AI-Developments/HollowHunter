@@ -91,9 +91,8 @@ Anything that decides an outcome lives in `core/` behind a pure function with a
 unit test. If a bug can only be reproduced by clicking through the running game,
 that's a signal the logic needs to move to `core/`.
 
-Feature work is spec-driven: each system gets a design doc in
-`docs/superpowers/specs/` and a task-by-task implementation plan in
-`docs/superpowers/plans/` before code is written.
+Feature work is spec-driven: a written design doc and a task-by-task
+implementation plan precede the code for each system.
 
 **Tech:** Godot 4.7 · GDScript (static typing throughout, `gdformat` + `gdlint`
 enforced) · [GUT](https://github.com/bitwes/Gut) for unit tests · Kotlin
@@ -109,7 +108,7 @@ native/android/  Kotlin GPS / Health Connect plugin source
 content/         authored JSON + the map data extract
 tools/           map-extract pipeline, theme builder, art helpers
 tests/unit/      GUT tests, one file per core/ module
-docs/            concept & business docs, per-feature specs and plans
+docs/            concept & design docs, coding conventions
 ```
 
 ## Building
