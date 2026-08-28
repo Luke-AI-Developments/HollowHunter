@@ -31,6 +31,10 @@ BackendService="*res://autoload/backend_service.gd"
 
 enabled=PackedStringArray("res://addons/gps_health_bridge/plugin.cfg")
 
+[gui]
+
+theme/custom="res://ui/theme/hollowhunter.tres"
+
 [rendering]
 
 renderer/rendering_method="mobile"
