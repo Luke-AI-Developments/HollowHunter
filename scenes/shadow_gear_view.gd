@@ -235,6 +235,10 @@ func _on_rename_pressed() -> void:
 		return
 	rename_input.text = String(_state.army[_index].get("nickname", ""))
 	rename_button.visible = false
+	$PrevButton.visible = false
+	$NextButton.visible = false
+	$AutoEquipButton.visible = false
+	$CloseButton.visible = false
 	rename_input.visible = true
 	rename_save_button.visible = true
 	rename_cancel_button.visible = true
@@ -259,6 +263,10 @@ func _on_rename_cancel_pressed() -> void:
 
 func _close_rename() -> void:
 	rename_button.visible = true
+	$PrevButton.visible = true
+	$NextButton.visible = true
+	$AutoEquipButton.visible = true
+	$CloseButton.visible = true
 	rename_input.visible = false
 	rename_save_button.visible = false
 	rename_cancel_button.visible = false
