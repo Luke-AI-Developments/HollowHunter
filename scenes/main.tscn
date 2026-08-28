@@ -370,7 +370,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Title" type="Label" parent="GameUI/HunterGearPanel"]
 offset_left = 40.0
@@ -415,7 +415,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Title" type="Label" parent="GameUI/ShadowGearPanel"]
 offset_left = 40.0
@@ -559,7 +559,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="RosterTabButton" type="Button" parent="GameUI/ArmyPanel"]
 offset_left = 40.0
@@ -635,7 +635,7 @@ offset_left = 0.0
 offset_top = 90.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="CloseButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 40.0
@@ -680,7 +680,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="GridTabButton" type="Button" parent="GameUI/InventoryPanel"]
 offset_left = 40.0
@@ -942,7 +942,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Title" type="Label" parent="GameUI/ShopPanel"]
 offset_left = 40.0
@@ -979,7 +979,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Title" type="Label" parent="GameUI/LeaderboardPanel"]
 offset_left = 40.0
@@ -1074,7 +1074,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Title" type="Label" parent="GameUI/NadirPanel"]
 offset_left = 40.0
@@ -1117,7 +1117,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Title" type="Label" parent="GameUI/StrongholdPanel"]
 offset_left = 40.0
@@ -1272,7 +1272,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Title" type="Label" parent="GameUI/CharacterPanel"]
 offset_left = 40.0
@@ -1339,7 +1339,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.2, 0.02, 0.02, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Frame" type="NinePatchRect" parent="GameUI/GateBreakPanel"]
 offset_left = 20.0
@@ -1385,7 +1385,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.02, 0.03, 0.04, 0.98)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="TitleLabel" type="Label" parent="GameUI/BattlePanel"]
 offset_left = 40.0
@@ -1616,7 +1616,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.05, 0.05, 0.05, 0.95)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="Frame" type="NinePatchRect" parent="GameUI/SystemPanel"]
 mouse_filter = 2
@@ -1664,7 +1664,7 @@ visible = false
 [node name="Bg" type="ColorRect" parent="GameUI/ClaimNicknamePanel"]
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.02, 0.05, 0.08, 0.96)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="InfoLabel" type="Label" parent="GameUI/ClaimNicknamePanel"]
 offset_left = 80.0
