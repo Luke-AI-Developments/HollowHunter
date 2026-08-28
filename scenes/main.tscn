@@ -253,6 +253,7 @@ offset_left = 12.0
 offset_top = 68.0
 offset_right = 228.0
 offset_bottom = 102.0
+theme_override_font_sizes/font_size = 18
 text = "Claim"
 
 [node name="ConfirmStrongholdButton" type="Button" parent="GameUI"]
@@ -262,7 +263,6 @@ offset_top = 340.0
 offset_right = 340.0
 offset_bottom = 410.0
 theme_type_variation = &"BannerButton"
-theme_override_font_sizes/font_size = 20
 text = "Confirm Location"
 
 [node name="CancelStrongholdButton" type="Button" parent="GameUI"]
@@ -272,7 +272,6 @@ offset_top = 340.0
 offset_right = 560.0
 offset_bottom = 410.0
 theme_type_variation = &"BannerButton"
-theme_override_font_sizes/font_size = 20
 text = "Cancel"
 
 [node name="HunterGearPanel" type="Node2D" parent="GameUI"]
@@ -746,7 +745,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.03, 0.03, 0.03, 0.98)
+color = Color(0.02, 0.05, 0.09, 0.99)
 
 [node name="BackButton" type="Button" parent="GameUI/InventoryPanel/DetailPanel"]
 offset_left = 40.0
