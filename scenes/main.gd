@@ -59,6 +59,7 @@ var _pending_nickname_species: String = ""  ## species name for that prompt's la
 @onready var continue_button: Button = $SubclassPicker/ContinueButton
 @onready var game_ui: Node2D = $GameUI
 @onready var label: Label = $GameUI/Label
+@onready var hud_frame: NinePatchRect = $GameUI/HudFrame
 @onready var map_view: MapView = $GameUI/MapView
 @onready var marker_card: Panel = $GameUI/MarkerCard
 @onready var marker_card_type_label: Label = $GameUI/MarkerCard/TypeLabel
@@ -242,6 +243,29 @@ func _on_onboarding_continue_pressed() -> void:
 	if bridge:
 		bridge.requestLocationPermission()
 		bridge.checkHealthConnectAvailable()
+
+
+## The stats HUD (HudFrame + label) draws on top of everything (z_index=1)
+## and is never toggled by the panels, which each self-manage their own
+## `visible`. Its frame is semi-opaque with mouse_filter=STOP, so leaving it
+## up over an open panel buries that panel's top ~320px -- e.g. Shadow
+## Gear's whole nav/Rename row. No single open/close chokepoint exists, so
+## derive HUD visibility here each frame (cheap: ~10 bool reads + 2 writes).
+func _process(_delta: float) -> void:
+	var panel_open := (
+		hunter_gear_view.visible
+		or shadow_gear_view.visible
+		or army_view.visible
+		or inventory_view.visible
+		or character_view.visible
+		or shop_view.visible
+		or leaderboard_view.visible
+		or stronghold_view.visible
+		or nadir_panel.visible
+		or battle_view.visible
+	)
+	hud_frame.visible = not panel_open
+	label.visible = not panel_open
 
 
 func _start_game() -> void:
