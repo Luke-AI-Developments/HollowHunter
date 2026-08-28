@@ -354,7 +354,7 @@ text = "Rename"
 visible = false
 offset_left = 40.0
 offset_top = 90.0
-offset_right = 700.0
+offset_right = 720.0
 offset_bottom = 140.0
 placeholder_text = "Nickname (optional)"
 

@@ -4,12 +4,17 @@ extends Control
 ## panel" tier) for moments that matter -- level-ups, rank-ups, gate/Nadir
 ## rewards, Stronghold collection. Built around art/ui/ui_system_frame.webp
 ## (see Frame child's NinePatchRect). Must be the LAST child of GameUI in
-## main.tscn: Godot's Control input hit-testing uses tree order, not
+## main.tscn, with one permitted exception (ClaimNicknamePanel, added after
+## it in §6c): Godot's Control input hit-testing uses tree order, not
 ## z_index, so an earlier sibling would win input priority over this panel
 ## even while this panel is the one visually on top (the exact bug the
 ## tap-to-marker plan's final review caught as finding #1 -- see that
-## plan's ledger). No queue: a new show_panel() call while one is already
-## showing replaces its content and restarts the glitch-in.
+## plan's ledger). ClaimNicknamePanel is safe as a later sibling because
+## _on_gui_input() sets visible = false before emitting dismissed, so this
+## panel and ClaimNicknamePanel are never visible at the same time -- but
+## any OTHER later panel would reintroduce the bug. No queue: a new
+## show_panel() call while one is already showing replaces its content and
+## restarts the glitch-in.
 
 signal dismissed
 

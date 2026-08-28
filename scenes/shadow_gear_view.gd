@@ -234,6 +234,7 @@ func _on_rename_pressed() -> void:
 	if _state.army.is_empty():
 		return
 	rename_input.text = String(_state.army[_index].get("nickname", ""))
+	rename_button.visible = false
 	rename_input.visible = true
 	rename_save_button.visible = true
 	rename_cancel_button.visible = true
@@ -257,6 +258,7 @@ func _on_rename_cancel_pressed() -> void:
 
 
 func _close_rename() -> void:
+	rename_button.visible = true
 	rename_input.visible = false
 	rename_save_button.visible = false
 	rename_cancel_button.visible = false
@@ -275,13 +277,13 @@ func _after_mutation() -> void:
 
 
 func refresh() -> void:
+	_close_rename()
 	if _state.army.is_empty():
 		title_label.text = "No shadows yet"
 		for row: Dictionary in _rows:
 			row["label"].text = "%s: --" % row["slot"]
 		sets_label.text = "Active sets: (none)"
 		lore_label.text = ""
-		_close_rename()
 		return
 
 	_index = clampi(_index, 0, _state.army.size() - 1)
