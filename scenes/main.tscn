@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/map_view.gd" id="2"]
@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://scenes/system_toast.gd" id="13"]
 [ext_resource type="Script" path="res://scenes/system_panel.gd" id="14"]
 [ext_resource type="Texture2D" path="res://art/ui/ui_system_frame.webp" id="15"]
+[ext_resource type="Script" path="res://scenes/shadow_reveal_card.gd" id="16"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -1607,3 +1608,139 @@ offset_right = 620.0
 offset_bottom = 1220.0
 theme_type_variation = &"BannerButton"
 text = "Skip"
+
+[node name="ShadowRevealPanel" type="Node2D" parent="GameUI"]
+visible = false
+script = ExtResource("16")
+
+[node name="Bg" type="ColorRect" parent="GameUI/ShadowRevealPanel"]
+offset_right = 1080.0
+offset_bottom = 2424.0
+color = Color(0.02, 0.05, 0.09, 0.99)
+
+[node name="Card" type="Panel" parent="GameUI/ShadowRevealPanel"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 1068.0
+offset_bottom = 2412.0
+
+[node name="Portrait" type="TextureRect" parent="GameUI/ShadowRevealPanel/Card"]
+offset_right = 1056.0
+offset_bottom = 2400.0
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Scrim" type="ColorRect" parent="GameUI/ShadowRevealPanel/Card"]
+offset_right = 1056.0
+offset_bottom = 2400.0
+color = Color(0.024, 0.055, 0.078, 0.0)
+mouse_filter = 2
+
+[node name="ScrimLower" type="ColorRect" parent="GameUI/ShadowRevealPanel/Card"]
+offset_top = 1040.0
+offset_right = 1056.0
+offset_bottom = 2400.0
+color = Color(0.024, 0.055, 0.078, 0.88)
+mouse_filter = 2
+
+[node name="FlashRect" type="ColorRect" parent="GameUI/ShadowRevealPanel/Card"]
+offset_right = 1056.0
+offset_bottom = 2400.0
+color = Color(0.498, 0.941, 1.0, 0.0)
+mouse_filter = 2
+
+[node name="Content" type="VBoxContainer" parent="GameUI/ShadowRevealPanel/Card"]
+offset_left = 40.0
+offset_top = 1180.0
+offset_right = 1016.0
+offset_bottom = 2210.0
+theme_override_constants/separation = 14
+
+[node name="SpeciesLabel" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content"]
+theme_type_variation = &"Title"
+text = "Species"
+
+[node name="NickLabel" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content"]
+text = "no nickname yet"
+
+[node name="ChipRow" type="HBoxContainer" parent="GameUI/ShadowRevealPanel/Card/Content"]
+theme_override_constants/separation = 8
+
+[node name="GradeChip" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content/ChipRow"]
+text = "General · B"
+
+[node name="ClassChip" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content/ChipRow"]
+text = "Assassin"
+
+[node name="FamilyChip" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content/ChipRow"]
+text = "Rime Sylphs"
+
+[node name="StatsRow" type="HBoxContainer" parent="GameUI/ShadowRevealPanel/Card/Content"]
+theme_override_constants/separation = 8
+
+[node name="LevelStat" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content/StatsRow"]
+text = "Lv 1"
+
+[node name="PowerStat" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content/StatsRow"]
+text = "Power 0"
+
+[node name="GearStat" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content/StatsRow"]
+text = "Gear 0/7"
+
+[node name="NameRow" type="HBoxContainer" parent="GameUI/ShadowRevealPanel/Card/Content"]
+theme_override_constants/separation = 8
+
+[node name="NicknameInput" type="LineEdit" parent="GameUI/ShadowRevealPanel/Card/Content/NameRow"]
+custom_minimum_size = Vector2(560, 0)
+placeholder_text = "Name this shadow (optional)"
+
+[node name="NicknameSaveButton" type="Button" parent="GameUI/ShadowRevealPanel/Card/Content/NameRow"]
+text = "Save"
+
+[node name="NicknameSkipButton" type="Button" parent="GameUI/ShadowRevealPanel/Card/Content/NameRow"]
+text = "Skip"
+
+[node name="TraitsHeader" type="Label" parent="GameUI/ShadowRevealPanel/Card/Content"]
+text = "TRAITS"
+
+[node name="TraitsList" type="VBoxContainer" parent="GameUI/ShadowRevealPanel/Card/Content"]
+theme_override_constants/separation = 6
+
+[node name="ActionBar" type="HBoxContainer" parent="GameUI/ShadowRevealPanel/Card"]
+offset_left = 40.0
+offset_top = 2250.0
+offset_right = 1016.0
+offset_bottom = 2330.0
+theme_override_constants/separation = 12
+
+[node name="PrimaryButton" type="Button" parent="GameUI/ShadowRevealPanel/Card/ActionBar"]
+theme_type_variation = &"BannerButton"
+text = "Add to Army"
+
+[node name="RelinquishButton" type="Button" parent="GameUI/ShadowRevealPanel/Card/ActionBar"]
+theme_override_colors/font_color = Color(1, 0.482, 0.42, 1)
+text = "Relinquish"
+
+[node name="ConfirmBar" type="PanelContainer" parent="GameUI/ShadowRevealPanel/Card"]
+visible = false
+offset_left = 40.0
+offset_top = 2230.0
+offset_right = 1016.0
+offset_bottom = 2360.0
+
+[node name="VBox" type="VBoxContainer" parent="GameUI/ShadowRevealPanel/Card/ConfirmBar"]
+theme_override_constants/separation = 8
+
+[node name="ConfirmLabel" type="Label" parent="GameUI/ShadowRevealPanel/Card/ConfirmBar/VBox"]
+autowrap_mode = 3
+text = "Relinquish?"
+
+[node name="ConfirmButtons" type="HBoxContainer" parent="GameUI/ShadowRevealPanel/Card/ConfirmBar/VBox"]
+theme_override_constants/separation = 12
+
+[node name="ConfirmCancelButton" type="Button" parent="GameUI/ShadowRevealPanel/Card/ConfirmBar/VBox/ConfirmButtons"]
+text = "Cancel"
+
+[node name="ConfirmRelinquishButton" type="Button" parent="GameUI/ShadowRevealPanel/Card/ConfirmBar/VBox/ConfirmButtons"]
+theme_override_colors/font_color = Color(1, 0.482, 0.42, 1)
+text = "Relinquish"
