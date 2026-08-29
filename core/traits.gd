@@ -1,0 +1,86 @@
+class_name Traits
+## §6b shadow traits -- roll on CLAIM + resolve for display. Pure (RNG
+## only). COSMETIC this cycle: rolled traits are stored and shown, nothing
+## reads them for gameplay. Rarity drives roll weighting; count 1-3.
+##
+## Weights are v0 (see content/traits.json _comment) -- tunable without
+## touching this file's logic.
+
+const RARITY_WEIGHT := {
+	"common": 100.0,
+	"uncommon": 45.0,
+	"rare": 16.0,
+	"epic": 5.0,
+	"legendary": 1.5,
+}
+const COUNT_WEIGHT := {1: 55.0, 2: 33.0, 3: 12.0}
+
+
+## Pass-through so callers depend on Traits, not Content, for the pool.
+static func load_pool() -> Array:
+	return Content.load_traits()
+
+
+## 1..3 distinct trait ids, in roll order. Count is COUNT_WEIGHT-weighted;
+## each pick is RARITY_WEIGHT-weighted over the traits not yet picked.
+static func roll_traits(pool: Array, rng: RandomNumberGenerator) -> Array:
+	if pool.is_empty():
+		return []
+	var count: int = _weighted_key(COUNT_WEIGHT, rng)
+	count = mini(count, pool.size())
+	var remaining := pool.duplicate()
+	var picked: Array = []
+	for _i in range(count):
+		var idx := _weighted_index_by_rarity(remaining, rng)
+		picked.append(remaining[idx]["id"])
+		remaining.remove_at(idx)
+	return picked
+
+
+## Array[String] ids -> Array[Dictionary] {id,name,rarity,polarity,effect_text},
+## order preserved, unknown ids dropped.
+static func resolve(pool: Array, trait_ids: Array) -> Array:
+	var by_id := {}
+	for t: Dictionary in pool:
+		by_id[t["id"]] = t
+	var out: Array = []
+	for id in trait_ids:
+		if by_id.has(id):
+			var t: Dictionary = by_id[id]
+			(
+				out
+				. append(
+					{
+						"id": t["id"],
+						"name": t["name"],
+						"rarity": t["rarity"],
+						"polarity": t["polarity"],
+						"effect_text": t["effect_text"],
+					}
+				)
+			)
+	return out
+
+
+static func _weighted_key(weights: Dictionary, rng: RandomNumberGenerator) -> int:
+	var total := 0.0
+	for w in weights.values():
+		total += w
+	var roll := rng.randf() * total
+	for key in weights:
+		roll -= weights[key]
+		if roll < 0.0:
+			return int(key)
+	return int(weights.keys()[weights.size() - 1])
+
+
+static func _weighted_index_by_rarity(entries: Array, rng: RandomNumberGenerator) -> int:
+	var total := 0.0
+	for e: Dictionary in entries:
+		total += float(RARITY_WEIGHT.get(e["rarity"], 1.0))
+	var roll := rng.randf() * total
+	for i in entries.size():
+		roll -= float(RARITY_WEIGHT.get(entries[i]["rarity"], 1.0))
+		if roll < 0.0:
+			return i
+	return entries.size() - 1
