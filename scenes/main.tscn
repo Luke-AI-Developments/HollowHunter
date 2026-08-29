@@ -299,7 +299,6 @@ offset_left = 40.0
 offset_top = 90.0
 offset_right = 400.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Auto-Equip Best Gear"
 
 [node name="CloseButton" type="Button" parent="GameUI/HunterGearPanel"]
@@ -307,7 +306,6 @@ offset_left = 420.0
 offset_top = 90.0
 offset_right = 560.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="Rows" type="Node2D" parent="GameUI/HunterGearPanel"]
@@ -344,7 +342,6 @@ offset_left = 40.0
 offset_top = 90.0
 offset_right = 140.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "< Prev"
 
 [node name="NextButton" type="Button" parent="GameUI/ShadowGearPanel"]
@@ -352,7 +349,6 @@ offset_left = 160.0
 offset_top = 90.0
 offset_right = 260.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Next >"
 
 [node name="AutoEquipButton" type="Button" parent="GameUI/ShadowGearPanel"]
@@ -360,7 +356,6 @@ offset_left = 280.0
 offset_top = 90.0
 offset_right = 640.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Auto-Equip Best Gear"
 
 [node name="CloseButton" type="Button" parent="GameUI/ShadowGearPanel"]
@@ -368,7 +363,6 @@ offset_left = 660.0
 offset_top = 90.0
 offset_right = 800.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="RenameButton" type="Button" parent="GameUI/ShadowGearPanel"]
@@ -376,7 +370,6 @@ offset_left = 820.0
 offset_top = 90.0
 offset_right = 1040.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Rename"
 
 [node name="RenameInput" type="LineEdit" parent="GameUI/ShadowGearPanel"]
@@ -410,7 +403,6 @@ offset_left = 40.0
 offset_top = 160.0
 offset_right = 200.0
 offset_bottom = 210.0
-theme_override_font_sizes/font_size = 20
 text = "Level Up"
 
 [node name="FuseButton" type="Button" parent="GameUI/ShadowGearPanel"]
@@ -418,7 +410,6 @@ offset_left = 220.0
 offset_top = 160.0
 offset_right = 440.0
 offset_bottom = 210.0
-theme_override_font_sizes/font_size = 20
 text = "Fuse Duplicate"
 
 [node name="ConvertButton" type="Button" parent="GameUI/ShadowGearPanel"]
@@ -426,7 +417,6 @@ offset_left = 460.0
 offset_top = 160.0
 offset_right = 670.0
 offset_bottom = 210.0
-theme_override_font_sizes/font_size = 20
 text = "Relinquish"
 
 [node name="LockButton" type="Button" parent="GameUI/ShadowGearPanel"]
@@ -434,7 +424,6 @@ offset_left = 690.0
 offset_top = 160.0
 offset_right = 850.0
 offset_bottom = 210.0
-theme_override_font_sizes/font_size = 20
 text = "Lock"
 
 [node name="FavoriteButton" type="Button" parent="GameUI/ShadowGearPanel"]
@@ -442,7 +431,6 @@ offset_left = 870.0
 offset_top = 160.0
 offset_right = 1040.0
 offset_bottom = 210.0
-theme_override_font_sizes/font_size = 20
 text = "Favorite"
 
 [node name="RelinquishConfirmLabel" type="Label" parent="GameUI/ShadowGearPanel"]
@@ -451,7 +439,6 @@ offset_left = 40.0
 offset_top = 660.0
 offset_right = 1040.0
 offset_bottom = 740.0
-theme_override_font_sizes/font_size = 20
 text = "Relinquish this shadow?"
 autowrap_mode = 3
 
@@ -507,7 +494,6 @@ offset_left = 40.0
 offset_top = 20.0
 offset_right = 260.0
 offset_bottom = 70.0
-theme_override_font_sizes/font_size = 20
 text = "Roster"
 
 [node name="SquadTabButton" type="Button" parent="GameUI/ArmyPanel"]
@@ -515,7 +501,6 @@ offset_left = 280.0
 offset_top = 20.0
 offset_right = 500.0
 offset_bottom = 70.0
-theme_override_font_sizes/font_size = 20
 text = "Squad"
 
 [node name="CloseButton" type="Button" parent="GameUI/ArmyPanel"]
@@ -523,7 +508,6 @@ offset_left = 900.0
 offset_top = 20.0
 offset_right = 1020.0
 offset_bottom = 70.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="RosterTab" type="Node2D" parent="GameUI/ArmyPanel"]
@@ -583,7 +567,6 @@ offset_left = 40.0
 offset_top = 90.0
 offset_right = 180.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="AutoFillButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
@@ -591,7 +574,6 @@ offset_left = 200.0
 offset_top = 90.0
 offset_right = 460.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Auto-Fill Party"
 
 [node name="AutoEquipSquadButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
@@ -607,7 +589,6 @@ offset_left = 40.0
 offset_top = 160.0
 offset_right = 1040.0
 offset_bottom = 210.0
-theme_override_font_sizes/font_size = 20
 text = "Party: 0/3 chosen -- tap a squad member to field them"
 
 [node name="Rows" type="Node2D" parent="GameUI/ArmyPanel/SquadTab"]
@@ -628,7 +609,6 @@ offset_left = 40.0
 offset_top = 20.0
 offset_right = 260.0
 offset_bottom = 70.0
-theme_override_font_sizes/font_size = 20
 text = "Grid"
 
 [node name="SetsTabButton" type="Button" parent="GameUI/InventoryPanel"]
@@ -636,7 +616,6 @@ offset_left = 280.0
 offset_top = 20.0
 offset_right = 500.0
 offset_bottom = 70.0
-theme_override_font_sizes/font_size = 20
 text = "Sets"
 
 [node name="CloseButton" type="Button" parent="GameUI/InventoryPanel"]
@@ -644,7 +623,6 @@ offset_left = 900.0
 offset_top = 20.0
 offset_right = 1020.0
 offset_bottom = 70.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="GridTab" type="Node2D" parent="GameUI/InventoryPanel"]
@@ -780,7 +758,6 @@ offset_left = 40.0
 offset_top = 20.0
 offset_right = 200.0
 offset_bottom = 70.0
-theme_override_font_sizes/font_size = 20
 text = "< Back"
 
 [node name="NameLabel" type="Label" parent="GameUI/InventoryPanel/DetailPanel"]
@@ -821,7 +798,6 @@ offset_left = 40.0
 offset_top = 2260.0
 offset_right = 300.0
 offset_bottom = 2320.0
-theme_override_font_sizes/font_size = 20
 text = "Equip"
 
 [node name="LockButton" type="Button" parent="GameUI/InventoryPanel/DetailPanel"]
@@ -829,7 +805,6 @@ offset_left = 320.0
 offset_top = 2260.0
 offset_right = 580.0
 offset_bottom = 2320.0
-theme_override_font_sizes/font_size = 20
 text = "Lock"
 
 [node name="ScrapButton" type="Button" parent="GameUI/InventoryPanel/DetailPanel"]
@@ -837,7 +812,6 @@ offset_left = 600.0
 offset_top = 2260.0
 offset_right = 860.0
 offset_bottom = 2320.0
-theme_override_font_sizes/font_size = 20
 text = "Scrap"
 
 [node name="ConfirmScrapPanel" type="Node2D" parent="GameUI/InventoryPanel"]
@@ -863,7 +837,6 @@ offset_left = 140.0
 offset_top = 1240.0
 offset_right = 440.0
 offset_bottom = 1300.0
-theme_override_font_sizes/font_size = 20
 text = "Confirm Scrap"
 
 [node name="CancelButton" type="Button" parent="GameUI/InventoryPanel/ConfirmScrapPanel"]
@@ -871,7 +844,6 @@ offset_left = 460.0
 offset_top = 1240.0
 offset_right = 700.0
 offset_bottom = 1300.0
-theme_override_font_sizes/font_size = 20
 text = "Cancel"
 
 [node name="ShopPanel" type="Node2D" parent="GameUI"]
@@ -898,7 +870,6 @@ offset_left = 40.0
 offset_top = 90.0
 offset_right = 180.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="CrystalsLabel" type="Label" parent="GameUI/ShopPanel"]
@@ -935,7 +906,6 @@ offset_left = 40.0
 offset_top = 90.0
 offset_right = 180.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="PowerBoardButton" type="Button" parent="GameUI/LeaderboardPanel"]
@@ -943,7 +913,6 @@ offset_left = 200.0
 offset_top = 90.0
 offset_right = 400.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "By Power"
 
 [node name="FloorBoardButton" type="Button" parent="GameUI/LeaderboardPanel"]
@@ -951,7 +920,6 @@ offset_left = 420.0
 offset_top = 90.0
 offset_right = 660.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "By Nadir Floor"
 
 [node name="StatusLabel" type="Label" parent="GameUI/LeaderboardPanel"]
@@ -959,7 +927,6 @@ offset_left = 40.0
 offset_top = 160.0
 offset_right = 1040.0
 offset_bottom = 200.0
-theme_override_font_sizes/font_size = 20
 text = "Connecting..."
 
 [node name="Rows" type="Node2D" parent="GameUI/LeaderboardPanel"]
@@ -1030,7 +997,6 @@ offset_left = 40.0
 offset_top = 90.0
 offset_right = 180.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="InfoLabel" type="Label" parent="GameUI/NadirPanel"]
@@ -1073,7 +1039,6 @@ offset_left = 40.0
 offset_top = 90.0
 offset_right = 180.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="CollectButton" type="Button" parent="GameUI/StrongholdPanel"]
@@ -1081,7 +1046,6 @@ offset_left = 200.0
 offset_top = 90.0
 offset_right = 400.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Collect"
 
 [node name="UpgradeStrongholdButton" type="Button" parent="GameUI/StrongholdPanel"]
@@ -1089,7 +1053,6 @@ offset_left = 420.0
 offset_top = 90.0
 offset_right = 700.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Upgrade Stronghold"
 
 [node name="PlaceStrongholdButton" type="Button" parent="GameUI/StrongholdPanel"]
@@ -1097,7 +1060,6 @@ offset_left = 720.0
 offset_top = 90.0
 offset_right = 1000.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Place Stronghold"
 
 [node name="InfoLabel" type="Label" parent="GameUI/StrongholdPanel"]
@@ -1113,7 +1075,6 @@ offset_left = 40.0
 offset_top = 270.0
 offset_right = 1040.0
 offset_bottom = 320.0
-theme_override_font_sizes/font_size = 20
 text = "Reliquary Lv1 (0/1 slots)"
 
 [node name="ReliquaryAssignButton" type="Button" parent="GameUI/StrongholdPanel"]
@@ -1145,7 +1106,6 @@ offset_left = 40.0
 offset_top = 430.0
 offset_right = 1040.0
 offset_bottom = 480.0
-theme_override_font_sizes/font_size = 20
 text = "Training Yard Lv1 (0/1 slots)"
 
 [node name="TrainingYardAssignButton" type="Button" parent="GameUI/StrongholdPanel"]
@@ -1177,7 +1137,6 @@ offset_left = 40.0
 offset_top = 590.0
 offset_right = 1040.0
 offset_bottom = 640.0
-theme_override_font_sizes/font_size = 20
 text = "Gate Watch Lv1 (0/1 slots)"
 
 [node name="GateWatchAssignButton" type="Button" parent="GameUI/StrongholdPanel"]
@@ -1228,7 +1187,6 @@ offset_left = 40.0
 offset_top = 90.0
 offset_right = 180.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 20
 text = "Close"
 
 [node name="InfoLabel" type="Label" parent="GameUI/CharacterPanel"]
@@ -1252,7 +1210,6 @@ offset_left = 40.0
 offset_top = 1830.0
 offset_right = 1040.0
 offset_bottom = 1930.0
-theme_override_font_sizes/font_size = 20
 text = "Health connection"
 
 [node name="TrialButton" type="Button" parent="GameUI/CharacterPanel"]
@@ -1381,7 +1338,6 @@ offset_left = 40.0
 offset_top = 790.0
 offset_right = 1040.0
 offset_bottom = 1120.0
-theme_override_font_sizes/font_size = 20
 text = ""
 autowrap_mode = 3
 vertical_alignment = 2
@@ -1433,7 +1389,6 @@ offset_left = 40.0
 offset_top = 1810.0
 offset_right = 1040.0
 offset_bottom = 1880.0
-theme_override_font_sizes/font_size = 20
 text = "Move 1"
 
 [node name="ActionButton2" type="Button" parent="GameUI/BattlePanel"]
@@ -1441,7 +1396,6 @@ offset_left = 40.0
 offset_top = 1890.0
 offset_right = 1040.0
 offset_bottom = 1960.0
-theme_override_font_sizes/font_size = 20
 text = "Move 2"
 
 [node name="ActionButton3" type="Button" parent="GameUI/BattlePanel"]
@@ -1449,7 +1403,6 @@ offset_left = 40.0
 offset_top = 1970.0
 offset_right = 1040.0
 offset_bottom = 2040.0
-theme_override_font_sizes/font_size = 20
 text = "Move 3"
 
 [node name="ActionButton4" type="Button" parent="GameUI/BattlePanel"]
@@ -1457,7 +1410,6 @@ offset_left = 40.0
 offset_top = 2050.0
 offset_right = 1040.0
 offset_bottom = 2120.0
-theme_override_font_sizes/font_size = 20
 text = "Move 4"
 
 [node name="ActionButton5" type="Button" parent="GameUI/BattlePanel"]
@@ -1465,7 +1417,6 @@ offset_left = 40.0
 offset_top = 2130.0
 offset_right = 1040.0
 offset_bottom = 2200.0
-theme_override_font_sizes/font_size = 20
 text = "Move 5"
 
 [node name="AutoButton" type="Button" parent="GameUI/BattlePanel"]

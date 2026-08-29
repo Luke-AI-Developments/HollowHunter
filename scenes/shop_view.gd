@@ -48,7 +48,6 @@ func _build_row(y: float, id: String, kind: String) -> Dictionary:
 	var row_label := Label.new()
 	row_label.position = Vector2(40, y)
 	row_label.size = Vector2(720, 40)
-	row_label.add_theme_font_size_override("font_size", 20)
 	rows_container.add_child(row_label)
 
 	var buy_btn := Button.new()
