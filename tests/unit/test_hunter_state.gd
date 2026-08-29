@@ -677,14 +677,54 @@ func test_set_shadow_nickname_is_per_instance_not_per_species() -> void:
 	assert_eq(s.army[1]["nickname"], "")
 
 
-func test_locked_shadow_can_still_be_explicitly_converted() -> void:
-	# Locking protects from mass-convert specifically, not a single
-	# deliberate convert_shadow() call.
+func test_locked_shadow_cannot_be_relinquished() -> void:
+	# §6b: locking now blocks a direct relinquish too, not just mass-convert
+	# -- convert_shadow() no-ops (returns false, mutates nothing) on a locked
+	# shadow.
 	var s := HunterState.new_default("WARRIOR")
 	var shadow := s.claim_shadow("mon_ashen_warden", "E")
 	s.set_shadow_locked(shadow["instance_id"], true)
+	assert_false(s.convert_shadow(shadow["instance_id"]))
+	assert_eq(s.army.size(), 1)
+	assert_eq(s.essence, 0)
+
+
+func test_claim_shadow_rolls_one_to_three_trait_ids() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_grubmaw", "E")
+	assert_true(shadow.has("traits"), "claimed shadow missing traits key")
+	assert_between(shadow["traits"].size(), 1, 3)
+	var pool_ids := {}
+	for t: Dictionary in Traits.load_pool():
+		pool_ids[t["id"]] = true
+	for id: String in shadow["traits"]:
+		assert_true(pool_ids.has(id), "claimed trait id not in pool: %s" % id)
+	# stored on the army entry, not just the return value
+	assert_eq(s.army[0]["traits"], shadow["traits"])
+
+
+func test_relinquishing_a_shadow_frees_its_equipped_gear() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var shadow := s.claim_shadow("mon_grubmaw", "E")
+	var item := s.add_to_inventory("eq_warcleaver")
+	assert_true(
+		s.equip_to_shadow(
+			shadow["instance_id"], item["instance_id"], equipment, Content.load_monsters()
+		)
+	)
+	assert_true(s.is_instance_equipped(item["instance_id"]))
 	assert_true(s.convert_shadow(shadow["instance_id"]))
-	assert_eq(s.army.size(), 0)
+	assert_true(
+		s.inventory.any(
+			func(it: Dictionary) -> bool: return it["instance_id"] == item["instance_id"]
+		),
+		"item should still be in inventory after relinquish"
+	)
+	assert_false(
+		s.is_instance_equipped(item["instance_id"]),
+		"item should be unequipped once its wearer is gone"
+	)
 
 
 func test_new_default_has_cleared_no_nadir_floors() -> void:

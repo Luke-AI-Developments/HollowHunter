@@ -156,10 +156,13 @@ func mark_exp_applied(today: String) -> void:
 	last_exp_date = today
 
 
-## Adds a level-1 shadow of the given monster/grade to the army. Pure --
-## instance_id is just index-based (no wall-clock/UUID dependency, keeps
-## this deterministic and testable).
+## Adds a level-1 shadow of the given monster/grade to the army.
+## instance_id is index-based (deterministic). The §6b trait roll uses a
+## fresh randomized RNG -- same as _on_battle_finished's CLAIM/loot rolls
+## -- so the returned `traits` array is not deterministic across calls.
 func claim_shadow(monster_id: String, grade: String) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
 	var shadow := {
 		"instance_id": "shadow_%d" % army.size(),
 		"monster_id": monster_id,
@@ -170,6 +173,7 @@ func claim_shadow(monster_id: String, grade: String) -> Dictionary:
 		"favorite": false,
 		"idle_progress": 0.0,
 		"nickname": "",
+		"traits": Traits.roll_traits(Traits.load_pool(), rng),
 	}
 	army.append(shadow)
 	return shadow
@@ -373,10 +377,16 @@ func fuse_shadow(target_instance_id: String, duplicate_instance_id: String) -> b
 
 
 ## Phase 2/P2 step 4: removes a shadow from the army, granting Essence per
-## its grade (§26's real per-grade table). False (no-op) if unknown shadow.
+## its grade (§26's real per-grade table). No-op returning false if the
+## shadow is unknown OR locked -- §6b: Relinquish must respect the lock that
+## protects a shadow from mass-convert. (mass_convert already filters locked
+## shadows upstream via surplus_shadow_ids; this closes the direct-call
+## path.)
 func convert_shadow(shadow_instance_id: String) -> bool:
 	var idx := _army_index(shadow_instance_id)
 	if idx < 0:
+		return false
+	if army[idx].get("locked", false):
 		return false
 	var grade: String = army[idx].get("grade", "")
 	essence += GameLogic.essence_for_converted_shadow(grade)
