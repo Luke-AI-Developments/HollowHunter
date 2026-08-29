@@ -42,6 +42,7 @@ var _instance_id: String = ""
 @onready var _nick_save: Button = $Card/Content/NameRow/NicknameSaveButton
 @onready var _nick_skip: Button = $Card/Content/NameRow/NicknameSkipButton
 @onready var _traits_list: VBoxContainer = $Card/Content/TraitsList
+@onready var _close_button: Button = $Card/ActionBar/CloseButton
 @onready var _primary: Button = $Card/ActionBar/PrimaryButton
 @onready var _relinquish: Button = $Card/ActionBar/RelinquishButton
 @onready var _confirm_bar: PanelContainer = $Card/ConfirmBar
@@ -51,6 +52,7 @@ var _instance_id: String = ""
 
 
 func _ready() -> void:
+	_close_button.pressed.connect(_dismiss)
 	_nick_save.pressed.connect(_on_nick_save_pressed)
 	_nick_skip.pressed.connect(_on_nick_skip_pressed)
 	_primary.pressed.connect(_on_primary_pressed)
@@ -110,6 +112,7 @@ func show_for(instance_id: String, mode: int) -> void:
 	_relinquish.text = "Relinquish · +%d" % GameLogic.essence_for_converted_shadow(grade)
 	_relinquish.visible = not bool(e["locked"])
 
+	_close_button.visible = _mode == Mode.DETAIL
 	if _mode == Mode.CLAIM:
 		_nick_input.text = ""
 		_nick_skip.visible = true

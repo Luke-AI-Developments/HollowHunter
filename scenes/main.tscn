@@ -1673,6 +1673,9 @@ offset_right = 1016.0
 offset_bottom = 2330.0
 theme_override_constants/separation = 12
 
+[node name="CloseButton" type="Button" parent="GameUI/ShadowRevealPanel/Card/ActionBar"]
+text = "Close"
+
 [node name="PrimaryButton" type="Button" parent="GameUI/ShadowRevealPanel/Card/ActionBar"]
 theme_type_variation = &"BannerButton"
 text = "Add to Army"

@@ -23,6 +23,7 @@ var _state: HunterState
 var _equipment: Dictionary
 var _monsters: Array
 var _shadow_gear_view: ShadowGearView
+var _shadow_reveal_card: ShadowRevealCard
 var _grade_filter: String = "ALL"
 var _sort_mode: String = "power"
 var _collapsed: Dictionary = {}  ## clazz -> bool, session-only (resets on reopen)
@@ -49,17 +50,24 @@ func _ready() -> void:
 
 
 func bind(
-	state: HunterState, equipment: Dictionary, monsters: Array, shadow_gear_view: ShadowGearView
+	state: HunterState,
+	equipment: Dictionary,
+	monsters: Array,
+	shadow_gear_view: ShadowGearView,
+	shadow_reveal_card: ShadowRevealCard
 ) -> void:
 	_state = state
 	_equipment = equipment
 	_monsters = monsters
 	_shadow_gear_view = shadow_gear_view
+	_shadow_reveal_card = shadow_reveal_card
 	# Reopens this panel's Roster tab whenever Shadow Gear closes -- correct
 	# as long as ArmyView is the only path that opens Shadow Gear, which
 	# holds once the old standalone ShadowGearButton entry point is retired.
 	if not _shadow_gear_view.closed.is_connected(_on_shadow_gear_view_closed):
 		_shadow_gear_view.closed.connect(_on_shadow_gear_view_closed)
+	if not _shadow_reveal_card.closed.is_connected(_on_reveal_card_closed):
+		_shadow_reveal_card.closed.connect(_on_reveal_card_closed)
 
 
 func open() -> void:
@@ -182,19 +190,19 @@ func _on_section_header_pressed(clazz: String) -> void:
 
 
 func _on_shadow_row_pressed(shadow_instance_id: String) -> void:
-	# ArmyPanel and ShadowGearPanel are sibling full-screen panels -- hide
-	# this one first or ShadowGearPanel opens invisibly/unclickable behind
-	# ArmyPanel's own opaque Bg.
+	# ArmyPanel and the reveal card are sibling full-screen panels -- hide
+	# this one first (its opaque Bg would sit in front otherwise).
 	visible = false
-	_shadow_gear_view.open()
-	# ShadowGearView.open() opens on whichever _index it last had -- jump it
-	# to the tapped shadow before showing, same lookup shadow_gear_view's
-	# own Prev/Next buttons use internally.
-	var idx := _state.army.find_custom(
-		func(s: Dictionary) -> bool: return s["instance_id"] == shadow_instance_id
-	)
-	if idx >= 0:
-		_shadow_gear_view.jump_to_index(idx)
+	_shadow_reveal_card.show_for(shadow_instance_id, ShadowRevealCard.Mode.DETAIL)
+
+
+## The reveal card (opened from a roster tap) closed. Re-show the roster,
+## unless the close was the "Manage Gear" route -- in that case Shadow Gear
+## is now visible and will re-show the roster itself when IT closes
+## (_on_shadow_gear_view_closed).
+func _on_reveal_card_closed() -> void:
+	if not _shadow_gear_view.visible:
+		open()
 
 
 ## Closing Shadow Gear (opened from a roster tap) returns to the Army

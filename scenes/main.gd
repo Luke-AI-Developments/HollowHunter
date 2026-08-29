@@ -276,7 +276,7 @@ func _start_game() -> void:
 		place_stronghold_button.text = "Move Stronghold"
 	character_view.bind(state, _equipment, _monsters)
 	leaderboard_view.bind(state, _equipment)
-	army_view.bind(state, _equipment, _monsters, shadow_gear_view)
+	army_view.bind(state, _equipment, _monsters, shadow_gear_view, shadow_reveal_card)
 	army_view.refresh_if_open()
 	shadow_reveal_card.bind(state, _monsters, _equipment, Traits.load_pool())
 	_setup_gear_panels()
