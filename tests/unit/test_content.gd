@@ -144,3 +144,21 @@ func test_traits_pool_loads_with_valid_shape() -> void:
 		assert_true(
 			String(t.get("effect_text", "")).length() > 0, "trait %s missing effect_text" % t["id"]
 		)
+
+
+func test_every_trait_has_valid_mods() -> void:
+	var stat_keys := ["STR", "AGI", "VIT", "END", "SEN"]
+	for t: Dictionary in traits:
+		assert_true(t.has("mods"), "trait %s missing mods" % t["id"])
+		var mods: Dictionary = t["mods"]
+		var has_effect := false
+		if mods.has("power_pct"):
+			assert_true(mods["power_pct"] is float, "trait %s power_pct not a float" % t["id"])
+			has_effect = true
+		if mods.has("combat_pct"):
+			var cp: Dictionary = mods["combat_pct"]
+			assert_false(cp.is_empty(), "trait %s combat_pct is empty" % t["id"])
+			for k in cp.keys():
+				assert_true(stat_keys.has(k), "trait %s combat_pct bad stat %s" % [t["id"], k])
+			has_effect = true
+		assert_true(has_effect, "trait %s mods has neither power_pct nor combat_pct" % t["id"])

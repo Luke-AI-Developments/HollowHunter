@@ -1,20 +1,20 @@
 {
   "_comment": "§6b shadow traits. COSMETIC this cycle -- effect_text is flavour describing the future effect; nothing reads it for gameplay yet. Rarity drives roll weighting only. Pool + weights are v0, tunable.",
   "traits": [
-    { "id": "sturdy",          "name": "Sturdy",           "rarity": "common",    "polarity": "positive", "effect_text": "+HP" },
-    { "id": "keen",            "name": "Keen",             "rarity": "common",    "polarity": "positive", "effect_text": "+ATK" },
-    { "id": "fleet",           "name": "Fleet",            "rarity": "common",    "polarity": "positive", "effect_text": "acts sooner (+SPD)" },
-    { "id": "scavenger",       "name": "Scavenger",        "rarity": "common",    "polarity": "positive", "effect_text": "small Essence bonus from gates" },
-    { "id": "ironhide",        "name": "Ironhide",         "rarity": "uncommon",  "polarity": "positive", "effect_text": "+DEF" },
-    { "id": "bloodhunger",     "name": "Bloodhunger",      "rarity": "uncommon",  "polarity": "positive", "effect_text": "heals a little on kill" },
-    { "id": "warcaller",       "name": "Warcaller",        "rarity": "uncommon",  "polarity": "positive", "effect_text": "minor squad-wide ATK aura" },
-    { "id": "frostblooded",    "name": "Frostblooded",     "rarity": "rare",      "polarity": "positive", "effect_text": "bonus damage vs Rime / ice families" },
-    { "id": "relentless",      "name": "Relentless",       "rarity": "rare",      "polarity": "positive", "effect_text": "cooldowns tick faster" },
-    { "id": "soulbound",       "name": "Soulbound",        "rarity": "epic",      "polarity": "positive", "effect_text": "extra Essence on gate clear, scales with grade" },
-    { "id": "executioner",     "name": "Executioner",      "rarity": "epic",      "polarity": "positive", "effect_text": "damage spike vs bosses" },
-    { "id": "monarchs_favour", "name": "Monarch's Favour", "rarity": "legendary", "polarity": "positive", "effect_text": "small boost to every stat + squad synergy" },
-    { "id": "brittle",         "name": "Brittle",          "rarity": "common",    "polarity": "negative", "effect_text": "-DEF" },
-    { "id": "sluggish",        "name": "Sluggish",         "rarity": "common",    "polarity": "negative", "effect_text": "acts later (-SPD)" },
-    { "id": "cowardly",        "name": "Cowardly",         "rarity": "uncommon",  "polarity": "negative", "effect_text": "-ATK while below half HP" }
+    { "id": "sturdy",          "name": "Sturdy",           "rarity": "common",    "polarity": "positive", "effect_text": "+HP", "mods": {"combat_pct": {"VIT": 0.10}} },
+    { "id": "keen",            "name": "Keen",             "rarity": "common",    "polarity": "positive", "effect_text": "+ATK", "mods": {"combat_pct": {"STR": 0.10, "SEN": 0.10}} },
+    { "id": "fleet",           "name": "Fleet",            "rarity": "common",    "polarity": "positive", "effect_text": "acts sooner (+SPD)", "mods": {"combat_pct": {"AGI": 0.12}} },
+    { "id": "scavenger",       "name": "Scavenger",        "rarity": "common",    "polarity": "positive", "effect_text": "small Essence bonus from gates", "mods": {"power_pct": 0.04} },
+    { "id": "ironhide",        "name": "Ironhide",         "rarity": "uncommon",  "polarity": "positive", "effect_text": "+DEF", "mods": {"combat_pct": {"END": 0.10}} },
+    { "id": "bloodhunger",     "name": "Bloodhunger",      "rarity": "uncommon",  "polarity": "positive", "effect_text": "heals a little on kill", "mods": {"power_pct": 0.06} },
+    { "id": "warcaller",       "name": "Warcaller",        "rarity": "uncommon",  "polarity": "positive", "effect_text": "minor squad-wide ATK aura", "mods": {"power_pct": 0.06} },
+    { "id": "frostblooded",    "name": "Frostblooded",     "rarity": "rare",      "polarity": "positive", "effect_text": "bonus damage vs Rime / ice families", "mods": {"power_pct": 0.08} },
+    { "id": "relentless",      "name": "Relentless",       "rarity": "rare",      "polarity": "positive", "effect_text": "cooldowns tick faster", "mods": {"power_pct": 0.08} },
+    { "id": "soulbound",       "name": "Soulbound",        "rarity": "epic",      "polarity": "positive", "effect_text": "extra Essence on gate clear, scales with grade", "mods": {"power_pct": 0.10} },
+    { "id": "executioner",     "name": "Executioner",      "rarity": "epic",      "polarity": "positive", "effect_text": "damage spike vs bosses", "mods": {"power_pct": 0.10} },
+    { "id": "monarchs_favour", "name": "Monarch's Favour", "rarity": "legendary", "polarity": "positive", "effect_text": "small boost to every stat + squad synergy", "mods": {"power_pct": 0.12, "combat_pct": {"STR": 0.08, "AGI": 0.08, "VIT": 0.08, "END": 0.08, "SEN": 0.08}} },
+    { "id": "brittle",         "name": "Brittle",          "rarity": "common",    "polarity": "negative", "effect_text": "-DEF", "mods": {"combat_pct": {"END": -0.12}} },
+    { "id": "sluggish",        "name": "Sluggish",         "rarity": "common",    "polarity": "negative", "effect_text": "acts later (-SPD)", "mods": {"combat_pct": {"AGI": -0.12}} },
+    { "id": "cowardly",        "name": "Cowardly",         "rarity": "uncommon",  "polarity": "negative", "effect_text": "-ATK while below half HP", "mods": {"combat_pct": {"STR": -0.10, "SEN": -0.10}} }
   ]
 }
