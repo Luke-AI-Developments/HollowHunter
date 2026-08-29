@@ -9,10 +9,11 @@ extends Control
 ## z_index, so an earlier sibling would win input priority over this panel
 ## even while this panel is the one visually on top (the exact bug the
 ## tap-to-marker plan's final review caught as finding #1 -- see that
-## plan's ledger). ShadowRevealPanel is safe as a later sibling because
-## _on_gui_input() sets visible = false before emitting dismissed, so this
-## panel and ShadowRevealPanel are never visible at the same time -- but
-## any OTHER later panel would reintroduce the bug. No queue: a new
+## plan's ledger). ShadowRevealPanel is the one tolerated later sibling: if
+## a startup async level-up show_panel() happens to land while the reveal
+## card is open, SystemPanel renders under the card and just can't take its
+## tap-to-dismiss until the card closes -- recoverable, single-window, not
+## a lock. Any other later panel is not vetted for even that. No queue: a new
 ## show_panel() call while one is already showing replaces its content and
 ## restarts the glitch-in.
 

@@ -68,7 +68,7 @@ func bind(state: HunterState, monsters: Array, equipment: Dictionary, trait_pool
 	_trait_pool = trait_pool
 
 
-func show_for(instance_id: String, mode: int) -> void:
+func show_for(instance_id: String, mode: int) -> bool:
 	_instance_id = instance_id
 	_mode = mode
 	_confirm_bar.visible = false
@@ -83,7 +83,8 @@ func show_for(instance_id: String, mode: int) -> void:
 			e = row
 			break
 	if e.is_empty():
-		return
+		push_warning("ShadowRevealCard.show_for: unknown instance_id %s" % instance_id)
+		return false
 
 	_species_label.text = String(e["monster_name"])
 	var nickname := String(e["nickname"])
@@ -128,10 +129,12 @@ func show_for(instance_id: String, mode: int) -> void:
 	else:
 		_card.modulate.a = 1.0
 		_flash.color.a = 0.0
+	return true
 
 
 func _populate_traits(traits: Array) -> void:
 	for child in _traits_list.get_children():
+		_traits_list.remove_child(child)
 		child.queue_free()
 	for t: Dictionary in traits:
 		var row := Label.new()
@@ -186,6 +189,7 @@ func _play_glitch_in() -> void:
 
 func _on_nick_save_pressed() -> void:
 	if _state.set_shadow_nickname(_instance_id, _nick_input.text):
+		SaveService.save(_state)
 		state_changed.emit()
 		# refresh the nick line in place
 		var nm := _nick_input.text.strip_edges()
@@ -212,6 +216,7 @@ func _on_relinquish_pressed() -> void:
 func _on_confirm_relinquish_pressed() -> void:
 	_confirm_bar.visible = false
 	if _state.convert_shadow(_instance_id):
+		SaveService.save(_state)
 		state_changed.emit()
 	_dismiss()
 

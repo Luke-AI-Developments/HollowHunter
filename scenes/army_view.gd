@@ -192,10 +192,12 @@ func _on_section_header_pressed(clazz: String) -> void:
 
 func _on_shadow_row_pressed(shadow_instance_id: String) -> void:
 	# ArmyPanel and the reveal card are sibling full-screen panels -- hide
-	# this one first (its opaque Bg would sit in front otherwise).
+	# this one only once the card will actually show (its opaque Bg would
+	# sit in front otherwise).
+	if not _shadow_reveal_card.show_for(shadow_instance_id, ShadowRevealCard.Mode.DETAIL):
+		return
 	visible = false
 	_awaiting_reveal_close = true
-	_shadow_reveal_card.show_for(shadow_instance_id, ShadowRevealCard.Mode.DETAIL)
 
 
 ## The reveal card closed. Only act on a close that originated from a roster
