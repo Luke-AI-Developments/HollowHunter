@@ -373,3 +373,68 @@ func test_enrich_army_power_includes_the_trait_power_pct() -> void:
 	var p: int = SquadBuilder.enrich_army(plain, monsters, 10)[0]["power"]
 	var b: int = SquadBuilder.enrich_army(boosted, monsters, 10)[0]["power"]
 	assert_gt(b, p)
+
+
+func _pick_army() -> Array:
+	# 4 shadows, deliberately mixed so every sort key reorders differently.
+	# base_powers from content: mon_grubmaw 120 (WARRIOR/E), mon_runtclaw 200 (ASSASSIN/E),
+	# mon_ashen_warden ~ (WARRIOR), mon_frostquill 2200 (ASSASSIN/B).
+	return [
+		{"instance_id": "a", "monster_id": "mon_grubmaw", "grade": "E", "level": 9},
+		{"instance_id": "b", "monster_id": "mon_frostquill", "grade": "B", "level": 1},
+		{"instance_id": "c", "monster_id": "mon_runtclaw", "grade": "E", "level": 3},
+		{"instance_id": "d", "monster_id": "mon_ashen_warden", "grade": "C", "level": 5},
+	]
+
+
+func test_sort_shadows_by_power_is_descending() -> void:
+	var enr := SquadBuilder.enrich_army(_pick_army(), monsters, 10)
+	var out := SquadBuilder.sort_shadows(enr, "power")
+	for i in out.size() - 1:
+		assert_true(out[i]["power"] >= out[i + 1]["power"], "power not descending at %d" % i)
+
+
+func test_sort_shadows_by_level_is_descending_then_power() -> void:
+	var enr := SquadBuilder.enrich_army(_pick_army(), monsters, 10)
+	var out := SquadBuilder.sort_shadows(enr, "level")
+	for i in out.size() - 1:
+		var li: int = out[i]["level"]
+		var lj: int = out[i + 1]["level"]
+		assert_true(li > lj or (li == lj and out[i]["power"] >= out[i + 1]["power"]))
+
+
+func test_sort_shadows_by_rank_descending_then_power() -> void:
+	var enr := SquadBuilder.enrich_army(_pick_army(), monsters, 10)
+	var out := SquadBuilder.sort_shadows(enr, "rank")
+	for i in out.size() - 1:
+		var ri: int = GameLogic.RANK_ORDER.find(out[i]["grade"])
+		var rj: int = GameLogic.RANK_ORDER.find(out[i + 1]["grade"])
+		assert_true(ri > rj or (ri == rj and out[i]["power"] >= out[i + 1]["power"]))
+
+
+func test_sort_shadows_by_role_is_class_order_then_power() -> void:
+	var enr := SquadBuilder.enrich_army(_pick_army(), monsters, 10)
+	var out := SquadBuilder.sort_shadows(enr, "role")
+	for i in out.size() - 1:
+		var ci: int = SquadBuilder.CLASSES.find(out[i]["clazz"])
+		var cj: int = SquadBuilder.CLASSES.find(out[i + 1]["clazz"])
+		assert_true(ci < cj or (ci == cj and out[i]["power"] >= out[i + 1]["power"]))
+
+
+func test_sort_shadows_unknown_mode_matches_power() -> void:
+	var enr := SquadBuilder.enrich_army(_pick_army(), monsters, 10)
+	assert_eq(
+		SquadBuilder.sort_shadows(enr, "banana").map(
+			func(e: Dictionary) -> String: return e["instance_id"]
+		),
+		SquadBuilder.sort_shadows(enr, "power").map(
+			func(e: Dictionary) -> String: return e["instance_id"]
+		)
+	)
+
+
+func test_sort_shadows_does_not_mutate_input() -> void:
+	var enr := SquadBuilder.enrich_army(_pick_army(), monsters, 10)
+	var before := enr.map(func(e: Dictionary) -> String: return e["instance_id"])
+	SquadBuilder.sort_shadows(enr, "rank")
+	assert_eq(enr.map(func(e: Dictionary) -> String: return e["instance_id"]), before)

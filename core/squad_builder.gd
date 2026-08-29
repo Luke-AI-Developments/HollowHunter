@@ -76,6 +76,48 @@ static func enrich_army(
 	return enriched
 
 
+## §17 (manual party pick): returns a NEW array of `enriched` sorted by `mode`.
+## Does not mutate the input. `mode`:
+##   "power" -- power desc
+##   "level" -- level desc, then power desc
+##   "rank"  -- grade S->E (GameLogic.RANK_ORDER index desc), then power desc
+##   "role"  -- class in CLASSES order, then power desc
+## Any other `mode` sorts as "power".
+static func sort_shadows(enriched: Array, mode: String) -> Array:
+	var out := enriched.duplicate()
+	match mode:
+		"level":
+			out.sort_custom(
+				func(a: Dictionary, b: Dictionary) -> bool:
+					if a["level"] != b["level"]:
+						return a["level"] > b["level"]
+					return a["power"] > b["power"]
+			)
+		"rank":
+			out.sort_custom(
+				func(a: Dictionary, b: Dictionary) -> bool:
+					var ra := GameLogic.RANK_ORDER.find(a["grade"])
+					var rb := GameLogic.RANK_ORDER.find(b["grade"])
+					if ra != rb:
+						return ra > rb
+					return a["power"] > b["power"]
+			)
+		"role":
+			out.sort_custom(
+				func(a: Dictionary, b: Dictionary) -> bool:
+					var ca := CLASSES.find(a["clazz"])
+					var cb := CLASSES.find(b["clazz"])
+					if ca != cb:
+						return ca < cb
+					return a["power"] > b["power"]
+			)
+		_:
+			out.sort_custom(
+				func(a: Dictionary, b: Dictionary) -> bool: return a["power"] > b["power"]
+			)
+	return out
+
+
 static func auto_fill_squad(
 	army: Array,
 	monsters: Array,
