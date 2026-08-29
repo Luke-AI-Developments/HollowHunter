@@ -1222,7 +1222,7 @@ The screen §16's combat system actually plays out on. Shared by **every** fight
 
 The home screen and the heart of the game's identity.
 
-**Visual:** a **stylized dark-fantasy overlay** — real streets reskinned into the moody arcane world (recolored dark roads, low-light palette, glowing gate markers). Immersive and on-brand. Built on real map tiles + theming/shaders — more art work than a plain map, flagged.
+**Visual:** a **stylized dark-fantasy overlay** — real streets reskinned into the moody arcane world (recolored dark roads, low-light palette, glowing gate markers). Immersive and on-brand. The map is real street and water geometry pulled from **OpenStreetMap** for a bounded area, simplified and drawn with Godot's own `draw_*` calls in the dark palette below — no map tiles, no shaders, no map SDK (see §19b, and `core/map_geometry.gd` / `scenes/map_view.gd`).
 
 **Player & movement:** foreground-only GPS (§11c). Your **hunter avatar** sits at your real location; the map shows the area around you. Gates are **anchored to real-world points of interest** near you — parks, landmarks, notable places pulled from OSM data — like Pokémon Go gyms, so the *world* places them rather than random spawn. Moving around your area surfaces different gates, but you **don't need to walk to a gate to use it** (no proximity requirement). *Design note: this makes fitness the power source (exercise → EXP → power, §4) rather than a hard gate on play — more accessible, softer GPS.*
 
@@ -1253,26 +1253,24 @@ The map isn't only gates — a few POI types give the world texture and reasons 
 
 **HUD (persistent):**
 - **Power / level / rank** — your `GATE_POWER`, hunter level, hunter rank.
-- **Currencies** — Essence, Crystals.
+- **No currency balances** — Essence, gate tickets and crystal balances are **not** on the persistent map HUD (it carries **Lv / EXP / the five stats (STR AGI VIT END SEN) / Power**); the **shop** is where balances are surfaced.
 - **Quick action** — a button for active **gate-breaks / raid entry** (stationary content), so at-home play is one tap away.
 - *(No fitness ring here — the workout→EXP summary lives on the Hunter screen.)*
 
-**Navigation:** a **bottom nav bar** — **Map · Army · Raids · Shop** — with the map as home base.
+**Navigation:** a top-left `☰ Menu` button that folds out into cyan-glass banner links — **Army · Hunter Gear · Inventory · Stronghold · Character · The Nadir · Shop · Leaderboard · Use Ticket**. The map is the home screen behind it (see `GameUI/NavMenu` in `main.tscn`) — there is no persistent nav bar.
 
-**Stationary play:** gate tickets and gate-breaks (§8) open gates you can run at home; the **Nadir** raid (§20) is reachable from the **Raids** tab.
+**Stationary play:** gate tickets and gate-breaks (§8) open gates you can run at home; the **Nadir** raid (§20) is reached from the fold-out menu (**The Nadir**).
 
-### Map tech & cost (locked)
-**Not** a reskinned Google Maps (their ToS forbids restyling, and it's costly for games). The stack:
-- **Data:** **OpenStreetMap** — free, open street/water/building data (the same source Pokémon Go switched to in 2017). Attribution required; no per-use fee.
-- **The "reskin":** a custom **MapLibre** style applied to the OSM *vector* data (dark roads, glowing gates, hidden labels) — MapLibre is the free, open-source renderer, no vendor lock-in.
-- **Serving:** **Protomaps / PMTiles** — the basemap as a single static file on **Cloudflare R2**, read via HTTP range requests. **No tile server, no API keys, and R2 egress is always free.**
-- **Rendering:** on-device in Godot (community OSM/MapLibre tile plugins) — no server render cost.
+### Map data & cost
+**The map itself costs ≈ £0.** §19b's decision (vector lines drawn in-engine, not tiles) supersedes the earlier tile-server / renderer / hosting stack — none of it is built or billed.
+- **Data:** geometry is a **one-time OSM extract** for the play-area bbox — the Darlington test bbox `54.5006, -1.5943, 54.5464, -1.5155`, ~0.4 MB of road/water lines — **bundled in the APK**. Attribution required; no per-use fee.
+- **No infrastructure:** no tile server, no hosting, no per-use cost, no API key.
+- **The "reskin":** the palette is code constants in `core/map_geometry.gd`. Changing it is a **recompile, not a re-render**.
+- **Coverage:** widening past the test area for launch is still open (§19c).
 
-**Cost / scaling (the "when do we pay?" answer):**
-- **Solo / friends / a few hundred players → $0.** A **regional PMTiles extract** fits R2's free 10 GB storage; the full planet (~130 GB) is ~**$2/mo flat** regardless of players.
-- **The map essentially never bills** — free R2 egress + heavy on-device tile caching (a walking player fetches very few tiles).
+**Backend cost / scaling (the "when do we pay?" answer) — this is a *backend* question, not a map one:**
 - **First real wall ≈ 1,000–5,000 monthly active users**, and it's the **backend** (Supabase egress, 5 GB/mo free), **not the map**. In daily terms, ~a few hundred to ~1,500 DAU.
-- **Crossing it is cheap:** Supabase Pro ~**$25/mo** covers tens of thousands of users; R2 overage is pennies.
+- **Crossing it is cheap:** Supabase Pro ~**$25/mo** covers tens of thousands of users.
 - **Lever:** stay **local-first** (progress on-device; backend only for leaderboards / gate-breaks / optional cloud-save, with cached fetches) to push the free ceiling toward the 50k-MAU auth cap.
 
 **Notes / tuning:**
