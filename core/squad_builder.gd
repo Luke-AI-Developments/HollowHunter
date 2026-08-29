@@ -19,7 +19,8 @@ static func enrich_army(
 	monsters: Array,
 	hunter_level: int,
 	equipment: Dictionary = {},
-	inventory: Array = []
+	inventory: Array = [],
+	trait_pool: Array = []
 ) -> Array:
 	var enriched := []
 	for shadow: Dictionary in army:
@@ -57,8 +58,10 @@ static func enrich_army(
 					"grade_name": GameLogic.grade_name(shadow.get("grade", "")),
 					"level": shadow.get("level", 1),
 					"clazz": monster.get("clazz", ""),
+					"family": monster.get("family", ""),
 					"base_power": monster.get("base_power", 0),
 					"power": power,
+					"traits": Traits.resolve(trait_pool, shadow.get("traits", [])),
 					"locked": shadow.get("locked", false),
 					"favorite": shadow.get("favorite", false),
 				}

@@ -297,3 +297,44 @@ func test_resolve_party_respects_a_custom_count() -> void:
 	var picks := [squad[0]["instance_id"]]
 	var resolved := SquadBuilder.resolve_party(army, monsters, 1, picks, {}, [], 2)
 	assert_eq(resolved.size(), 2)
+
+
+func test_enrich_army_includes_family() -> void:
+	var army := [{"instance_id": "s0", "monster_id": "mon_grubmaw", "grade": "E", "level": 1}]
+	var enriched := SquadBuilder.enrich_army(army, monsters, 10)
+	assert_eq(enriched[0]["family"], "Hollow Brood")
+
+
+func test_enrich_army_resolves_traits_when_pool_supplied() -> void:
+	var army := [
+		{
+			"instance_id": "s0",
+			"monster_id": "mon_grubmaw",
+			"grade": "E",
+			"level": 1,
+			"traits": ["ironhide", "sturdy"],
+		}
+	]
+	var enriched := SquadBuilder.enrich_army(army, monsters, 10, {}, [], Traits.load_pool())
+	assert_eq(enriched[0]["traits"].size(), 2)
+	assert_eq(enriched[0]["traits"][0]["id"], "ironhide")
+	assert_eq(enriched[0]["traits"][0]["name"], "Ironhide")
+
+
+func test_enrich_army_traits_empty_without_pool_or_without_traits() -> void:
+	var army := [
+		{
+			"instance_id": "s0",
+			"monster_id": "mon_grubmaw",
+			"grade": "E",
+			"level": 1,
+			"traits": ["ironhide"],
+		}
+	]
+	# no pool passed -> cannot resolve -> empty
+	assert_eq(SquadBuilder.enrich_army(army, monsters, 10)[0]["traits"], [])
+	# pool passed but shadow has no traits key -> empty
+	var army2 := [{"instance_id": "s1", "monster_id": "mon_grubmaw", "grade": "E", "level": 1}]
+	assert_eq(
+		SquadBuilder.enrich_army(army2, monsters, 10, {}, [], Traits.load_pool())[0]["traits"], []
+	)
