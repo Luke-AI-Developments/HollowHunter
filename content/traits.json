@@ -1,0 +1,20 @@
+{
+  "_comment": "§6b shadow traits. COSMETIC this cycle -- effect_text is flavour describing the future effect; nothing reads it for gameplay yet. Rarity drives roll weighting only. Pool + weights are v0, tunable.",
+  "traits": [
+    { "id": "sturdy",          "name": "Sturdy",           "rarity": "common",    "polarity": "positive", "effect_text": "+HP" },
+    { "id": "keen",            "name": "Keen",             "rarity": "common",    "polarity": "positive", "effect_text": "+ATK" },
+    { "id": "fleet",           "name": "Fleet",            "rarity": "common",    "polarity": "positive", "effect_text": "acts sooner (+SPD)" },
+    { "id": "scavenger",       "name": "Scavenger",        "rarity": "common",    "polarity": "positive", "effect_text": "small Essence bonus from gates" },
+    { "id": "ironhide",        "name": "Ironhide",         "rarity": "uncommon",  "polarity": "positive", "effect_text": "+DEF" },
+    { "id": "bloodhunger",     "name": "Bloodhunger",      "rarity": "uncommon",  "polarity": "positive", "effect_text": "heals a little on kill" },
+    { "id": "warcaller",       "name": "Warcaller",        "rarity": "uncommon",  "polarity": "positive", "effect_text": "minor squad-wide ATK aura" },
+    { "id": "frostblooded",    "name": "Frostblooded",     "rarity": "rare",      "polarity": "positive", "effect_text": "bonus damage vs Rime / ice families" },
+    { "id": "relentless",      "name": "Relentless",       "rarity": "rare",      "polarity": "positive", "effect_text": "cooldowns tick faster" },
+    { "id": "soulbound",       "name": "Soulbound",        "rarity": "epic",      "polarity": "positive", "effect_text": "extra Essence on gate clear, scales with grade" },
+    { "id": "executioner",     "name": "Executioner",      "rarity": "epic",      "polarity": "positive", "effect_text": "damage spike vs bosses" },
+    { "id": "monarchs_favour", "name": "Monarch's Favour", "rarity": "legendary", "polarity": "positive", "effect_text": "small boost to every stat + squad synergy" },
+    { "id": "brittle",         "name": "Brittle",          "rarity": "common",    "polarity": "negative", "effect_text": "-DEF" },
+    { "id": "sluggish",        "name": "Sluggish",         "rarity": "common",    "polarity": "negative", "effect_text": "acts later (-SPD)" },
+    { "id": "cowardly",        "name": "Cowardly",         "rarity": "uncommon",  "polarity": "negative", "effect_text": "-ATK while below half HP" }
+  ]
+}

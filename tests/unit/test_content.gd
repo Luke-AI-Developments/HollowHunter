@@ -5,12 +5,14 @@ extends GutTest
 var monsters: Array
 var equipment: Dictionary
 var moves: Array
+var traits: Array
 
 
 func before_all() -> void:
 	monsters = Content.load_monsters()
 	equipment = Content.load_equipment()
 	moves = Content.load_moves()
+	traits = Content.load_traits()
 
 
 func test_all_54_monsters_load() -> void:
@@ -125,3 +127,20 @@ func test_shop_item_by_id_finds_a_real_entry() -> void:
 func test_shop_item_by_id_unknown_id_is_empty() -> void:
 	var shop := Content.load_shop()
 	assert_eq(Content.shop_item_by_id(shop["cosmetics"], "cosmetic_does_not_exist"), {})
+
+
+func test_traits_pool_loads_with_valid_shape() -> void:
+	assert_eq(traits.size(), 15, "expected the 15-entry v0 trait pool")
+	var rarities := ["common", "uncommon", "rare", "epic", "legendary"]
+	var polarities := ["positive", "negative"]
+	var ids := {}
+	for t: Dictionary in traits:
+		assert_true(String(t.get("id", "")).length() > 0, "trait missing id")
+		assert_false(ids.has(t["id"]), "duplicate trait id: %s" % t.get("id", "?"))
+		ids[t["id"]] = true
+		assert_true(String(t.get("name", "")).length() > 0, "trait %s missing name" % t["id"])
+		assert_true(rarities.has(t.get("rarity", "")), "trait %s bad rarity" % t["id"])
+		assert_true(polarities.has(t.get("polarity", "")), "trait %s bad polarity" % t["id"])
+		assert_true(
+			String(t.get("effect_text", "")).length() > 0, "trait %s missing effect_text" % t["id"]
+		)
