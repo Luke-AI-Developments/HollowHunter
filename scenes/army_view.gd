@@ -24,6 +24,7 @@ var _equipment: Dictionary
 var _monsters: Array
 var _shadow_gear_view: ShadowGearView
 var _shadow_reveal_card: ShadowRevealCard
+var _awaiting_reveal_close: bool = false
 var _grade_filter: String = "ALL"
 var _sort_mode: String = "power"
 var _collapsed: Dictionary = {}  ## clazz -> bool, session-only (resets on reopen)
@@ -193,14 +194,20 @@ func _on_shadow_row_pressed(shadow_instance_id: String) -> void:
 	# ArmyPanel and the reveal card are sibling full-screen panels -- hide
 	# this one first (its opaque Bg would sit in front otherwise).
 	visible = false
+	_awaiting_reveal_close = true
 	_shadow_reveal_card.show_for(shadow_instance_id, ShadowRevealCard.Mode.DETAIL)
 
 
-## The reveal card (opened from a roster tap) closed. Re-show the roster,
-## unless the close was the "Manage Gear" route -- in that case Shadow Gear
-## is now visible and will re-show the roster itself when IT closes
+## The reveal card closed. Only act on a close that originated from a roster
+## tap (DETAIL mode, flagged by _on_shadow_row_pressed) -- CLAIM-mode closes
+## fire this same signal and must not pop the roster over the map. On the
+## "Manage Gear" route the flag is set but Shadow Gear is already visible, so
+## defer to it -- it re-shows the roster itself when IT closes
 ## (_on_shadow_gear_view_closed).
 func _on_reveal_card_closed() -> void:
+	if not _awaiting_reveal_close:
+		return
+	_awaiting_reveal_close = false
 	if not _shadow_gear_view.visible:
 		open()
 
