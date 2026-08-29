@@ -592,6 +592,26 @@ func test_mass_convert_skips_unknown_ids() -> void:
 	assert_eq(s.army.size(), 0)
 
 
+func test_convert_shadow_unassigns_it_from_its_stronghold_facility() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_ashen_warden", "C")
+	assert_true(s.assign_shadow_to_facility(Stronghold.RELIQUARY, shadow["instance_id"]))
+	assert_true(s.is_shadow_assigned(shadow["instance_id"]))
+	assert_true(s.convert_shadow(shadow["instance_id"]))
+	assert_false(
+		s.is_shadow_assigned(shadow["instance_id"]),
+		"a relinquished shadow must not stay in a facility's assigned list"
+	)
+	assert_eq(s.stronghold_facilities[Stronghold.RELIQUARY]["assigned"].size(), 0)
+
+
+func test_convert_shadow_of_an_unassigned_shadow_still_works() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var shadow := s.claim_shadow("mon_grubmaw", "E")
+	assert_true(s.convert_shadow(shadow["instance_id"]))
+	assert_eq(s.army.size(), 0)
+
+
 func test_claim_shadow_starts_unlocked_and_unfavorited() -> void:
 	var s := HunterState.new_default("WARRIOR")
 	var shadow := s.claim_shadow("mon_ashen_warden", "E")

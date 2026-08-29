@@ -381,7 +381,8 @@ func fuse_shadow(target_instance_id: String, duplicate_instance_id: String) -> b
 ## shadow is unknown OR locked -- §6b: Relinquish must respect the lock that
 ## protects a shadow from mass-convert. (mass_convert already filters locked
 ## shadows upstream via surplus_shadow_ids; this closes the direct-call
-## path.)
+## path.) Also clears any stronghold-facility assignment so the relinquished
+## shadow stops being counted / accrued for.
 func convert_shadow(shadow_instance_id: String) -> bool:
 	var idx := _army_index(shadow_instance_id)
 	if idx < 0:
@@ -390,6 +391,7 @@ func convert_shadow(shadow_instance_id: String) -> bool:
 		return false
 	var grade: String = army[idx].get("grade", "")
 	essence += GameLogic.essence_for_converted_shadow(grade)
+	unassign_shadow(shadow_instance_id)
 	army.remove_at(idx)
 	return true
 
