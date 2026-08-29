@@ -1569,46 +1569,6 @@ theme_override_font_sizes/font_size = 24
 autowrap_mode = 3
 text = ""
 
-[node name="ClaimNicknamePanel" type="Node2D" parent="GameUI"]
-visible = false
-
-[node name="Bg" type="ColorRect" parent="GameUI/ClaimNicknamePanel"]
-offset_right = 1080.0
-offset_bottom = 2424.0
-color = Color(0.02, 0.05, 0.09, 0.99)
-
-[node name="InfoLabel" type="Label" parent="GameUI/ClaimNicknamePanel"]
-offset_left = 80.0
-offset_top = 900.0
-offset_right = 1000.0
-offset_bottom = 1040.0
-theme_override_font_sizes/font_size = 28
-autowrap_mode = 3
-text = ""
-
-[node name="NicknameInput" type="LineEdit" parent="GameUI/ClaimNicknamePanel"]
-offset_left = 80.0
-offset_top = 1070.0
-offset_right = 1000.0
-offset_bottom = 1130.0
-placeholder_text = "Nickname (optional)"
-
-[node name="SaveButton" type="Button" parent="GameUI/ClaimNicknamePanel"]
-offset_left = 80.0
-offset_top = 1160.0
-offset_right = 340.0
-offset_bottom = 1220.0
-theme_type_variation = &"BannerButton"
-text = "Save"
-
-[node name="SkipButton" type="Button" parent="GameUI/ClaimNicknamePanel"]
-offset_left = 360.0
-offset_top = 1160.0
-offset_right = 620.0
-offset_bottom = 1220.0
-theme_type_variation = &"BannerButton"
-text = "Skip"
-
 [node name="ShadowRevealPanel" type="Node2D" parent="GameUI"]
 visible = false
 script = ExtResource("16")
