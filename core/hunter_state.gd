@@ -372,6 +372,7 @@ func fuse_shadow(target_instance_id: String, duplicate_instance_id: String) -> b
 		return false
 	essence -= cost
 	army[target_idx]["level"] = ShadowLeveling.fuse_result_level(current_level)
+	unassign_shadow(duplicate_instance_id)
 	army.remove_at(dup_idx)
 	return true
 

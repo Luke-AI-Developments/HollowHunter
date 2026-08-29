@@ -100,8 +100,8 @@ static func load_shop(path: String = "res://content/shop.json") -> Dictionary:
 	return data
 
 
-## §6b shadow traits pool (content/traits.json). Cosmetic this cycle --
-## see that file's _comment.
+## §6b shadow traits pool (content/traits.json). §6b traits pool -- see
+## that file's _comment.
 static func load_traits(path: String = "res://content/traits.json") -> Array:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if data == null or not data.has("traits"):

@@ -165,7 +165,9 @@ static func shadow_power(
 	)
 	# §6b: trait power modifier is a straight multiplier on the final
 	# number, same shape as the MONARCH_SCALE hunter-level step.
-	return int(round(core * (1.0 + MONARCH_SCALE * hunter_level) * (1.0 + trait_power_pct)))
+	return int(
+		round(core * (1.0 + MONARCH_SCALE * hunter_level) * maxf(0.0, 1.0 + trait_power_pct))
+	)
 
 
 # --- Shadow combat stats (§16 combat overhaul, balance fix) ---
@@ -207,7 +209,9 @@ static func shadow_combat_stats(
 	var multiplier := float(grade_scale) / float(baseline)
 	var scaled := {}
 	for stat in raw.keys():
-		var v := float(raw[stat]) * multiplier * (1.0 + float(trait_combat_pct.get(stat, 0.0)))
+		var v := (
+			float(raw[stat]) * multiplier * maxf(0.0, 1.0 + float(trait_combat_pct.get(stat, 0.0)))
+		)
 		scaled[stat] = int(round(v))
 	return scaled
 

@@ -560,6 +560,21 @@ func test_fuse_shadow_with_itself_fails() -> void:
 	assert_false(s.fuse_shadow(target["instance_id"], target["instance_id"]))
 
 
+func test_fuse_shadow_unassigns_the_consumed_duplicate() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var target := s.claim_shadow("mon_ashen_warden", "C")
+	var dup := s.claim_shadow("mon_ashen_warden", "C")
+	s.essence = 100000  # cover fuse_cost
+	assert_true(s.assign_shadow_to_facility(Stronghold.RELIQUARY, dup["instance_id"]))
+	assert_true(s.is_shadow_assigned(dup["instance_id"]))
+	assert_true(s.fuse_shadow(target["instance_id"], dup["instance_id"]))
+	assert_false(
+		s.is_shadow_assigned(dup["instance_id"]),
+		"the consumed duplicate must not stay in a facility's assigned list"
+	)
+	assert_eq(s.stronghold_facilities[Stronghold.RELIQUARY]["assigned"].size(), 0)
+
+
 func test_convert_shadow_removes_it_and_grants_essence_by_grade() -> void:
 	var s := HunterState.new_default("WARRIOR")
 	var shadow := s.claim_shadow("mon_ashen_warden", "B")

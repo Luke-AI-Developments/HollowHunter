@@ -1252,7 +1252,7 @@ The map isn't only gates — a few POI types give the world texture and reasons 
 - **Tech:** v1 can generate incursions **client-side, deterministically by area + week** (no backend — everyone in a region sees the same event for free); later **server-driven** incursions enable global/shared events (§9).
 
 **HUD (persistent):**
-- **Power / level / rank** — your `GATE_POWER`, hunter level, hunter rank.
+- **Level & power** — your hunter level and personal power (the full readout is in the next bullet).
 - **No currency balances** — Essence, gate tickets and crystal balances are **not** on the persistent map HUD (it carries **Lv / EXP / the five stats (STR AGI VIT END SEN) / Power**); the **shop** is where balances are surfaced.
 - **Quick action** — a button for active **gate-breaks / raid entry** (stationary content), so at-home play is one tap away.
 - *(No fitness ring here — the workout→EXP summary lives on the Hunter screen.)*

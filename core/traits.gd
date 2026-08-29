@@ -1,7 +1,8 @@
 class_name Traits
 ## §6b shadow traits -- roll on CLAIM + resolve for display. Pure (RNG
-## only). COSMETIC this cycle: rolled traits are stored and shown, nothing
-## reads them for gameplay. Rarity drives roll weighting; count 1-3.
+## only). Traits roll on CLAIM, persist, display, and drive stat effects:
+## stat_modifiers() -> GameLogic.shadow_power / shadow_combat_stats (§6b).
+## Rarity drives roll weighting; count 1-3.
 ##
 ## Weights are v0 (see content/traits.json _comment) -- tunable without
 ## touching this file's logic.
