@@ -155,14 +155,17 @@ static func shadow_power(
 	shadow_level: int,
 	hunter_level: int,
 	gear_power_bonus: int = 0,
-	gear_stat_bonus: int = 0
+	gear_stat_bonus: int = 0,
+	trait_power_pct: float = 0.0
 ) -> int:
 	var core := (
 		base_power * (SHADOW_BASE_SCALE + SHADOW_LEVEL_SCALE * shadow_level)
 		+ gear_power_bonus
 		+ gear_stat_bonus * STAT_WEIGHT
 	)
-	return int(round(core * (1.0 + MONARCH_SCALE * hunter_level)))
+	# §6b: trait power modifier is a straight multiplier on the final
+	# number, same shape as the MONARCH_SCALE hunter-level step.
+	return int(round(core * (1.0 + MONARCH_SCALE * hunter_level) * (1.0 + trait_power_pct)))
 
 
 # --- Shadow combat stats (§16 combat overhaul, balance fix) ---
@@ -193,7 +196,9 @@ static func shadow_power(
 # overhaul already replaced with an explicit mechanic (Army Synergy,
 # CombatMath.army_synergy_bonus) rather than baking hunter-progression
 # into an individual shadow's own base stats.
-static func shadow_combat_stats(base_power: int, shadow_level: int, clazz: String) -> Dictionary:
+static func shadow_combat_stats(
+	base_power: int, shadow_level: int, clazz: String, trait_combat_pct: Dictionary = {}
+) -> Dictionary:
 	var raw := stats_from(shadow_level, clazz)
 	var baseline := personal_power(raw, shadow_level)
 	if baseline <= 0:
@@ -202,7 +207,8 @@ static func shadow_combat_stats(base_power: int, shadow_level: int, clazz: Strin
 	var multiplier := float(grade_scale) / float(baseline)
 	var scaled := {}
 	for stat in raw.keys():
-		scaled[stat] = int(round(float(raw[stat]) * multiplier))
+		var v := float(raw[stat]) * multiplier * (1.0 + float(trait_combat_pct.get(stat, 0.0)))
+		scaled[stat] = int(round(v))
 	return scaled
 
 
@@ -226,7 +232,8 @@ static func army_power(shadows: Array, hunter_level: int) -> int:
 			s.get("level", 0),
 			hunter_level,
 			s.get("gear_power_bonus", 0),
-			s.get("gear_stat_bonus", 0)
+			s.get("gear_stat_bonus", 0),
+			float(s.get("trait_power_pct", 0.0))
 		)
 	return total
 

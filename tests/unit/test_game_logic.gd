@@ -217,3 +217,43 @@ func test_essence_for_scrapped_item_by_rarity() -> void:
 
 func test_essence_for_scrapped_item_unknown_rarity_is_zero() -> void:
 	assert_eq(GameLogic.essence_for_scrapped_item("NOT_A_RARITY"), 0)
+
+
+func test_shadow_power_trait_pct_scales_the_result() -> void:
+	var base_p := GameLogic.shadow_power(1000, 5, 10, 0, 0, 0.0)
+	var boosted := GameLogic.shadow_power(1000, 5, 10, 0, 0, 0.10)
+	assert_almost_eq(float(boosted) / float(base_p), 1.10, 0.01)
+
+
+func test_shadow_power_default_trait_pct_is_a_no_op() -> void:
+	assert_eq(
+		GameLogic.shadow_power(1234, 7, 12, 30, 8), GameLogic.shadow_power(1234, 7, 12, 30, 8, 0.0)
+	)
+
+
+func test_shadow_combat_stats_trait_pct_raises_the_named_stat() -> void:
+	var baseline := GameLogic.shadow_combat_stats(2000, 5, "WARRIOR")
+	var boosted := GameLogic.shadow_combat_stats(2000, 5, "WARRIOR", {"VIT": 0.20})
+	assert_gt(boosted["VIT"], baseline["VIT"])
+	assert_almost_eq(float(boosted["VIT"]) / float(baseline["VIT"]), 1.20, 0.05)
+	# a stat not in the dict is untouched
+	assert_eq(boosted["AGI"], baseline["AGI"])
+
+
+func test_shadow_combat_stats_negative_trait_pct_lowers_the_stat() -> void:
+	var baseline := GameLogic.shadow_combat_stats(2000, 5, "WARRIOR")
+	var weakened := GameLogic.shadow_combat_stats(2000, 5, "WARRIOR", {"END": -0.15})
+	assert_lt(weakened["END"], baseline["END"])
+
+
+func test_shadow_combat_stats_empty_dict_is_a_no_op() -> void:
+	assert_eq(
+		GameLogic.shadow_combat_stats(1500, 6, "MAGE"),
+		GameLogic.shadow_combat_stats(1500, 6, "MAGE", {})
+	)
+
+
+func test_army_power_reads_per_shadow_trait_power_pct() -> void:
+	var plain := [{"base_power": 1000, "level": 5}]
+	var boosted := [{"base_power": 1000, "level": 5, "trait_power_pct": 0.10}]
+	assert_gt(GameLogic.army_power(boosted, 10), GameLogic.army_power(plain, 10))
