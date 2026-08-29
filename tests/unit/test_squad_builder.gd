@@ -33,54 +33,6 @@ func test_enrich_army_skips_unknown_monster_ids() -> void:
 	assert_eq(SquadBuilder.enrich_army(army, monsters, 10), [])
 
 
-func test_auto_fill_squad_picks_best_per_class_plus_flex() -> void:
-	var army := [
-		_shadow("mon_tuskrend"),  # WARRIOR, base 350 -- class-best
-		_shadow("mon_grubmaw"),  # WARRIOR, base 120 -- weaker leftover
-		_shadow("mon_carapax"),  # GUARDIAN, base 500
-		_shadow("mon_runtclaw"),  # ASSASSIN, base 200
-		_shadow("mon_cindergnat"),  # MAGE, base 150
-		_shadow("mon_snarlpack"),  # SUPPORT, base 1350
-		_shadow("mon_nipclaw"),  # WARRIOR, base 210 -- stronger leftover, should win flex
-	]
-	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
-	assert_eq(squad.size(), 6)
-
-	var by_class := {}
-	for member: Dictionary in squad:
-		by_class[member["clazz"]] = by_class.get(member["clazz"], 0) + 1
-	assert_eq(by_class.get("WARRIOR", 0), 2)  # class slot + flex
-	assert_eq(by_class.get("GUARDIAN", 0), 1)
-	assert_eq(by_class.get("ASSASSIN", 0), 1)
-	assert_eq(by_class.get("MAGE", 0), 1)
-	assert_eq(by_class.get("SUPPORT", 0), 1)
-
-	var ids: Array = squad.map(func(m: Dictionary) -> String: return m["monster_id"])
-	assert_true(ids.has("mon_tuskrend"))  # WARRIOR class slot (stronger of the two)
-	assert_true(ids.has("mon_nipclaw"))  # flex (stronger leftover than grubmaw)
-	assert_false(ids.has("mon_grubmaw"))  # weaker leftover, not picked
-
-
-func test_auto_fill_squad_never_duplicates_a_shadow() -> void:
-	var army := [_shadow("mon_tuskrend")]
-	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
-	var seen := {}
-	for member: Dictionary in squad:
-		assert_false(seen.has(member["instance_id"]))
-		seen[member["instance_id"]] = true
-
-
-func test_auto_fill_squad_with_empty_army_is_empty() -> void:
-	assert_eq(SquadBuilder.auto_fill_squad([], monsters, 1), [])
-
-
-func test_auto_fill_squad_with_one_shadow_returns_one() -> void:
-	var army := [_shadow("mon_grubmaw")]
-	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
-	assert_eq(squad.size(), 1)
-	assert_eq(squad[0]["monster_id"], "mon_grubmaw")
-
-
 func test_enrich_army_gear_raises_shadow_power() -> void:
 	var equipment := Content.load_equipment()
 	var inventory := [
@@ -231,10 +183,10 @@ func _six_class_army() -> Array:
 
 func test_resolve_party_honors_a_full_manual_pick_in_order() -> void:
 	var army := _six_class_army()
-	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
-	# Pick the 3 weakest of the squad-of-6, in a specific order -- the
+	var enriched := SquadBuilder.enrich_army(army, monsters, 1)
+	# Pick the 3 weakest of the enriched army, in a specific order -- the
 	# opposite of what auto-pick-by-power would choose.
-	var by_power := squad.duplicate()
+	var by_power := enriched.duplicate()
 	by_power.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] < b["power"])
 	var picks := [
 		by_power[0]["instance_id"], by_power[1]["instance_id"], by_power[2]["instance_id"]

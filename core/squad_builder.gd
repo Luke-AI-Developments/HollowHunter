@@ -1,19 +1,17 @@
 class_name SquadBuilder
-## Phase 1 step 6: auto-fills a class-slotted squad of GameLogic.SQUAD_SIZE
-## (6) from the owned army -- one best-by-power shadow per class (§17's
-## "one of each class + a flex"), plus the best remaining shadow of any
-## class for the flex slot. Pure -- army + content in, squad out.
+## §17: enrich the army, sort it for the Party picker (sort_shadows), resolve
+## the fielded party (resolve_party), pick mass-convert fodder (surplus_shadow_ids).
+## Pure -- no engine deps.
 
 const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
 
 
 ## Enriches each owned shadow with its content (name, class) and computed
 ## power (GameLogic.shadow_power, including equipped gear -- Phase 2 patch 1
-## step 3 -- and active armor-set bonuses -- patch 3), for display and for
-## auto_fill_squad to rank by. Shadows whose monster_id isn't found in
-## content are skipped. `equipment`/`inventory` default to empty so existing
-## callers (and old tests) that don't care about gear keep working with
-## zero gear/set bonus.
+## step 3 -- and active armor-set bonuses -- patch 3), for display. Shadows
+## whose monster_id isn't found in content are skipped. `equipment`/`inventory`
+## default to empty so existing callers (and old tests) that don't care about
+## gear keep working with zero gear/set bonus.
 static func enrich_army(
 	army: Array,
 	monsters: Array,
@@ -116,40 +114,6 @@ static func sort_shadows(enriched: Array, mode: String) -> Array:
 				func(a: Dictionary, b: Dictionary) -> bool: return a["power"] > b["power"]
 			)
 	return out
-
-
-static func auto_fill_squad(
-	army: Array,
-	monsters: Array,
-	hunter_level: int,
-	equipment: Dictionary = {},
-	inventory: Array = []
-) -> Array:
-	var enriched := enrich_army(army, monsters, hunter_level, equipment, inventory)
-	var squad := []
-	var used_ids := {}
-
-	for clazz in CLASSES:
-		var best: Variant = null
-		for e: Dictionary in enriched:
-			if e["clazz"] != clazz or used_ids.has(e["instance_id"]):
-				continue
-			if best == null or e["power"] > best["power"]:
-				best = e
-		if best != null:
-			squad.append(best)
-			used_ids[best["instance_id"]] = true
-
-	var flex: Variant = null
-	for e: Dictionary in enriched:
-		if used_ids.has(e["instance_id"]):
-			continue
-		if flex == null or e["power"] > flex["power"]:
-			flex = e
-	if flex != null:
-		squad.append(flex)
-
-	return squad
 
 
 ## §17 (manual party pick): the party of shadows that fights -- exactly the
