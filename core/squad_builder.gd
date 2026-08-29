@@ -152,108 +152,54 @@ static func auto_fill_squad(
 	return squad
 
 
-## Phase 3/step 5: the strongest `count` (default 3, §16's party size) of
-## the auto-filled squad-of-6 -- the auto-pick default for which 3
-## shadows join a fight, until step 6 adds a manual picker letting the
-## player choose their own 3 of the 6. Simplest reasonable interpretation
-## of "auto-optimize" extended to a smaller party -- the source doesn't
-## say HOW the 3 should be auto-chosen once a manual picker also exists,
-## only that they can be.
-static func auto_fill_party(
-	army: Array,
-	monsters: Array,
-	hunter_level: int,
-	equipment: Dictionary = {},
-	inventory: Array = [],
-	count: int = 3
-) -> Array:
-	var squad := auto_fill_squad(army, monsters, hunter_level, equipment, inventory)
-	squad.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] > b["power"])
-	return squad.slice(0, count)
-
-
-## Phase 3/step 6: the party of `count` (default 3, §16) that actually
-## fights, honoring the player's manual picks from the Squad panel (§17's
-## "tweak by hand") when there are any. `active_party_ids` is
-## HunterState.active_party_ids, in the order the player picked them --
-## preserved rather than re-sorted by power, so a deliberate pick isn't
-## silently reordered.
-##
-## Empty `active_party_ids` (nobody's ever opened the picker, or they
-## cleared it) falls back to auto_fill_party() exactly as before this
-## field existed. A partial or stale pick (an id no longer in the current
-## squad-of-6 -- gear/level changes can shuffle who's strongest, or the
-## shadow could have been converted) is filled out to `count` with the
-## squad's strongest remaining members, same "auto-optimize fills the
-## rest" spirit as auto_fill_squad's own flex slot.
+## §17 (manual party pick): the party of shadows that fights -- exactly the
+## ones the player fielded via the Party picker (HunterState.active_party_ids),
+## in pick order, first 3 only. Unknown ids (a shadow that left the army) and
+## duplicates are skipped. Empty pick -> empty party (the player fights
+## understrength: you + 0..2 shadows). No auto-fill, no backfill.
 static func resolve_party(
 	army: Array,
 	monsters: Array,
 	hunter_level: int,
 	active_party_ids: Array,
 	equipment: Dictionary = {},
-	inventory: Array = [],
-	count: int = 3
+	inventory: Array = []
 ) -> Array:
-	if active_party_ids.is_empty():
-		return auto_fill_party(army, monsters, hunter_level, equipment, inventory, count)
-
-	var squad := auto_fill_squad(army, monsters, hunter_level, equipment, inventory)
+	var enriched := enrich_army(army, monsters, hunter_level, equipment, inventory)
 	var by_id := {}
-	for member: Dictionary in squad:
-		by_id[member["instance_id"]] = member
-
+	for e: Dictionary in enriched:
+		by_id[e["instance_id"]] = e
 	var chosen := []
-	var chosen_ids := {}
+	var seen := {}
 	for id in active_party_ids:
-		if chosen.size() >= count:
+		if chosen.size() >= 3:
 			break
-		if by_id.has(id) and not chosen_ids.has(id):
+		if by_id.has(id) and not seen.has(id):
 			chosen.append(by_id[id])
-			chosen_ids[id] = true
-
-	if chosen.size() < count:
-		var remaining: Array = squad.filter(
-			func(m: Dictionary) -> bool: return not chosen_ids.has(m["instance_id"])
-		)
-		remaining.sort_custom(
-			func(a: Dictionary, b: Dictionary) -> bool: return a["power"] > b["power"]
-		)
-		for m: Dictionary in remaining:
-			if chosen.size() >= count:
-				break
-			chosen.append(m)
-
+			seen[id] = true
 	return chosen
 
 
-## Phase 2/P2 step 4: the `count` weakest (lowest power) owned shadows that
-## AREN'T in the auto-filled squad -- a "surplus" selection for mass-convert
-## (§17). No formal definition of "surplus" is given in the source;
-## not-in-squad plus lowest-power is the simplest reading. Returns
-## instance_ids only, ascending by power (weakest first). Locked shadows
-## (gap-closure QoL, §17 "Lock... protect key shadows from mass-convert")
-## never appear in this pool, regardless of power or squad status.
+## §17 "mass-convert weak shadows": the `count` weakest (lowest power) owned
+## shadows that are neither locked nor currently fielded. Returns instance_ids,
+## weakest-first. (Was: excluded an auto-optimised squad -- that concept is
+## gone; the player's fielded party + locks are the only protection now.)
 static func surplus_shadow_ids(
 	army: Array,
 	monsters: Array,
 	hunter_level: int,
 	count: int,
+	active_party_ids: Array,
 	equipment: Dictionary = {},
 	inventory: Array = []
 ) -> Array:
 	var enriched := enrich_army(army, monsters, hunter_level, equipment, inventory)
-	var squad := auto_fill_squad(army, monsters, hunter_level, equipment, inventory)
-	var squad_ids := {}
-	for member: Dictionary in squad:
-		squad_ids[member["instance_id"]] = true
-
-	var surplus: Array = enriched.filter(
-		func(e: Dictionary) -> bool: return not squad_ids.has(e["instance_id"]) and not e["locked"]
+	var pool: Array = enriched.filter(
+		func(e: Dictionary) -> bool:
+			return not e["locked"] and not active_party_ids.has(e["instance_id"])
 	)
-	surplus.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] < b["power"])
-
+	pool.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] < b["power"])
 	var ids := []
-	for e: Dictionary in surplus.slice(0, count):
+	for e: Dictionary in pool.slice(0, count):
 		ids.append(e["instance_id"])
 	return ids

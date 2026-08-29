@@ -81,39 +81,6 @@ func test_auto_fill_squad_with_one_shadow_returns_one() -> void:
 	assert_eq(squad[0]["monster_id"], "mon_grubmaw")
 
 
-func test_auto_fill_party_returns_the_strongest_3_of_the_squad() -> void:
-	var army := [
-		_shadow("mon_tuskrend"),  # WARRIOR, base 350
-		_shadow("mon_carapax"),  # GUARDIAN, base 500
-		_shadow("mon_runtclaw"),  # ASSASSIN, base 200
-		_shadow("mon_cindergnat"),  # MAGE, base 150
-		_shadow("mon_snarlpack"),  # SUPPORT, base 1350 -- strongest
-	]
-	var party := SquadBuilder.auto_fill_party(army, monsters, 1)
-	assert_eq(party.size(), 3)
-	assert_eq(party[0]["monster_id"], "mon_snarlpack")  # strongest first
-	for i in range(1, party.size()):
-		assert_true(party[i - 1]["power"] >= party[i]["power"])
-
-
-func test_auto_fill_party_with_fewer_than_3_shadows_returns_all() -> void:
-	var army := [_shadow("mon_grubmaw"), _shadow("mon_tuskrend")]
-	var party := SquadBuilder.auto_fill_party(army, monsters, 1)
-	assert_eq(party.size(), 2)
-
-
-func test_auto_fill_party_respects_a_custom_count() -> void:
-	var army := [
-		_shadow("mon_tuskrend"),
-		_shadow("mon_carapax"),
-		_shadow("mon_runtclaw"),
-		_shadow("mon_cindergnat"),
-		_shadow("mon_snarlpack"),
-	]
-	var party := SquadBuilder.auto_fill_party(army, monsters, 1, {}, [], 2)
-	assert_eq(party.size(), 2)
-
-
 func test_enrich_army_gear_raises_shadow_power() -> void:
 	var equipment := Content.load_equipment()
 	var inventory := [
@@ -172,45 +139,75 @@ func test_enrich_army_display_name_uses_nickname_when_set() -> void:
 	assert_eq(enriched[0]["monster_name"], "Ashen Warden")
 
 
-func test_surplus_shadow_ids_excludes_the_squad() -> void:
+func test_surplus_shadow_ids_still_excludes_locked_and_fielded() -> void:
 	var army := [
-		_shadow("mon_tuskrend"),  # WARRIOR, base 350 -- class slot
-		_shadow("mon_grubmaw"),  # WARRIOR, base 120 -- weaker leftover, surplus
-		_shadow("mon_carapax"),  # GUARDIAN, base 500 -- class slot
-		_shadow("mon_runtclaw"),  # ASSASSIN, base 200 -- class slot
-		_shadow("mon_cindergnat"),  # MAGE, base 150 -- class slot
-		_shadow("mon_snarlpack"),  # SUPPORT, base 1350 -- class slot
-		_shadow("mon_nipclaw"),  # WARRIOR, base 210 -- stronger leftover, wins flex
+		_shadow("mon_tuskrend"),  # WARRIOR 350 -- fielded
+		_shadow("mon_grubmaw"),  # WARRIOR 120 -- locked
+		_shadow("mon_runtclaw"),  # ASSASSIN 200 -- free, weakest free
+		_shadow("mon_carapax"),  # GUARDIAN 500 -- free
 	]
-	var surplus := SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5)
-	assert_eq(surplus, ["mon_grubmaw"])
+	army[1]["locked"] = true
+	var surplus := SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5, ["mon_tuskrend"])
+	assert_false(surplus.has("mon_tuskrend"))  # fielded -- protected
+	assert_false(surplus.has("mon_grubmaw"))  # locked -- protected
+	assert_eq(surplus, ["mon_runtclaw", "mon_carapax"])  # free, weakest first
 
 
 func test_surplus_shadow_ids_sorts_weakest_first_and_respects_count() -> void:
 	var army := [
-		_shadow("mon_tuskrend"),  # WARRIOR 350 -- class slot
-		_shadow("mon_nipclaw"),  # WARRIOR 210 -- wins flex over the two below
-		_shadow("mon_grubmaw"),  # WARRIOR 120 -- surplus
-		_shadow("mon_tarling"),  # WARRIOR 110 -- surplus, weakest of all
+		_shadow("mon_tuskrend"),  # WARRIOR 350
+		_shadow("mon_nipclaw"),  # WARRIOR 210
+		_shadow("mon_grubmaw"),  # WARRIOR 120
+		_shadow("mon_tarling"),  # WARRIOR 110 -- weakest of all
 	]
-	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 1), ["mon_tarling"])
-	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5), ["mon_tarling", "mon_grubmaw"])
+	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 1, []), ["mon_tarling"])
+	assert_eq(
+		SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5, []),
+		["mon_tarling", "mon_grubmaw", "mon_nipclaw", "mon_tuskrend"]
+	)
 
 
 func test_surplus_shadow_ids_with_no_surplus_is_empty() -> void:
+	# the sole shadow is fielded -> nothing left to offer as fodder
 	var army := [_shadow("mon_grubmaw")]
-	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5), [])
+	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5, ["mon_grubmaw"]), [])
 
 
 func test_surplus_shadow_ids_skips_locked_shadows() -> void:
 	var army := [
-		_shadow("mon_tuskrend"),  # WARRIOR 350 -- class slot
-		_shadow("mon_nipclaw"),  # WARRIOR 210 -- wins flex
+		_shadow("mon_tuskrend"),  # WARRIOR 350 -- fielded
+		_shadow("mon_nipclaw"),  # WARRIOR 210 -- fielded
 		_shadow("mon_grubmaw"),  # WARRIOR 120 -- surplus, but locked
 		_shadow("mon_tarling"),  # WARRIOR 110 -- surplus, weakest, unlocked
 	]
 	army[2]["locked"] = true
-	assert_eq(SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5), ["mon_tarling"])
+	assert_eq(
+		SquadBuilder.surplus_shadow_ids(army, monsters, 1, 5, ["mon_tuskrend", "mon_nipclaw"]),
+		["mon_tarling"]
+	)
+
+
+func test_surplus_shadow_ids_never_includes_a_fielded_shadow() -> void:
+	var army := [
+		{
+			"instance_id": "weak",
+			"monster_id": "mon_grubmaw",
+			"grade": "E",
+			"level": 1,
+			"locked": false
+		},
+		{
+			"instance_id": "mid",
+			"monster_id": "mon_runtclaw",
+			"grade": "E",
+			"level": 1,
+			"locked": false
+		},
+	]
+	# "weak" is the weakest but it's fielded -> must not be offered as fodder
+	var ids := SquadBuilder.surplus_shadow_ids(army, Content.load_monsters(), 10, 2, ["weak"])
+	assert_false(ids.has("weak"))
+	assert_true(ids.has("mid"))
 
 
 func test_enrich_army_includes_locked_and_favorite() -> void:
@@ -232,15 +229,6 @@ func _six_class_army() -> Array:
 	]
 
 
-func test_resolve_party_with_no_manual_pick_falls_back_to_auto_fill_party() -> void:
-	var army := _six_class_army()
-	var auto := SquadBuilder.auto_fill_party(army, monsters, 1)
-	var resolved := SquadBuilder.resolve_party(army, monsters, 1, [])
-	var auto_ids: Array = auto.map(func(m: Dictionary) -> String: return m["instance_id"])
-	var resolved_ids: Array = resolved.map(func(m: Dictionary) -> String: return m["instance_id"])
-	assert_eq(resolved_ids, auto_ids)
-
-
 func test_resolve_party_honors_a_full_manual_pick_in_order() -> void:
 	var army := _six_class_army()
 	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
@@ -256,47 +244,44 @@ func test_resolve_party_honors_a_full_manual_pick_in_order() -> void:
 	assert_eq(resolved_ids, picks)
 
 
-func test_resolve_party_backfills_a_partial_pick_with_the_strongest_remaining() -> void:
-	var army := _six_class_army()
-	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
-	var weakest := squad.duplicate()
-	weakest.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["power"] < b["power"])
-	var one_pick := [weakest[0]["instance_id"]]
-	var resolved := SquadBuilder.resolve_party(army, monsters, 1, one_pick)
-	assert_eq(resolved.size(), 3)
-	assert_eq(resolved[0]["instance_id"], one_pick[0])
-	assert_true(resolved[1]["power"] >= resolved[2]["power"])
-	# every backfilled slot must actually be one of the squad's members
-	var squad_ids: Array = squad.map(func(m: Dictionary) -> String: return m["instance_id"])
-	for member: Dictionary in resolved:
-		assert_true(squad_ids.has(member["instance_id"]))
+func test_resolve_party_empty_pick_returns_empty() -> void:
+	var army := [{"instance_id": "a", "monster_id": "mon_grubmaw", "grade": "E", "level": 1}]
+	assert_eq(SquadBuilder.resolve_party(army, Content.load_monsters(), 10, []), [])
 
 
-func test_resolve_party_skips_a_stale_id_not_in_the_current_squad() -> void:
-	var army := _six_class_army()
-	var resolved := SquadBuilder.resolve_party(army, monsters, 1, ["not_a_real_shadow"])
-	assert_eq(resolved.size(), 3)
-	for member: Dictionary in resolved:
-		assert_ne(member["instance_id"], "not_a_real_shadow")
+func test_resolve_party_returns_only_the_picked_in_pick_order() -> void:
+	var army := [
+		{"instance_id": "a", "monster_id": "mon_grubmaw", "grade": "E", "level": 9},  # strong
+		{"instance_id": "b", "monster_id": "mon_runtclaw", "grade": "E", "level": 1},  # weak
+	]
+	# pick weak-then-strong -- order must be preserved, NOT power-sorted
+	var out := SquadBuilder.resolve_party(army, Content.load_monsters(), 10, ["b", "a"])
+	assert_eq(out.map(func(e: Dictionary) -> String: return e["instance_id"]), ["b", "a"])
 
 
-func test_resolve_party_never_duplicates_a_shadow() -> void:
-	var army := _six_class_army()
-	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
-	var one_pick := [squad[0]["instance_id"]]
-	var resolved := SquadBuilder.resolve_party(army, monsters, 1, one_pick)
-	var seen := {}
-	for member: Dictionary in resolved:
-		assert_false(seen.has(member["instance_id"]))
-		seen[member["instance_id"]] = true
+func test_resolve_party_caps_at_three() -> void:
+	var army := []
+	for i in 5:
+		army.append(
+			{"instance_id": "s%d" % i, "monster_id": "mon_grubmaw", "grade": "E", "level": 1}
+		)
+	var out := SquadBuilder.resolve_party(
+		army, Content.load_monsters(), 10, ["s0", "s1", "s2", "s3", "s4"]
+	)
+	assert_eq(out.size(), 3)
+	assert_eq(out.map(func(e: Dictionary) -> String: return e["instance_id"]), ["s0", "s1", "s2"])
 
 
-func test_resolve_party_respects_a_custom_count() -> void:
-	var army := _six_class_army()
-	var squad := SquadBuilder.auto_fill_squad(army, monsters, 1)
-	var picks := [squad[0]["instance_id"]]
-	var resolved := SquadBuilder.resolve_party(army, monsters, 1, picks, {}, [], 2)
-	assert_eq(resolved.size(), 2)
+func test_resolve_party_skips_a_stale_id() -> void:
+	var army := [{"instance_id": "a", "monster_id": "mon_grubmaw", "grade": "E", "level": 1}]
+	var out := SquadBuilder.resolve_party(army, Content.load_monsters(), 10, ["ghost", "a"])
+	assert_eq(out.map(func(e: Dictionary) -> String: return e["instance_id"]), ["a"])
+
+
+func test_resolve_party_ignores_a_duplicate_id() -> void:
+	var army := [{"instance_id": "a", "monster_id": "mon_grubmaw", "grade": "E", "level": 1}]
+	var out := SquadBuilder.resolve_party(army, Content.load_monsters(), 10, ["a", "a"])
+	assert_eq(out.size(), 1)
 
 
 func test_enrich_army_includes_family() -> void:
