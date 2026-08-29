@@ -1018,11 +1018,11 @@ HunterState / ShadowInstance: equipped uses the 7 slots; hunter also holds
 
 ## 16. Combat system — active party battle (v0, expect heavy tuning)
 
-**LOCKED, replaces the old single power-check + RNG resolve.** Every encounter — gates *and* raids — is now real turn-based party combat: you + 3 chosen shadows vs the enemies, DQ/JRPG-style. Deliberate scope decision: this applies **everywhere**, not just bosses/raids (see the honest trade-off note in §18). Stats and gear still matter exactly as designed — they just feed real combat stats instead of a single comparison number.
+**LOCKED, replaces the old single power-check + RNG resolve.** Every encounter — gates *and* raids — is now real turn-based party combat: you + up to 3 chosen shadows vs the enemies, DQ/JRPG-style. Deliberate scope decision: this applies **everywhere**, not just bosses/raids (see the honest trade-off note in §18). Stats and gear still matter exactly as designed — they just feed real combat stats instead of a single comparison number.
 
 ### Party composition
-- Your **squad of 6** (class-slotted, §17) stays your prepared roster — unchanged.
-- For any given fight, you field a **party of 4**: yourself + **3 shadows chosen from your squad**.
+- For any given fight, you field a **party of 4**: yourself + **up to 3 shadows you pick from your army** (§17). There's no separate "squad of 6", and nothing auto-optimises the team — an empty pick just means you fight understrength (your hunter alone, or +1 / +2). No prompt, no auto-assign.
+- Your **wider army still matters**: in raids, everything beyond the shadows you're fielding grants the passive **Army Synergy** stat bonus to your party (§16, below).
 - You pick your own moves each turn; shadows act automatically via class-role AI (below) — you never pick a shadow's move.
 
 ### Turn order & flow
@@ -1099,7 +1099,7 @@ This is what keeps a routine E-rank gate a genuine one-tap action even though th
 
 ### What this replaces vs. what's still alive
 **Deprecated as the resolve mechanic:** `GATE_POWER`, `RAID_POWER`, `clear_probability`, `resolve_clear`, and `GATE_ARMY_WEIGHT`/`RAID_ARMY_WEIGHT` as literal power-sum weights.
-**Still fully alive, now feeding combat instead of a single number:** `stats_from` + class profiles (below), `SQUAD_SIZE` (6), `personal_power`'s underlying stats, `shadow_power`'s base_power/level scaling (now a shadow's own HP/ATK), `floor_power` (now feeds Nadir enemy stat derivation), `CLAIM_*` (claim flow unchanged — still fires after winning a boss fight, §18).
+**Still fully alive, now feeding combat instead of a single number:** `stats_from` + class profiles (below), `SQUAD_SIZE` (still defined, but no longer a roster you must fill — you field *up to 3* shadows, §17), `personal_power`'s underlying stats, `shadow_power`'s base_power/level scaling (now a shadow's own HP/ATK), `floor_power` (now feeds Nadir enemy stat derivation), `CLAIM_*` (claim flow unchanged — still fires after winning a boss fight, §18).
 
 ### Class stat profiles (level → stats) — unchanged
 Each level grants `STAT_POINTS_PER_LEVEL` (25) points, split by your subclass's profile. Every class still gains all five stats — just leaned:
@@ -1144,7 +1144,7 @@ The screen §16's combat system actually plays out on. Shared by **every** fight
 
 **Roster — grouped by class.** Collapsible sections (Warrior / Guardian / Assassin / Mage / Support), each listing your shadows. **Sort/filter by grade (rank) and by power.**
 
-**Gate squad — one squad, no presets, class-slotted.** A single team of 6 you maintain, with **fixed class slots: one each of Warrior · Guardian · Assassin · Mage · Support + 1 Flex** (any class). This *forces* a balanced comp and a reason to collect (and gear) every class. **Since the §16 combat overhaul, this now has real mechanical teeth** — for any fight, you pick **3 of these 6** to actually field (you + those 3 = your party of 4, §16), and a team missing a Guardian's taunt or a Support's heals genuinely plays worse, not just symbolically. Auto-optimize fills each slot with your strongest of that class; tweak by hand. Early on, empty slots are fine — fill them as you collect. *(Raids also draw their 3 from this squad — your wider army instead contributes the passive Army Synergy bonus, §16.)*
+**Fighting party — pick up to 3, no presets, no class slots.** Your fighting party is **up to 3 shadows you pick from your army** (you + them = the party of 4, §16). No class slots, no presets, nothing auto-optimises it — a deliberate pick. **Since the §16 combat overhaul this has real mechanical teeth** — a team missing a Guardian's taunt or a Support's heals genuinely plays worse, not just symbolically — so who you field is a real choice. An empty pick is fine, especially early: you just fight understrength (your hunter alone, or +1 / +2) until you've collected shadows worth bringing. The **Party picker** (a tab on this screen) lists your whole army and sorts by **power / level / rank / role** so you can find who you want. *(Raids also field your 3 from your picked party; the wider army contributes Army Synergy, §16.)*
 
 **Shadow detail (tap a shadow) — one hub with everything:**
 - **Identity:** grade + level (with progress to cap), class/role, element, current power.
@@ -1153,8 +1153,8 @@ The screen §16's combat system actually plays out on. Shared by **every** fight
 - **Lore/flavor** at the bottom.
 
 **Quality-of-life:**
-- **Auto-equip best gear** — per shadow or across the whole squad.
-- **Mass-convert** surplus/weak shadows into **Essence** (upgrade fuel).
+- **Auto-equip best gear** — per shadow, or across your fielded party in one tap.
+- **Mass-convert** surplus/weak shadows into **Essence** (upgrade fuel) — **locked *and* currently-fielded** shadows are always protected.
 - **Lock / favorite** — protect key shadows from mass-convert and flag favorites.
 
 **Duplicates:** kept in the roster and **merged to level** the copy you're building (fuel toward the level cap).
