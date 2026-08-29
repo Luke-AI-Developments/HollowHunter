@@ -427,7 +427,7 @@ offset_top = 160.0
 offset_right = 670.0
 offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
-text = "Convert to Essence"
+text = "Relinquish"
 
 [node name="LockButton" type="Button" parent="GameUI/ShadowGearPanel"]
 offset_left = 690.0
@@ -444,6 +444,33 @@ offset_right = 1040.0
 offset_bottom = 210.0
 theme_override_font_sizes/font_size = 20
 text = "Favorite"
+
+[node name="RelinquishConfirmLabel" type="Label" parent="GameUI/ShadowGearPanel"]
+visible = false
+offset_left = 40.0
+offset_top = 280.0
+offset_right = 1040.0
+offset_bottom = 380.0
+theme_override_font_sizes/font_size = 20
+text = "Relinquish this shadow?"
+autowrap_mode = 3
+
+[node name="RelinquishConfirmButton" type="Button" parent="GameUI/ShadowGearPanel"]
+visible = false
+offset_left = 40.0
+offset_top = 400.0
+offset_right = 320.0
+offset_bottom = 460.0
+theme_override_colors/font_color = Color(1, 0.482, 0.42, 1)
+text = "Relinquish"
+
+[node name="RelinquishCancelButton" type="Button" parent="GameUI/ShadowGearPanel"]
+visible = false
+offset_left = 360.0
+offset_top = 400.0
+offset_right = 640.0
+offset_bottom = 460.0
+text = "Cancel"
 
 [node name="Rows" type="Node2D" parent="GameUI/ShadowGearPanel"]
 

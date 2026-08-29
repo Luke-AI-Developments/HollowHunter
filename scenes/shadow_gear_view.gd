@@ -25,6 +25,9 @@ var _rows: Array = []
 @onready var rename_input: LineEdit = $RenameInput
 @onready var rename_save_button: Button = $RenameSaveButton
 @onready var rename_cancel_button: Button = $RenameCancelButton
+@onready var relinquish_confirm_label: Label = $RelinquishConfirmLabel
+@onready var relinquish_confirm_button: Button = $RelinquishConfirmButton
+@onready var relinquish_cancel_button: Button = $RelinquishCancelButton
 
 
 func _ready() -> void:
@@ -34,7 +37,9 @@ func _ready() -> void:
 	$NextButton.pressed.connect(_on_next_pressed)
 	$LevelUpButton.pressed.connect(_on_level_up_pressed)
 	$FuseButton.pressed.connect(_on_fuse_pressed)
-	$ConvertButton.pressed.connect(_on_convert_pressed)
+	$ConvertButton.pressed.connect(_on_relinquish_pressed)
+	relinquish_confirm_button.pressed.connect(_on_relinquish_confirmed)
+	relinquish_cancel_button.pressed.connect(_close_relinquish_confirm)
 	lock_button.pressed.connect(_on_lock_pressed)
 	favorite_button.pressed.connect(_on_favorite_pressed)
 	rename_button.pressed.connect(_on_rename_pressed)
@@ -189,14 +194,39 @@ func _on_fuse_pressed() -> void:
 	_after_mutation()
 
 
-## Converts the currently-viewed shadow straight to Essence and removes it
-## from the army. Immediate, no confirmation prompt (placeholder UI).
-func _on_convert_pressed() -> void:
+## Opens the inline Relinquish confirm strip for the currently-viewed
+## shadow (destroy it for Essence). Locked shadows are guarded here for UX
+## and again in HunterState.convert_shadow (the real guard).
+func _on_relinquish_pressed() -> void:
 	var shadow_id := _current_shadow_instance_id()
 	if shadow_id == "":
 		return
-	_state.convert_shadow(shadow_id)
+	var idx := _shadow_index(shadow_id)
+	if idx < 0 or _state.army[idx].get("locked", false):
+		return  # locked shadows can't be relinquished (core guards too)
+	var grade: String = _state.army[idx].get("grade", "")
+	relinquish_confirm_label.text = (
+		"Relinquish this shadow for +%d Essence? Traits and level are lost -- permanent."
+		% GameLogic.essence_for_converted_shadow(grade)
+	)
+	relinquish_confirm_label.visible = true
+	relinquish_confirm_button.visible = true
+	relinquish_cancel_button.visible = true
+
+
+func _on_relinquish_confirmed() -> void:
+	var shadow_id := _current_shadow_instance_id()
+	_close_relinquish_confirm()
+	if shadow_id == "" or not _state.convert_shadow(shadow_id):
+		return
+	_index = 0
 	_after_mutation()
+
+
+func _close_relinquish_confirm() -> void:
+	relinquish_confirm_label.visible = false
+	relinquish_confirm_button.visible = false
+	relinquish_cancel_button.visible = false
 
 
 ## Toggles the currently-viewed shadow's locked flag (protects it from
@@ -286,6 +316,7 @@ func _after_mutation() -> void:
 
 func refresh() -> void:
 	_close_rename()
+	_close_relinquish_confirm()
 	if _state.army.is_empty():
 		title_label.text = "No shadows yet"
 		for row: Dictionary in _rows:
@@ -318,8 +349,19 @@ func refresh() -> void:
 			_state.army.size(),
 		]
 	)
-	lore_label.text = "%s\nTraits: (coming soon)" % String(monster.get("lore", ""))
+	var trait_lines := PackedStringArray()
+	for t: Dictionary in Traits.resolve(Traits.load_pool(), shadow.get("traits", [])):
+		var mark := "!" if String(t["polarity"]) == "negative" else "*"
+		trait_lines.append(
+			(
+				"%s %s (%s) -- %s"
+				% [mark, t["name"], String(t["rarity"]).capitalize(), t["effect_text"]]
+			)
+		)
+	var traits_text := "\n".join(trait_lines) if trait_lines.size() > 0 else "(none)"
+	lore_label.text = "%s\n\nTraits:\n%s" % [String(monster.get("lore", "")), traits_text]
 	lock_button.text = "Unlock" if locked else "Lock"
+	$ConvertButton.disabled = locked
 	favorite_button.text = "Unfavorite" if favorite else "Favorite"
 	var shadow_equipped: Dictionary = shadow.get("equipped", {})
 	for row: Dictionary in _rows:
