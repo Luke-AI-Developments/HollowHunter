@@ -41,6 +41,7 @@ var _pending_ticket_gate: Dictionary = {}  ## §8a: the ticket gate rolled but n
 var _moves: Array = []  ## Phase 3/step 5: content/moves.json, loaded once (§16 combat overhaul)
 var _shop_catalog: Dictionary = {}  ## Phase 4/shop step 1: content/shop.json, loaded once
 var _pending_battle_gate: Dictionary = {}  ## the gate a live BattlePanel fight will resolve into
+var _pending_battle_gate_index: int = -1  ## live fight's map _gates index; -1 = not a map gate
 var _pending_battle_prefix: String = ""  ## "[Ticket]"/"[GATE BREAK]" label text, carried through
 var _pending_battle_is_break: bool = false  ## whether to apply GateBreak's bonus on a win
 var _pending_nadir_floor: int = -1  ## Phase 3/P3-Nadir: >=0 while a BattlePanel fight is
@@ -554,9 +555,12 @@ func _army_synergy_bonus(chosen: Array) -> float:
 ## longer resolved synchronously like the old power-check was, so this
 ## can't just return a result string the way _resolve_gate() used to.
 ## `prefix`/`is_break` are only remembered to shape that later message.
-func _start_gate_battle(gate: Dictionary, prefix: String = "", is_break: bool = false) -> void:
+func _start_gate_battle(
+	gate: Dictionary, prefix: String = "", is_break: bool = false, gate_index: int = -1
+) -> void:
 	_hide_marker_card()
 	_pending_battle_gate = gate
+	_pending_battle_gate_index = gate_index
 	_pending_battle_prefix = prefix
 	_pending_battle_is_break = is_break
 	var enemies := [
@@ -621,14 +625,18 @@ func _on_battle_finished(won: bool) -> void:
 	)
 	if not prefix.is_empty():
 		body = prefix + "\n" + body
+	var gate_index := _pending_battle_gate_index
 	_pending_battle_gate = {}
+	_pending_battle_gate_index = -1
 	_pending_battle_prefix = ""
 	_pending_battle_is_break = false
 
+	var claimed_ok := false
 	if won:
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
 		if GameLogic.attempt_claim(gate.get("monster_extract_chance", 0.0), state.level, rng):
+			claimed_ok = true
 			var claimed := state.claim_shadow(gate["monster_id"], gate["rank"])
 			_pending_nickname_shadow_id = claimed["instance_id"]
 			_pending_nickname_species = gate["monster_name"]
@@ -650,6 +658,12 @@ func _on_battle_finished(won: bool) -> void:
 			body += "\n(Incursion bonus)"
 		state.essence += essence_gain
 		body += "\nEssence +%d" % essence_gain
+
+	# §18: a gate is consumed only when the fight is won AND the boss CLAIM
+	# lands. A loss or a failed CLAIM leaves the gate on the map to retry.
+	# gate_index is -1 for ticket / gate-break fights (no map marker).
+	if won and claimed_ok and gate_index >= 0:
+		map_view.remove_gate(gate_index)
 
 	SaveService.save(state)
 	_refresh_label()
@@ -769,8 +783,7 @@ func _enter_gate(index: int) -> void:
 	var gate := map_view.get_gate(index)
 	if gate.is_empty():
 		return
-	map_view.remove_gate(index)
-	_start_gate_battle(gate)
+	_start_gate_battle(gate, "", false, index)
 
 
 func _show_sanctuary_card(index: int, screen_pos: Vector2) -> void:
@@ -1080,10 +1093,7 @@ func _refresh_shop_view() -> void:
 func _refresh_label() -> void:
 	var stats := state.stats()
 	label.text = (
-		(
-			"Lv %d %s\nEXP: %d / %d\n"
-			+ "STR %d AGI %d VIT %d END %d SEN %d\nPower: %d"
-		)
+		("Lv %d %s\nEXP: %d / %d\n" + "STR %d AGI %d VIT %d END %d SEN %d\nPower: %d")
 		% [
 			state.level,
 			state.subclass,
