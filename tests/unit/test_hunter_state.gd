@@ -627,6 +627,27 @@ func test_convert_shadow_of_an_unassigned_shadow_still_works() -> void:
 	assert_eq(s.army.size(), 0)
 
 
+func test_convert_shadow_drops_it_from_the_fielded_party() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_grubmaw", "E")
+	assert_true(s.toggle_party_member(a["instance_id"], true))
+	assert_true(s.active_party_ids.has(a["instance_id"]))
+	assert_true(s.convert_shadow(a["instance_id"]))
+	assert_false(
+		s.active_party_ids.has(a["instance_id"]), "a relinquished shadow must not stay fielded"
+	)
+
+
+func test_fuse_shadow_drops_the_consumed_duplicate_from_the_fielded_party() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var target := s.claim_shadow("mon_ashen_warden", "C")
+	var dup := s.claim_shadow("mon_ashen_warden", "C")
+	s.essence = 100000
+	assert_true(s.toggle_party_member(dup["instance_id"], true))
+	assert_true(s.fuse_shadow(target["instance_id"], dup["instance_id"]))
+	assert_false(s.active_party_ids.has(dup["instance_id"]))
+
+
 func test_claim_shadow_starts_unlocked_and_unfavorited() -> void:
 	var s := HunterState.new_default("WARRIOR")
 	var shadow := s.claim_shadow("mon_ashen_warden", "E")

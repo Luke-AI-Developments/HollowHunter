@@ -582,7 +582,7 @@ offset_top = 90.0
 offset_right = 700.0
 offset_bottom = 140.0
 theme_override_font_sizes/font_size = 18
-text = "Auto-Equip Squad"
+text = "Auto-Equip Party"
 
 [node name="InfoLabel" type="Label" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 40.0

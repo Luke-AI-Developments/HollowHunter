@@ -80,7 +80,9 @@ static func enrich_army(
 ##   "level" -- level desc, then power desc
 ##   "rank"  -- grade S->E (GameLogic.RANK_ORDER index desc), then power desc
 ##   "role"  -- class in CLASSES order, then power desc
-## Any other `mode` sorts as "power".
+## Any other `mode` sorts as "power". An unknown grade/class (RANK_ORDER.find
+## / CLASSES.find -> -1) sorts to an end; harmless since enrich_army always
+## sources `grade`/`clazz` from content.
 static func sort_shadows(enriched: Array, mode: String) -> Array:
 	var out := enriched.duplicate()
 	match mode:
@@ -136,7 +138,7 @@ static func resolve_party(
 	var chosen := []
 	var seen := {}
 	for id in active_party_ids:
-		if chosen.size() >= 3:
+		if chosen.size() >= GameLogic.PARTY_SIZE:
 			break
 		if by_id.has(id) and not seen.has(id):
 			chosen.append(by_id[id])

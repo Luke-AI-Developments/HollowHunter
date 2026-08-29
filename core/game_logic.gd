@@ -11,6 +11,7 @@ const SHADOW_BASE_SCALE := 0.5
 const SHADOW_LEVEL_SCALE := 0.05
 const MONARCH_SCALE := 0.01
 const SQUAD_SIZE := 6
+const PARTY_SIZE := 3  ## §16: shadows you manually field per fight (you + these = party of 4)
 const GATE_ARMY_WEIGHT := 0.25  # squad counts 25% at gates — level dominates
 const RAID_ARMY_WEIGHT := 1.0  # full army counts in the Nadir raid
 const CLAIM_TRIES := 3

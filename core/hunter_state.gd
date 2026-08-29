@@ -65,9 +65,9 @@ var last_gate_break_offer: int  ## Phase 2/P8: Unix seconds of the last Gate Bre
 ## stronghold_last_collected -- GateBreak.should_trigger() reads this as the cooldown anchor.
 var active_party_ids: Array = []  ## Phase 3/step 6: up to 3 gate-squad (§17) shadow
 ## instance_ids the player has manually chosen to field (you + these 3 = the party of 4,
-## §16). Empty = no manual pick yet -- SquadBuilder.resolve_party() falls back to
-## auto-picking the strongest 3, the same behavior as before this field existed, so old
-## saves (and anyone who never opens the Squad panel) are unaffected.
+## §16). Empty = you fight understrength (just your hunter, or +1/+2) -- there is no
+## auto-fill. resolve_party() returns exactly the live ids here, in pick order, capped at
+## GameLogic.PARTY_SIZE.
 var crystals: int = 0  ## Phase 4/shop step 1: the premium currency (§14/§26) -- spent on
 ## Essence/ticket bundles and cosmetics via the Shop panel. Real-money acquisition (Google
 ## Play Billing) is NOT built (a separate native-plugin integration, out of scope for this
@@ -236,9 +236,10 @@ func set_item_locked(instance_id: String, locked: bool) -> bool:
 ## surface that ("field 3 already chosen") rather than this silently
 ## picking who gets dropped. Removing always succeeds. No army-membership
 ## check here -- SquadBuilder.resolve_party() already tolerates stale ids
-## (a shadow that left the squad) by skipping and backfilling.
+## (a shadow that left the squad) by skipping (no backfill -- resolve_party
+## returns fewer than PARTY_SIZE if some picks are stale).
 func toggle_party_member(
-	shadow_instance_id: String, fielded: bool, max_party_size: int = 3
+	shadow_instance_id: String, fielded: bool, max_party_size: int = GameLogic.PARTY_SIZE
 ) -> bool:
 	var already_in := active_party_ids.has(shadow_instance_id)
 	if fielded == already_in:
@@ -354,7 +355,10 @@ func find_duplicate_of(shadow_instance_id: String) -> String:
 ## (removes) the duplicate and grants the target ShadowLeveling.
 ## FUSE_LEVEL_CHUNK levels (capped at LEVEL_CAP), spending Essence per
 ## ShadowLeveling.fuse_cost(). Both must exist, be different shadows, and
-## share a monster_id. No-op (false, nothing changed) otherwise.
+## share a monster_id. No-op (false, nothing changed) otherwise. Also drops
+## the consumed duplicate from the fielded party (active_party_ids) so fusing
+## away a fielded shadow can't leave a ghost id that caps the picker below
+## PARTY_SIZE.
 func fuse_shadow(target_instance_id: String, duplicate_instance_id: String) -> bool:
 	if target_instance_id == duplicate_instance_id:
 		return false
@@ -373,6 +377,7 @@ func fuse_shadow(target_instance_id: String, duplicate_instance_id: String) -> b
 	essence -= cost
 	army[target_idx]["level"] = ShadowLeveling.fuse_result_level(current_level)
 	unassign_shadow(duplicate_instance_id)
+	active_party_ids.erase(duplicate_instance_id)
 	army.remove_at(dup_idx)
 	return true
 
@@ -383,7 +388,9 @@ func fuse_shadow(target_instance_id: String, duplicate_instance_id: String) -> b
 ## protects a shadow from mass-convert. (mass_convert already filters locked
 ## shadows upstream via surplus_shadow_ids; this closes the direct-call
 ## path.) Also clears any stronghold-facility assignment so the relinquished
-## shadow stops being counted / accrued for.
+## shadow stops being counted / accrued for, and drops it from the fielded
+## party (active_party_ids) so a relinquished shadow can't leave a ghost id
+## that caps the picker below PARTY_SIZE.
 func convert_shadow(shadow_instance_id: String) -> bool:
 	var idx := _army_index(shadow_instance_id)
 	if idx < 0:
@@ -393,6 +400,7 @@ func convert_shadow(shadow_instance_id: String) -> bool:
 	var grade: String = army[idx].get("grade", "")
 	essence += GameLogic.essence_for_converted_shadow(grade)
 	unassign_shadow(shadow_instance_id)
+	active_party_ids.erase(shadow_instance_id)
 	army.remove_at(idx)
 	return true
 

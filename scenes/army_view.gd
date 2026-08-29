@@ -249,6 +249,16 @@ func _refresh_squad() -> void:
 		),
 		_party_sort_mode
 	)
+	# Defensive prune: a stale save (or an older build) could hold a fielded id
+	# for a shadow that's no longer in the army, which would disable every
+	# picker row. Drop any such id and persist before refreshing.
+	var live_ids := {}
+	for e: Dictionary in sorted_army:
+		live_ids[e["instance_id"]] = true
+	var pruned := _state.active_party_ids.filter(func(id: String) -> bool: return live_ids.has(id))
+	if pruned.size() != _state.active_party_ids.size():
+		_state.active_party_ids = pruned
+		_after_mutation()
 	party_tab.refresh(sorted_army, _state.active_party_ids)
 
 

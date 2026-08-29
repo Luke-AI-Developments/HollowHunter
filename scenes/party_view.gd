@@ -48,13 +48,14 @@ func refresh(sorted_army: Array, active_party_ids: Array) -> void:
 		rows_container.remove_child(c)
 		c.queue_free()
 
-	var party_full := active_party_ids.size() >= 3
+	var party_full := active_party_ids.size() >= GameLogic.PARTY_SIZE
 	for e: Dictionary in sorted_army:
 		var instance_id: String = e["instance_id"]
 		var fielded := active_party_ids.has(instance_id)
 
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
+		row.custom_minimum_size = Vector2(0, 44)
 
 		var row_label := Label.new()
 		row_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -79,8 +80,12 @@ func refresh(sorted_army: Array, active_party_ids: Array) -> void:
 		rows_container.add_child(row)
 
 	info_label.text = (
-		"Party: %d/3 fielded -- %s"
-		% [active_party_ids.size(), ", ".join(_fielded_names(sorted_army, active_party_ids))]
+		"Party: %d/%d fielded -- %s"
+		% [
+			active_party_ids.size(),
+			GameLogic.PARTY_SIZE,
+			", ".join(_fielded_names(sorted_army, active_party_ids)),
+		]
 	)
 
 

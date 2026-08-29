@@ -1,5 +1,5 @@
 extends GutTest
-## SquadBuilder: army enrichment and class-slotted auto-fill.
+## SquadBuilder: army enrichment, sort_shadows, resolve_party, surplus_shadow_ids.
 
 var monsters: Array
 
