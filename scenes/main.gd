@@ -510,7 +510,10 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 	var portraits := {}
 	for member: Dictionary in chosen:
 		var shadow_stats := GameLogic.shadow_combat_stats(
-			int(member["base_power"]), int(member["level"]), String(member["clazz"])
+			int(member["base_power"]),
+			int(member["level"]),
+			String(member["clazz"]),
+			member.get("trait_combat_pct", {})
 		)
 		party.append(
 			Battle.make_ally_combatant(
