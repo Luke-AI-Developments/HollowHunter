@@ -78,3 +78,44 @@ func test_resolve_drops_unknown_ids() -> void:
 
 func test_resolve_empty_returns_empty() -> void:
 	assert_eq(Traits.resolve(pool, []), [])
+
+
+func test_stat_modifiers_empty_is_zeros() -> void:
+	var m := Traits.stat_modifiers(pool, [])
+	assert_eq(m["power_pct"], 0.0)
+	assert_eq(m["combat_pct"], {})
+
+
+func test_stat_modifiers_sums_power_pct() -> void:
+	# soulbound 0.10 + frostblooded 0.08
+	var m := Traits.stat_modifiers(pool, ["soulbound", "frostblooded"])
+	assert_almost_eq(m["power_pct"], 0.18, 0.0001)
+	assert_eq(m["combat_pct"], {})
+
+
+func test_stat_modifiers_sums_combat_pct_per_stat() -> void:
+	# sturdy VIT +0.10, ironhide END +0.10
+	var m := Traits.stat_modifiers(pool, ["sturdy", "ironhide"])
+	assert_almost_eq(m["combat_pct"]["VIT"], 0.10, 0.0001)
+	assert_almost_eq(m["combat_pct"]["END"], 0.10, 0.0001)
+	assert_eq(m["power_pct"], 0.0)
+
+
+func test_stat_modifiers_same_stat_from_two_traits_adds() -> void:
+	# keen STR +0.10, monarchs_favour STR +0.08
+	var m := Traits.stat_modifiers(pool, ["keen", "monarchs_favour"])
+	assert_almost_eq(m["combat_pct"]["STR"], 0.18, 0.0001)
+	assert_almost_eq(m["power_pct"], 0.12, 0.0001)
+
+
+func test_stat_modifiers_negative_subtracts() -> void:
+	# sturdy VIT +0.10 then brittle END -0.12 (different stats) + cowardly STR -0.10
+	var m := Traits.stat_modifiers(pool, ["brittle", "cowardly"])
+	assert_almost_eq(m["combat_pct"]["END"], -0.12, 0.0001)
+	assert_almost_eq(m["combat_pct"]["STR"], -0.10, 0.0001)
+
+
+func test_stat_modifiers_unknown_id_contributes_nothing() -> void:
+	var m := Traits.stat_modifiers(pool, ["sturdy", "not_a_trait"])
+	assert_almost_eq(m["combat_pct"]["VIT"], 0.10, 0.0001)
+	assert_eq(m["combat_pct"].size(), 1)

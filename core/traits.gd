@@ -62,6 +62,27 @@ static func resolve(pool: Array, trait_ids: Array) -> Array:
 	return out
 
 
+## Sums the `mods` of the given trait ids into one modifier dict:
+##   { "power_pct": float, "combat_pct": { <STAT>: float, ... } }
+## Unknown ids and traits with no mods contribute nothing. combat_pct only
+## carries stats at least one trait touches. Order-independent.
+static func stat_modifiers(pool: Array, trait_ids: Array) -> Dictionary:
+	var by_id := {}
+	for t: Dictionary in pool:
+		by_id[t["id"]] = t
+	var power_pct := 0.0
+	var combat_pct := {}
+	for id in trait_ids:
+		if not by_id.has(id):
+			continue
+		var mods: Dictionary = by_id[id].get("mods", {})
+		power_pct += float(mods.get("power_pct", 0.0))
+		var cp: Dictionary = mods.get("combat_pct", {})
+		for stat in cp:
+			combat_pct[stat] = float(combat_pct.get(stat, 0.0)) + float(cp[stat])
+	return {"power_pct": power_pct, "combat_pct": combat_pct}
+
+
 static func _weighted_key(weights: Dictionary, rng: RandomNumberGenerator) -> int:
 	var total := 0.0
 	for w in weights.values():
