@@ -22,11 +22,14 @@ static func enrich_army(
 	inventory: Array = [],
 	trait_pool: Array = []
 ) -> Array:
+	var pool: Array = trait_pool if not trait_pool.is_empty() else Traits.load_pool()
 	var enriched := []
 	for shadow: Dictionary in army:
 		var monster := Content.monster_by_id(monsters, shadow.get("monster_id", ""))
 		if monster.is_empty():
 			continue
+		var tmods := Traits.stat_modifiers(pool, shadow.get("traits", []))
+		var trait_power_pct: float = tmods["power_pct"]
 		var shadow_equipped: Dictionary = shadow.get("equipped", {})
 		var gear := Equip.gear_bonus(shadow_equipped, inventory, equipment)
 		var set_bonus := ArmorSets.total_set_bonus(shadow_equipped, inventory, equipment)
@@ -40,7 +43,8 @@ static func enrich_army(
 			shadow.get("level", 1),
 			hunter_level,
 			gear["power_bonus"],
-			gear_stat_sum
+			gear_stat_sum,
+			trait_power_pct
 		)
 		power = GameLogic.apply_set_power_pct(power, set_bonus["power_pct"])
 		var nickname: String = shadow.get("nickname", "")
@@ -61,7 +65,9 @@ static func enrich_army(
 					"family": monster.get("family", ""),
 					"base_power": monster.get("base_power", 0),
 					"power": power,
-					"traits": Traits.resolve(trait_pool, shadow.get("traits", [])),
+					"traits": Traits.resolve(pool, shadow.get("traits", [])),
+					"trait_power_pct": trait_power_pct,
+					"trait_combat_pct": tmods["combat_pct"],
 					"locked": shadow.get("locked", false),
 					"favorite": shadow.get("favorite", false),
 				}

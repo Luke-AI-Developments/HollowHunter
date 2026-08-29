@@ -321,7 +321,7 @@ func test_enrich_army_resolves_traits_when_pool_supplied() -> void:
 	assert_eq(enriched[0]["traits"][0]["name"], "Ironhide")
 
 
-func test_enrich_army_traits_empty_without_pool_or_without_traits() -> void:
+func test_enrich_army_auto_loads_the_trait_pool_when_none_passed() -> void:
 	var army := [
 		{
 			"instance_id": "s0",
@@ -331,10 +331,45 @@ func test_enrich_army_traits_empty_without_pool_or_without_traits() -> void:
 			"traits": ["ironhide"],
 		}
 	]
-	# no pool passed -> cannot resolve -> empty
-	assert_eq(SquadBuilder.enrich_army(army, monsters, 10)[0]["traits"], [])
-	# pool passed but shadow has no traits key -> empty
-	var army2 := [{"instance_id": "s1", "monster_id": "mon_grubmaw", "grade": "E", "level": 1}]
-	assert_eq(
-		SquadBuilder.enrich_army(army2, monsters, 10, {}, [], Traits.load_pool())[0]["traits"], []
-	)
+	var enriched := SquadBuilder.enrich_army(army, monsters, 10)
+	assert_eq(enriched[0]["traits"].size(), 1)
+	assert_eq(enriched[0]["traits"][0]["id"], "ironhide")
+
+
+func test_enrich_army_shadow_with_no_traits_key_gets_empty_and_zero_mods() -> void:
+	var army := [{"instance_id": "s1", "monster_id": "mon_grubmaw", "grade": "E", "level": 1}]
+	var e: Dictionary = SquadBuilder.enrich_army(army, monsters, 10)[0]
+	assert_eq(e["traits"], [])
+	assert_eq(e["trait_power_pct"], 0.0)
+	assert_eq(e["trait_combat_pct"], {})
+
+
+func test_enrich_army_emits_trait_modifier_fields() -> void:
+	var army := [
+		{
+			"instance_id": "s0",
+			"monster_id": "mon_grubmaw",
+			"grade": "E",
+			"level": 1,
+			"traits": ["soulbound"],  # power_pct 0.10
+		}
+	]
+	var e: Dictionary = SquadBuilder.enrich_army(army, monsters, 10)[0]
+	assert_almost_eq(e["trait_power_pct"], 0.10, 0.0001)
+	assert_eq(e["trait_combat_pct"], {})
+
+
+func test_enrich_army_power_includes_the_trait_power_pct() -> void:
+	var plain := [{"instance_id": "a", "monster_id": "mon_grubmaw", "grade": "E", "level": 3}]
+	var boosted := [
+		{
+			"instance_id": "b",
+			"monster_id": "mon_grubmaw",
+			"grade": "E",
+			"level": 3,
+			"traits": ["soulbound"],
+		}
+	]
+	var p: int = SquadBuilder.enrich_army(plain, monsters, 10)[0]["power"]
+	var b: int = SquadBuilder.enrich_army(boosted, monsters, 10)[0]["power"]
+	assert_gt(b, p)
