@@ -2,14 +2,14 @@ class_name ShopView
 extends Node2D
 ## Phase 4/shop step 1: the item shop (§14/§26) as its own thin view
 ## script -- same split-out-of-main.gd reasoning as battle_view.gd/
-## squad_view.gd (main.gd was already near the project's max-file-lines
+## party_view.gd (main.gd was already near the project's max-file-lines
 ## lint limit). Owns display + input forwarding only; scenes/main.gd owns
 ## the actual purchase rules (affordability, what each purchase grants)
 ## and calls refresh() with data it already computed.
 ##
-## Unlike SquadView's positional rows (squad membership reshuffles at
-## runtime), the shop catalog is static content -- rows are built once
-## from it via setup(), keyed by id/kind instead of by slot index.
+## Unlike a shadow list whose rows are rebuilt every refresh() as the army
+## changes, the shop catalog is static content -- rows are built once from
+## it via setup(), keyed by id/kind instead of by slot index.
 
 signal buy_ticket_bundle_requested(id: String)
 signal buy_essence_bundle_requested(id: String)

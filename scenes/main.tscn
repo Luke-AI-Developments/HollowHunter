@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/map_view.gd" id="2"]
 [ext_resource type="Script" path="res://scenes/battle_view.gd" id="3"]
-[ext_resource type="Script" path="res://scenes/squad_view.gd" id="4"]
+[ext_resource type="Script" path="res://scenes/party_view.gd" id="4"]
 [ext_resource type="Script" path="res://scenes/shop_view.gd" id="5"]
 [ext_resource type="Script" path="res://scenes/hunter_gear_view.gd" id="6"]
 [ext_resource type="Script" path="res://scenes/shadow_gear_view.gd" id="7"]
@@ -501,7 +501,7 @@ offset_left = 280.0
 offset_top = 20.0
 offset_right = 500.0
 offset_bottom = 70.0
-text = "Squad"
+text = "Party"
 
 [node name="CloseButton" type="Button" parent="GameUI/ArmyPanel"]
 offset_left = 900.0
@@ -569,12 +569,12 @@ offset_right = 180.0
 offset_bottom = 140.0
 text = "Close"
 
-[node name="AutoFillButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
+[node name="SortButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 200.0
 offset_top = 90.0
 offset_right = 460.0
 offset_bottom = 140.0
-text = "Auto-Fill Party"
+text = "Sort: Power"
 
 [node name="AutoEquipSquadButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 480.0
@@ -589,9 +589,18 @@ offset_left = 40.0
 offset_top = 160.0
 offset_right = 1040.0
 offset_bottom = 210.0
-text = "Party: 0/3 chosen -- tap a squad member to field them"
+text = "Party: 0/3 fielded --"
 
-[node name="Rows" type="Node2D" parent="GameUI/ArmyPanel/SquadTab"]
+[node name="RowsScroll" type="ScrollContainer" parent="GameUI/ArmyPanel/SquadTab"]
+offset_left = 20.0
+offset_top = 220.0
+offset_right = 1060.0
+offset_bottom = 2410.0
+
+[node name="Rows" type="VBoxContainer" parent="GameUI/ArmyPanel/SquadTab/RowsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
 
 [node name="InventoryPanel" type="Node2D" parent="GameUI"]
 visible = false

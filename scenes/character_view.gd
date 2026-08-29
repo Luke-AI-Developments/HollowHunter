@@ -129,17 +129,19 @@ func refresh(steps: int, workouts_json: String, gps_status: String, health_statu
 	health_label.text = "GPS: %s\nHealth Connect: %s" % [gps_status, health_status]
 
 
-## GATE_POWER (§16): personal power + the auto-filled SQUAD's power (not
-## the whole army, unlike raids -- gates weight the squad at
-## GATE_ARMY_WEIGHT). The source says Rank-Up Assessment Trials also
-## "uses GATE_POWER (you + squad)" (§28) -- the only remaining caller
-## since the §16 combat overhaul moved gates themselves off it.
+## GATE_POWER (§16): personal power + your fielded party's power (not the
+## whole army, unlike raids -- gates weight the party at GATE_ARMY_WEIGHT).
+## The source says Rank-Up Assessment Trials also "uses GATE_POWER (you +
+## squad)" (§28) -- the only remaining caller since the §16 combat overhaul
+## moved gates themselves off it. An understrength (0-2) or empty party is
+## fine here -- resolve_party just returns fewer entries, so squad_power is
+## simply lower.
 func _current_gate_power() -> int:
-	var squad := SquadBuilder.auto_fill_squad(
-		_state.army, _monsters, _state.level, _equipment, _state.inventory
+	var party := SquadBuilder.resolve_party(
+		_state.army, _monsters, _state.level, _state.active_party_ids, _equipment, _state.inventory
 	)
 	var squad_power := 0
-	for member: Dictionary in squad:
+	for member: Dictionary in party:
 		squad_power += member["power"]
 	var personal := _state.personal_power(_equipment)
 	return GameLogic.gate_power(personal, squad_power)

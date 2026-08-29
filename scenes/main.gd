@@ -478,10 +478,12 @@ func _maybe_apply_daily_exp() -> void:
 
 ## Phase 3/step 5 (extended step 6): this hunter's + fielded 3 shadows'
 ## Battle combatants (§16's party of 4) for a real fight. Which 3 is now
-## SquadBuilder.resolve_party() -- honors the player's manual Squad-panel
-## pick (state.active_party_ids, §17 step 6) when there is one, otherwise
-## falls back to the same auto-pick-strongest-3 as before that panel
-## existed.
+## SquadBuilder.resolve_party() -- strictly the player's manual Party-panel
+## pick (state.active_party_ids, §17 step 6); there is no auto-fill fallback
+## any more. An understrength or solo party (0-2 shadows, even none) is
+## expected and supported here -- `chosen` just has fewer entries, the
+## `for member in chosen` loop below runs that many times, and the player
+## is always party slot 0 regardless.
 ##
 ## Shadow combat stats use GameLogic.shadow_combat_stats(base_power,
 ## level, class) -- see its own doc comment for why (grade now matters).

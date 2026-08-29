@@ -13,7 +13,7 @@ extends Node2D
 ## hanging or crashing, since BackendService's own signals fire
 ## synchronously with success=false/empty when unconfigured.
 
-const ROW_COUNT := 20  ## fixed display slots, same positional-rows convention as SquadView
+const ROW_COUNT := 20  ## fixed display slots, same positional-rows convention used elsewhere here
 
 var _state: HunterState
 var _equipment: Dictionary

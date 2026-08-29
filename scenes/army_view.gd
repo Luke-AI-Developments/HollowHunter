@@ -1,9 +1,9 @@
 class_name ArmyView
 extends Node2D
 ## §17: the Army management screen. Roster tab (class-grouped, sortable/
-## filterable browse over the whole owned army) and Squad tab (the existing
-## squad-of-6 picker, squad_view.gd, absorbed here unchanged bar one new
-## button) in one panel. Self-contained controller -- holds HunterState
+## filterable browse over the whole owned army) and Party tab (party_view.gd:
+## the manual "pick up to 3 who fight" picker over a sorted full-army list)
+## in one panel. Self-contained controller -- holds HunterState
 ## directly and mutates it itself, same pattern as StrongholdView/
 ## CharacterView -- replaces the old standalone ShadowGearButton/
 ## SquadButton/MassConvertButton entry points and the flat ArmyLabel text.
@@ -27,10 +27,11 @@ var _shadow_reveal_card: ShadowRevealCard
 var _awaiting_reveal_close: bool = false
 var _grade_filter: String = "ALL"
 var _sort_mode: String = "power"
+var _party_sort_mode: String = "power"  ## Party tab's own sort cycle (PartyView.sort_changed)
 var _collapsed: Dictionary = {}  ## clazz -> bool, session-only (resets on reopen)
 
 @onready var roster_tab: Node2D = $RosterTab
-@onready var squad_tab: SquadView = $SquadTab
+@onready var party_tab: PartyView = $SquadTab
 @onready var grade_filter_button: Button = $RosterTab/FilterBar/GradeFilterButton
 @onready var sort_button: Button = $RosterTab/FilterBar/SortButton
 @onready var sections_container: Control = $RosterTab/SectionsScroll/Sections
@@ -44,10 +45,10 @@ func _ready() -> void:
 	grade_filter_button.pressed.connect(_on_grade_filter_pressed)
 	sort_button.pressed.connect(_on_sort_pressed)
 	mass_convert_button.pressed.connect(_on_mass_convert_pressed)
-	squad_tab.close_requested.connect(func() -> void: visible = false)
-	squad_tab.auto_fill_requested.connect(_on_squad_auto_fill_requested)
-	squad_tab.toggle_requested.connect(_on_squad_toggle_requested)
-	squad_tab.auto_equip_squad_requested.connect(_on_squad_auto_equip_requested)
+	party_tab.close_requested.connect(func() -> void: visible = false)
+	party_tab.toggle_requested.connect(_on_squad_toggle_requested)
+	party_tab.auto_equip_requested.connect(_on_squad_auto_equip_requested)
+	party_tab.sort_changed.connect(_on_party_sort_changed)
 
 
 func bind(
@@ -86,13 +87,13 @@ func refresh_if_open() -> void:
 
 func _on_roster_tab_pressed() -> void:
 	roster_tab.visible = true
-	squad_tab.visible = false
+	party_tab.visible = false
 	_refresh_roster()
 
 
 func _on_squad_tab_pressed() -> void:
 	roster_tab.visible = false
-	squad_tab.visible = true
+	party_tab.visible = true
 	_refresh_squad()
 
 
@@ -133,11 +134,9 @@ func _refresh_roster() -> void:
 			return GameLogic.RANK_ORDER.find(b["grade"]) < GameLogic.RANK_ORDER.find(a["grade"])
 	)
 
-	var squad_ids := {}
-	for member: Dictionary in SquadBuilder.auto_fill_squad(
-		_state.army, _monsters, _state.level, _equipment, _state.inventory
-	):
-		squad_ids[member["instance_id"]] = true
+	var fielded_ids := {}
+	for id in _state.active_party_ids:
+		fielded_ids[id] = true
 
 	var y := 0.0
 	for clazz in SquadBuilder.CLASSES:
@@ -164,7 +163,7 @@ func _refresh_roster() -> void:
 			row.size = Vector2(960, 40)
 			row.icon = ArtPaths.monster_portrait(e["monster_id"])
 			row.expand_icon = true
-			var marker := " [S]" if squad_ids.has(e["instance_id"]) else ""
+			var marker := " [P]" if fielded_ids.has(e["instance_id"]) else ""
 			marker += " [L]" if e["locked"] else ""
 			marker += " [F]" if e["favorite"] else ""
 			row.text = (
@@ -225,7 +224,13 @@ func _on_shadow_gear_view_closed() -> void:
 ## same as before this split.
 func _on_mass_convert_pressed() -> void:
 	var surplus := SquadBuilder.surplus_shadow_ids(
-		_state.army, _monsters, _state.level, MASS_CONVERT_COUNT, _equipment, _state.inventory
+		_state.army,
+		_monsters,
+		_state.level,
+		MASS_CONVERT_COUNT,
+		_state.active_party_ids,
+		_equipment,
+		_state.inventory
 	)
 	if surplus.is_empty():
 		return
@@ -238,18 +243,17 @@ func _on_mass_convert_pressed() -> void:
 
 
 func _refresh_squad() -> void:
-	var squad := SquadBuilder.auto_fill_squad(
-		_state.army, _monsters, _state.level, _equipment, _state.inventory
+	var sorted_army := SquadBuilder.sort_shadows(
+		SquadBuilder.enrich_army(
+			_state.army, _monsters, _state.level, _equipment, _state.inventory
+		),
+		_party_sort_mode
 	)
-	var chosen := SquadBuilder.resolve_party(
-		_state.army, _monsters, _state.level, _state.active_party_ids, _equipment, _state.inventory
-	)
-	squad_tab.refresh(squad, _state.active_party_ids, chosen)
+	party_tab.refresh(sorted_army, _state.active_party_ids)
 
 
-func _on_squad_auto_fill_requested() -> void:
-	_state.active_party_ids = []
-	_after_mutation()
+func _on_party_sort_changed(mode: String) -> void:
+	_party_sort_mode = mode
 	_refresh_squad()
 
 
@@ -263,11 +267,8 @@ func _on_squad_toggle_requested(instance_id: String) -> void:
 
 
 func _on_squad_auto_equip_requested() -> void:
-	var squad := SquadBuilder.auto_fill_squad(
-		_state.army, _monsters, _state.level, _equipment, _state.inventory
-	)
-	var ids: Array = squad.map(func(m: Dictionary) -> String: return m["instance_id"])
-	_state.auto_equip_squad(ids, _equipment, _monsters)
+	# auto_equip_squad skips unknown ids, so a 0/1/2-member party is a safe no-op.
+	_state.auto_equip_squad(_state.active_party_ids, _equipment, _monsters)
 	_after_mutation()
 	_refresh_squad()
 

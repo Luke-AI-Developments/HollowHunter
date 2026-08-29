@@ -2,7 +2,7 @@ class_name HunterGearView
 extends Node2D
 ## The Hunter Gear panel as its own controller script -- split out of
 ## scenes/main.gd, which was at the project's max-file-lines lint cap.
-## Unlike BattleView/SquadView/ShopView (pure display, signal-request
+## Unlike BattleView/PartyView/ShopView (pure display, signal-request
 ## pattern -- main.gd keeps mutation authority), this and its sibling
 ## controllers (ShadowGearView, StrongholdView, CharacterView) hold a
 ## direct reference to HunterState and mutate it themselves: every action
