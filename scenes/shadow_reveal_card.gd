@@ -59,6 +59,7 @@ func _ready() -> void:
 	_relinquish.pressed.connect(_on_relinquish_pressed)
 	_confirm_cancel.pressed.connect(func() -> void: _confirm_bar.visible = false)
 	_confirm_ok.pressed.connect(_on_confirm_relinquish_pressed)
+	_portrait.material = ArtPaths.shadow_material()
 
 
 func bind(state: HunterState, monsters: Array, equipment: Dictionary, trait_pool: Array) -> void:
