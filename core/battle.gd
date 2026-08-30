@@ -40,6 +40,14 @@ const BOSS_BIG_HIT_INTERVAL := 3  ## invented v0: "every few turns" (§16)
 const BOSS_BIG_HIT_MULTIPLIER := 2.0  ## the doc's own number: "~2x a normal attack"
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
+const FROSTBLOODED_FAMILY := "Rime Sylphs"  ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
+const TRAIT_DAMAGE_BONUS := 1.25  ## invented v0: executioner (vs boss) / frostblooded (vs Rime) damage multiplier
+const BLOODHUNGER_HEAL_FRAC := 0.15  ## invented v0: on-kill self-heal, fraction of the killer's max HP
+const WARCALLER_AURA := 0.08  ## invented v0: party-wide PATK/MATK bump if any party member has warcaller
+const RELENTLESS_COOLDOWN_TICK := 2  ## invented v0: cooldown decrement per turn for a relentless actor (vs 1)
+
+const _BATTLE_TRAIT_IDS := ["bloodhunger", "warcaller", "frostblooded", "relentless", "executioner"]
+
 var party: Array = []
 var enemies: Array = []
 var log: Array = []  ## event dicts, oldest first -- the battle-stage/toast feed (§16b)
@@ -82,17 +90,28 @@ func _init(
 ## bench-power bonus for raids/the Nadir. Applied as a flat +X% multiplier
 ## on HP/PATK/MATK/DEF only, per §16's own wording -- crit chance and speed
 ## are untouched.
+## `trait_ids` are the shadow's resolved trait id strings (from
+## SquadBuilder.enrich_army -- the caller maps the trait dicts to their
+## ids). Only the five battle-relevant ids
+## (bloodhunger/warcaller/frostblooded/relentless/executioner) become
+## entries in the returned `trait_flags` dict; any other id is ignored.
+## The player passes `[]` -- the hunter is not a shadow and carries no
+## traits.
 static func make_ally_combatant(
 	id: String,
 	clazz: String,
 	level: int,
 	stats: Dictionary,
 	display_name: String = "",
-	synergy_bonus: float = 0.0
+	synergy_bonus: float = 0.0,
+	trait_ids: Array = []
 ) -> Dictionary:
 	var combat := CombatMath.combat_stats(stats)
 	var mult := 1.0 + synergy_bonus
 	var hp := int(round(float(combat["HP"]) * mult))
+	var trait_flags := {}
+	for tid in _BATTLE_TRAIT_IDS:
+		trait_flags[tid] = trait_ids.has(tid)
 	return {
 		"id": id,
 		"name": display_name if display_name != "" else id,
@@ -117,6 +136,7 @@ static func make_ally_combatant(
 		"poison_turns": 0,
 		"poison_damage": 0,
 		"shield_hp": 0,
+		"trait_flags": trait_flags,
 	}
 
 
@@ -125,8 +145,17 @@ static func make_ally_combatant(
 ## from base_power, nothing else, so enemies take full damage rather than
 ## inventing a defense number the source never gave them. No crit either
 ## (CombatMath.enemy_stats' own docstring already covers that).
+## Monsters have no traits -- the all-false `trait_flags` is emitted only
+## so the `_apply_attack` read sites can look it up unconditionally
+## without special-casing enemies. `family` is the monster's content
+## family string (content/monsters.json), used by frostblooded's
+## vs-family bonus; "" when the caller doesn't supply one.
 static func make_enemy_combatant(
-	id: String, base_power: float, is_boss: bool = false, display_name: String = ""
+	id: String,
+	base_power: float,
+	is_boss: bool = false,
+	display_name: String = "",
+	family: String = ""
 ) -> Dictionary:
 	var combat := CombatMath.enemy_stats(base_power)
 	return {
@@ -154,6 +183,15 @@ static func make_enemy_combatant(
 		"poison_damage": 0,
 		"shield_hp": 0,
 		"turns_until_big_hit": BOSS_BIG_HIT_INTERVAL,
+		"family": family,
+		"trait_flags":
+		{
+			"bloodhunger": false,
+			"warcaller": false,
+			"frostblooded": false,
+			"relentless": false,
+			"executioner": false,
+		},
 	}
 
 

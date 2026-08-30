@@ -72,6 +72,43 @@ func test_combatant_display_name_uses_the_given_name() -> void:
 	assert_eq(enemy["name"], "Grubmaw")
 
 
+# --- Trait flags / family (§6b part 3) ---
+
+
+func test_ally_combatant_with_no_trait_ids_has_all_flags_false() -> void:
+	var c := Battle.make_ally_combatant("x", "WARRIOR", 1, GameLogic.stats_from(1, "WARRIOR"))
+	var f: Dictionary = c["trait_flags"]
+	for key in ["bloodhunger", "warcaller", "frostblooded", "relentless", "executioner"]:
+		assert_false(f[key], "%s should default false" % key)
+
+
+func test_ally_combatant_resolves_known_battle_trait_ids_to_flags() -> void:
+	var c := Battle.make_ally_combatant(
+		"x", "WARRIOR", 1, GameLogic.stats_from(1, "WARRIOR"), "", 0.0,
+		["executioner", "bloodhunger", "sturdy", "not_a_trait"]
+	)
+	var f: Dictionary = c["trait_flags"]
+	assert_true(f["executioner"])
+	assert_true(f["bloodhunger"])
+	assert_false(f["warcaller"])
+	# non-battle ids ("sturdy") and unknowns are simply not battle flags
+	assert_false(f.has("sturdy"))
+
+
+func test_enemy_combatant_family_defaults_empty_and_is_stored_when_given() -> void:
+	assert_eq(Battle.make_enemy_combatant("e1", 100.0)["family"], "")
+	assert_eq(
+		Battle.make_enemy_combatant("e2", 100.0, false, "Frostquill", "Rime Sylphs")["family"],
+		"Rime Sylphs"
+	)
+
+
+func test_enemy_combatant_has_all_false_trait_flags() -> void:
+	var f: Dictionary = Battle.make_enemy_combatant("e1", 100.0)["trait_flags"]
+	assert_false(f["executioner"])
+	assert_false(f["frostblooded"])
+
+
 # --- Turn order ---
 
 
