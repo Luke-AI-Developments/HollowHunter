@@ -52,6 +52,8 @@ var _pending_reveal_shadow_id: String = ""  ## §6b/§6c: shadow instance_id awa
 ## reveal card after a CLAIM SystemPanel dismisses; "" when nothing is pending.
 var _pending_battle_party_trait_ids: Array = []  ## §6b pt3: fielded party's
 ## trait ids, carried into the reward handlers for the Essence-bonus traits
+var _nadir_run_active: bool = false  ## §20: a Nadir run costs 1 Gate Ticket on the first
+## descend; retries/advances within the run are free. Reset when the Nadir panel closes.
 
 @onready var preset_picker: Node2D = $PresetPicker
 @onready var preset_grid: GridContainer = $PresetPicker/Grid
@@ -784,6 +786,9 @@ func _position_marker_card_centered() -> void:
 	marker_card.visible = true
 
 
+## Map gates are ticket-FREE by design -- only the Use-Ticket flow
+## (_on_use_ticket_pressed) and the Nadir (_on_nadir_take_on_pressed) spend
+## a Gate Ticket. Do not add a spend here.
 func _enter_gate(index: int) -> void:
 	var gate := map_view.get_gate(index)
 	if gate.is_empty():
@@ -1127,6 +1132,7 @@ func _on_nadir_button_pressed() -> void:
 
 func _on_nadir_close_pressed() -> void:
 	nadir_panel.visible = false
+	_nadir_run_active = false
 
 
 ## No longer shows a RAID_POWER-vs-target comparison -- real combat
@@ -1141,10 +1147,15 @@ func _refresh_nadir_panel() -> void:
 		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
 	)
 	var synergy_pct := int(round(_army_synergy_bonus(chosen) * 100.0))
+	var entry_line := (
+		"Entry: 1 Gate Ticket per run"
+		if not _nadir_run_active
+		else "Run active -- floors are free until you leave"
+	)
 	nadir_info_label.text = (
 		(
 			"Deepest cleared: %d\n\nFloor %d%s\nEnemy power: %d\nArmy Synergy: +%d%% party stats"
-			+ "\nEstimated Essence reward: %d\nGear rarity: %s"
+			+ "\nEstimated Essence reward: %d\nGear rarity: %s\n%s"
 		)
 		% [
 			state.nadir_deepest_floor,
@@ -1154,9 +1165,12 @@ func _refresh_nadir_panel() -> void:
 			synergy_pct,
 			Nadir.essence_for_floor(floor_n),
 			Nadir.rank_for_floor(floor_n),
+			entry_line,
 		]
 	)
-	nadir_take_on_button.text = "Take on Floor %d" % floor_n
+	nadir_take_on_button.text = (
+		"Take on Floor %d%s" % [floor_n, "" if _nadir_run_active else "  (1 Ticket)"]
+	)
 
 
 ## Phase 3/P3-Nadir status update: no longer resolves synchronously via a
@@ -1165,6 +1179,14 @@ func _refresh_nadir_panel() -> void:
 ## once it finishes, via _apply_nadir_battle_result (_on_battle_finished's
 ## Nadir branch).
 func _on_nadir_take_on_pressed() -> void:
+	if not _nadir_run_active:
+		if state.gate_tickets < 1:
+			system_toast.show_toast("Need a Gate Ticket to descend into the Nadir")
+			return
+		state.spend_gate_ticket()
+		_nadir_run_active = true
+		SaveService.save(state)
+		_refresh_label()
 	_start_nadir_battle()
 
 

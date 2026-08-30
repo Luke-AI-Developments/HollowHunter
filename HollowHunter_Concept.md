@@ -204,6 +204,7 @@ The **at-home layer**: two ways to play a **gate** without walking to one. (The 
 - **Use a single-use ticket** to instantly open a gate at your current location — no walking. Runs as a normal 3-round gate (§18) with your squad.
 - Tickets **drop from play and ranking rewards**, and are the shop's core paid item (§14) — convenience for when you can't get out, never power.
 - The ticketed gate's rank scales around your level, so it's always worth doing.
+- Tickets are spent on **this** flow and on **descending into the Nadir** (§20, 1 per run). Walking into a world gate on the map never costs a ticket.
 
 ### 8b. Gate breaks — game-initiated emergency events (anytime)
 Straight from the anime: a gate ruptures and monsters spill into the overworld. The game **pushes you a gate** to take on — no walking, any time.
@@ -1377,7 +1378,7 @@ That keeps the **install ~70–85 MB (§23b) regardless of how many countries ar
 
 ## 20. Raid — the Nadir
 
-The whole-army endgame ladder: **one deep, persistent tower** you climb over the life of the game. Reached from the **Raids** tab. **Free to attempt** — no tickets.
+The whole-army endgame ladder: **one deep, persistent tower** you climb over the life of the game. Reached from the **Raids** tab. **Descending costs 1 Gate Ticket per run** (§8a): the ticket is spent on the first floor attempt after you open the Nadir; retrying the current floor and advancing to the next within that visit are free. Leaving the Nadir ends the run, so coming back costs another ticket.
 
 **How it works:**
 - One tower (the **Nadir**), many floors. Clear a floor **once** and it's done **forever**; it unlocks the next. You take floors on **manually, one at a time**.
