@@ -86,23 +86,28 @@ static func enemy_stats(base_power: float) -> Dictionary:
 	}
 
 
-## A single hit's damage: `max(1, move_power × atk − target_def) ×
+## A single hit's damage: `max(1, move_power × atk − effective_def) ×
 ## variance(0.9-1.1) × (1.5 if crit)` (§16). `atk` is whichever of the
 ## attacker's PATK/MATK the move uses -- picking between them is the
 ## caller's job (move data decides physical vs. magic), not this
-## function's. Returns both the damage and whether it crit, since the
-## caller needs to know for the floating-number/toast display (§16b).
+## function's. `def_pierce` (0–1) is the fraction of the target's DEF
+## ignored — physical `0.0`, magic `0.60` (spec §2.3); callers pass the
+## already-`def_multiplier`-scaled DEF, so all three compose. Returns both
+## the damage and whether it crit, since the caller needs to know for the
+## floating-number/toast display (§16b).
 static func resolve_damage(
 	move_power: float,
 	atk: float,
 	target_def: float,
 	crit_chance: float,
-	rng: RandomNumberGenerator = null
+	rng: RandomNumberGenerator = null,
+	def_pierce: float = 0.0
 ) -> Dictionary:
 	var variance := _randf_range(DAMAGE_VARIANCE_MIN, DAMAGE_VARIANCE_MAX, rng)
 	var crit_roll := rng.randf() if rng else randf()
 	var is_crit := crit_roll < crit_chance
-	var base := move_power * atk - target_def
+	var effective_def := target_def * (1.0 - clampf(def_pierce, 0.0, 1.0))
+	var base := move_power * atk - effective_def
 	var multiplier := CRIT_MULTIPLIER if is_crit else 1.0
 	var damage := maxf(1.0, base) * variance * multiplier
 	return {"damage": int(round(damage)), "crit": is_crit}

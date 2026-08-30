@@ -127,3 +127,34 @@ func test_army_synergy_bonus_is_1_pct_per_10000_power() -> void:
 func test_army_synergy_bonus_caps_at_50_pct() -> void:
 	assert_eq(CombatMath.army_synergy_bonus(500000.0), 0.5)
 	assert_eq(CombatMath.army_synergy_bonus(999999999.0), 0.5)
+
+
+func test_resolve_damage_def_pierce_zero_matches_legacy() -> void:
+	var rng_a := RandomNumberGenerator.new()
+	rng_a.seed = 7
+	var rng_b := RandomNumberGenerator.new()
+	rng_b.seed = 7
+	var legacy := CombatMath.resolve_damage(1.5, 100.0, 40.0, 0.0, rng_a)
+	var with_zero := CombatMath.resolve_damage(1.5, 100.0, 40.0, 0.0, rng_b, 0.0)
+	assert_eq(with_zero["damage"], legacy["damage"])
+
+
+func test_resolve_damage_magic_pierce_reduces_effective_def() -> void:
+	# 60% pierce on a DEF-40 target -> subtraction sees DEF 16, so damage is higher.
+	var rng_a := RandomNumberGenerator.new()
+	rng_a.seed = 3
+	var rng_b := RandomNumberGenerator.new()
+	rng_b.seed = 3
+	var physical := CombatMath.resolve_damage(1.0, 100.0, 40.0, 0.0, rng_a, 0.0)
+	var magic := CombatMath.resolve_damage(1.0, 100.0, 40.0, 0.0, rng_b, 0.60)
+	assert_gt(magic["damage"], physical["damage"])
+
+
+func test_resolve_damage_full_pierce_ignores_def_entirely() -> void:
+	var rng_a := RandomNumberGenerator.new()
+	rng_a.seed = 1
+	var rng_b := RandomNumberGenerator.new()
+	rng_b.seed = 1
+	var no_def := CombatMath.resolve_damage(1.0, 100.0, 0.0, 0.0, rng_a, 0.0)
+	var pierced := CombatMath.resolve_damage(1.0, 100.0, 200.0, 0.0, rng_b, 1.0)
+	assert_eq(pierced["damage"], no_def["damage"])
