@@ -330,7 +330,7 @@ The look comes from **rendering, not sprite detail**: pixel-art sprites placed i
 | Language | **GDScript** (primary), C# optional | GDScript = fast to write; C# for heavier logic |
 | GPS / location | **native plugin bridge** | ⚠ biggest integration risk — see below |
 | Health data | **native plugin:** HealthKit (iOS) + Health Connect (Android) | ⚠ likely custom Kotlin/Swift via GDExtension/platform plugins |
-| Map | OSM tiles via MapLibre + PMTiles on Cloudflare R2 (§19) | rendered on-device; ~free hosting, DIY vs an SDK |
+| Map | OSM road/water geometry, bundled extract, drawn in-engine (§19b) | no plugin, no tile server, no hosting; data ~0.4 MB per test area |
 | Local data | Godot resources / SQLite module | stats, shadows, inventory on-device |
 | Push / events | native notification plugin | gate-break alerts |
 | Backend (rankings + events) | **Supabase/Firebase via REST** | Godot calls HTTP from GDScript |
@@ -1309,7 +1309,7 @@ The map isn't only gates — a few POI types give the world texture and reasons 
 > Until the spike resolves, the map stays on the placeholder and **map-marker art should be judged against a plain dark background**.
 > </details>
 
-**This is config, not art.** The map is a live MapLibre render of real OpenStreetMap vector data, so there is no image to draw. Its entire look comes from a **MapLibre GL style JSON** describing how each vector layer is painted. Midjourney cannot help here at all — attempting to generate a "map background" is wasted effort.
+**This is config, not art.** The map is real OpenStreetMap road/water geometry drawn directly by Godot's own draw calls, so there is no image to draw. Its entire look comes from **palette + line-width constants in `core/map_geometry.gd`** — one value per layer, changed in code and seen instantly. Midjourney cannot help here at all — attempting to generate a "map background" is wasted effort.
 
 **Sequencing (important):** the basemap palette must be finalised **before** map-marker art is chosen (§19). Markers are picked *against* the background — settle the background first or you're judging them against the wrong thing.
 
@@ -1321,6 +1321,9 @@ The map isn't only gates — a few POI types give the world texture and reasons 
 - Aim for the basemap to look almost monochrome. Colour is a *signal*, and on this screen the only things worth signalling are places you can act on.
 
 ### Target treatment per layer
+
+The palette guidance below still holds — it is now expressed as `core/map_geometry.gd` constants (locked by `tests/unit/test_map_geometry.gd`) rather than a style file's layer paint properties.
+
 | Layer | Treatment |
 |---|---|
 | Background / land | Near-black (`#03070d`–`#0c1420`), flat, no texture |
@@ -1336,13 +1339,14 @@ The map isn't only gates — a few POI types give the world texture and reasons 
 **Palette lifted for on-device daylight legibility (2026-08-28):** the original near-blacks were unreadable on a phone outdoors at midday, so the `core/map_geometry.gd` constants were bumped — background `#050b12`→`#0c1420`, major roads `#1b2532`→`#3a4a5e`, minor roads `#0f1620`→`#26313f`, paths `#0a0f16`→`#1c2430`, water `#02040a`→`#070d16`. Still quiet; cyan markers still pop. Concrete values live in `core/map_geometry.gd` (`tests/unit/test_map_geometry.gd` locks them).
 
 ### Implementation notes
-- **Start from an existing open dark style, don't author from scratch.** Protomaps publishes an open basemap style with a dark theme that already maps cleanly onto their tile schema — retinting that is hours of work; writing a full style from zero is days. *(Verify the current Protomaps style/schema docs before starting — their basemap schema has versioned.)*
-- The style must match the **tile schema of the PMTiles extract** being served (§19: Protomaps basemap on Cloudflare R2). A style written for a different schema (e.g. OpenMapTiles vs Protomaps) will render blank or wrong — check this first, it's the most common failure.
-- Keep the **layer count low** — this renders on-device in Godot on mid-range Android phones. Every extra styled layer costs frame time on the screen players sit on longest.
-- **Test at night and in daylight, outdoors.** A near-black map that looks striking on a desk monitor can be unreadable on a phone at midday, which is exactly when people are out walking. Check real contrast on a real device before locking the palette.
+
+- **Geometry, not tiles.** Roads and water come from a bundled OSM extract (`tools/map_extract/` generates it; ~0.4 MB for the Darlington test bbox), projected Web-Mercator and drawn with `draw_polyline` in `scenes/map_view.gd`. No plugin, no tile server, no hosting.
+- **Palette lives in `core/map_geometry.gd`.** Background, water, major/minor roads and paths are named colour constants; `tests/unit/test_map_geometry.gd` locks the values. A palette change is a one-line edit, no regeneration.
+- **Keep the layer count low.** This renders every frame on mid-range Android on the screen players sit on longest. Roads + water is enough; buildings and landuse were dropped on purpose for a near-monochrome look.
+- **Test in daylight, outdoors.** A near-black map that looks striking on a monitor can be unreadable on a phone at midday — exactly when people walk. The palette was already lifted once for this (2026-08-28); check real contrast on a real device before any further change.
 
 ### Deliverable
-A single style JSON committed to the repo (e.g. `content/map_style.json`), loaded by the map view, plus a screenshot of it rendering on-device so the marker art can be chosen against the real thing.
+Done: `scenes/map_view.gd` + `core/map_geometry.gd` render the bundled Darlington extract in the palette above. The one remaining deliverable is an on-device daylight screenshot to judge the map-marker art against the real background.
 
 ---
 
@@ -1353,7 +1357,7 @@ The vector-line approach (§19b) needs geometry per area, which makes **launch g
 
 - **Now (prototype):** one bundled bbox — Darlington, ~26 km², ~0.4 MB. Bundled in the APK, nothing hosted.
 - **Bundled regions** scale fine for a while: road geometry is small enough that a whole city is ~1 MB and a county perhaps tens of MB. A handful of regions could ship in-app.
-- **Beyond that**, geometry gets fetched on demand for the player's area and cached on device — a small static file per region on cheap storage. Still no tile server, still no per-request cost, and R2's free egress keeps it near-zero.
+- **Beyond that**, geometry gets fetched on demand for the player's area and cached on device — a small static file per region on cheap object storage. Still no tile server and no per-request cost.
 - **Worldwide day one is not realistic** on any approach, and probably isn't needed: a fitness game's early players cluster geographically. Pokémon Go launched in three countries.
 
 **Sizing reality — the world does NOT get bundled:**
@@ -1501,7 +1505,7 @@ Comfortably inside Google Play's ~200 MB base-install limit. **Art is the size d
 | **Equipment on avatar** | ~a few per class | silhouette tiers by set/rarity, **not** per-piece |
 | **Gate/battle backdrops** | ~6–8 | one per family/theme |
 | **Boss art (bespoke)** | ~8–10 | S bosses + named elites, larger |
-| **Map style** | 1 | the MapLibre reskin (§19), a style file not sprites |
+| **Map palette** | — | draw-call constants in `core/map_geometry.gd` (§19b), not an asset |
 | **UI kit** | 1 set | panels, frames, buttons, icons, fonts |
 | **VFX set** | 1 set | glow, bloom, particles, sprite fly-off, CLAIM burst, level-up, incursion overlay |
 | **Stronghold** | ~1 + 4 facilities | base backdrop + facility art + upgrade states (§22) |
