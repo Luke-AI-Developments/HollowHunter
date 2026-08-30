@@ -270,6 +270,16 @@ func _process(_delta: float) -> void:
 
 
 func _start_game() -> void:
+	if OS.is_debug_build() and ProjectSettings.get_setting("debug/grant_all_content", false):
+		var granted := DebugGrant.grant_all(state, _monsters, _equipment)
+		if granted["shadows_added"] > 0 or granted["items_added"] > 0:
+			SaveService.save(state)
+			system_toast.show_toast(
+				(
+					"DEV: granted +%d shadows, +%d items"
+					% [granted["shadows_added"], granted["items_added"]]
+				)
+			)
 	_refresh_label()
 	inventory_view.bind(state, _equipment, _monsters)
 	hunter_gear_view.bind(state, _equipment, inventory_view)
