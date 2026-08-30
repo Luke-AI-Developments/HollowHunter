@@ -16,7 +16,7 @@ extends RefCounted
 ## poison_damage, shield_hp, turns_until_big_hit (bosses only),
 ## trait_flags (Dictionary of 5 bools:
 ## bloodhunger/warcaller/frostblooded/relentless/executioner),
-## family (String, enemies only)}. Build these via
+## family (String, enemies only), elite (bool, enemies only)}. Build these via
 ## make_ally_combatant()/make_enemy_combatant() below rather than by hand.
 ##
 ## MASSIVE gap between what §16 specifies and what a working turn engine
@@ -44,7 +44,7 @@ const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI 
 
 ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
 const FROSTBLOODED_FAMILY := "Rime Sylphs"
-## invented v0: executioner (vs boss) / frostblooded (vs Rime) damage multiplier
+## invented v0: executioner (vs elite) / frostblooded (vs Rime) damage multiplier
 const TRAIT_DAMAGE_BONUS := 1.25
 ## invented v0: on-kill self-heal, fraction of the killer's max HP
 const BLOODHUNGER_HEAL_FRAC := 0.15
@@ -161,13 +161,17 @@ static func make_ally_combatant(
 ## so the `_apply_attack` read sites can look it up unconditionally
 ## without special-casing enemies. `family` is the monster's content
 ## family string (content/monsters.json), used by frostblooded's
-## vs-family bonus; "" when the caller doesn't supply one.
+## vs-family bonus; "" when the caller doesn't supply one. `elite` is
+## true only for rank A/S gates and Nadir boss floors; executioner's
+## damage bonus keys off it, not `is_boss` (which is true for every gate,
+## to drive the §18 CLAIM telegraph).
 static func make_enemy_combatant(
 	id: String,
 	base_power: float,
 	is_boss: bool = false,
 	display_name: String = "",
-	family: String = ""
+	family: String = "",
+	elite: bool = false
 ) -> Dictionary:
 	var combat := CombatMath.enemy_stats(base_power)
 	return {
@@ -196,6 +200,7 @@ static func make_enemy_combatant(
 		"shield_hp": 0,
 		"turns_until_big_hit": BOSS_BIG_HIT_INTERVAL,
 		"family": family,
+		"elite": elite,
 		"trait_flags":
 		{
 			"bloodhunger": false,
@@ -464,7 +469,7 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 		elif tag == "bonus_vs_debuffed" and float(target.get("def_multiplier", 1.0)) < 1.0:
 			bonus_mult = BONUS_VS_DEBUFFED_MULTIPLIER
 		var actor_flags: Dictionary = actor.get("trait_flags", {})
-		if actor_flags.get("executioner", false) and bool(target.get("is_boss", false)):
+		if actor_flags.get("executioner", false) and bool(target.get("elite", false)):
 			bonus_mult *= TRAIT_DAMAGE_BONUS
 		if (
 			actor_flags.get("frostblooded", false)

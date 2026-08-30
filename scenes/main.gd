@@ -590,7 +590,12 @@ func _start_gate_battle(
 	var family := String(Content.monster_by_id(_monsters, gate["monster_id"]).get("family", ""))
 	var enemies := [
 		Battle.make_enemy_combatant(
-			gate["monster_id"], gate["monster_base_power"], true, gate["monster_name"], family
+			gate["monster_id"],
+			gate["monster_base_power"],
+			true,
+			gate["monster_name"],
+			family,
+			gate["rank"] in ["A", "S"]
 		)
 	]
 	var battle_party := _build_battle_party()
@@ -627,7 +632,8 @@ func _start_nadir_battle() -> void:
 			GameLogic.floor_power(floor_n),
 			_pending_nadir_is_boss,
 			enemy_name,
-			enemy_family
+			enemy_family,
+			_pending_nadir_is_boss
 		)
 	]
 	var battle_party := _build_battle_party(true)

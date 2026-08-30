@@ -108,6 +108,11 @@ func test_enemy_combatant_family_defaults_empty_and_is_stored_when_given() -> vo
 	)
 
 
+func test_enemy_combatant_elite_defaults_false_and_is_stored() -> void:
+	assert_false(Battle.make_enemy_combatant("e", 100.0)["elite"])
+	assert_true(Battle.make_enemy_combatant("e", 100.0, true, "e", "", true)["elite"])
+
+
 func test_enemy_combatant_has_all_false_trait_flags() -> void:
 	var f: Dictionary = Battle.make_enemy_combatant("e1", 100.0)["trait_flags"]
 	assert_false(f["executioner"])
@@ -459,7 +464,11 @@ func test_battle_is_deterministic_with_the_same_seed() -> void:
 
 
 func _one_hit_damage(
-	actor_trait_ids: Array, enemy_is_boss: bool, enemy_family: String, seed_value: int
+	actor_trait_ids: Array,
+	enemy_is_boss: bool,
+	enemy_family: String,
+	seed_value: int,
+	enemy_elite: bool = false
 ) -> int:
 	# One auto-battle step: the ally attacks once; return the logged damage.
 	var rng := RandomNumberGenerator.new()
@@ -478,7 +487,9 @@ func _one_hit_damage(
 	# never drops the target below LOW_HP_THRESHOLD (which would trigger a
 	# bonus_vs_low_hp move tag and skew the ratio). Same speed/HP-coupling
 	# workaround the taunt/shield tests use.
-	var enemy := Battle.make_enemy_combatant("e1", 200.0, enemy_is_boss, "e1", enemy_family)
+	var enemy := Battle.make_enemy_combatant(
+		"e1", 200.0, enemy_is_boss, "e1", enemy_family, enemy_elite
+	)
 	enemy["hp"] = 100000
 	enemy["max_hp"] = 100000
 	var battle := Battle.new([actor], [enemy], moves, true, rng)
@@ -489,14 +500,26 @@ func _one_hit_damage(
 	return -1
 
 
-func test_executioner_multiplies_damage_vs_a_boss() -> void:
-	var plain := _one_hit_damage([], true, "", 4)
-	var exec := _one_hit_damage(["executioner"], true, "", 4)
+func test_executioner_multiplies_damage_vs_an_elite() -> void:
+	var plain := _one_hit_damage([], false, "", 4, false)
+	var exec := _one_hit_damage(["executioner"], false, "", 4, true)
 	assert_almost_eq(float(exec) / float(plain), Battle.TRAIT_DAMAGE_BONUS, 0.04)
 
 
-func test_executioner_does_nothing_vs_a_non_boss() -> void:
-	assert_eq(_one_hit_damage(["executioner"], false, "", 4), _one_hit_damage([], false, "", 4))
+func test_executioner_does_nothing_vs_a_non_elite() -> void:
+	assert_eq(
+		_one_hit_damage(["executioner"], false, "", 4, false),
+		_one_hit_damage([], false, "", 4, false)
+	)
+
+
+func test_executioner_ignores_is_boss_when_not_elite() -> void:
+	# Regression: every gate enemy is is_boss=true for the CLAIM telegraph;
+	# executioner must NOT fire on a plain (non-A/S) gate.
+	assert_eq(
+		_one_hit_damage(["executioner"], true, "", 4, false),
+		_one_hit_damage([], true, "", 4, false)
+	)
 
 
 func test_frostblooded_multiplies_damage_vs_rime_family_only() -> void:
@@ -510,9 +533,9 @@ func test_frostblooded_multiplies_damage_vs_rime_family_only() -> void:
 
 
 func test_executioner_and_frostblooded_stack_multiplicatively() -> void:
-	var plain := _one_hit_damage([], true, Battle.FROSTBLOODED_FAMILY, 4)
+	var plain := _one_hit_damage([], false, Battle.FROSTBLOODED_FAMILY, 4, true)
 	var both := _one_hit_damage(
-		["executioner", "frostblooded"], true, Battle.FROSTBLOODED_FAMILY, 4
+		["executioner", "frostblooded"], false, Battle.FROSTBLOODED_FAMILY, 4, true
 	)
 	var expected := Battle.TRAIT_DAMAGE_BONUS * Battle.TRAIT_DAMAGE_BONUS
 	assert_almost_eq(float(both) / float(plain), expected, 0.06)
