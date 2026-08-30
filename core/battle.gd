@@ -13,9 +13,11 @@ extends RefCounted
 ## max_hp, patk, matk, def, crit_chance, speed, cooldowns
 ## {move_id: turns_left}, is_taunting, taunt_turns, atk_multiplier,
 ## atk_buff_turns, def_multiplier, def_mod_turns, poison_turns,
-## poison_damage, shield_hp, turns_until_big_hit (bosses only)}. Build
-## these via make_ally_combatant()/make_enemy_combatant() below rather
-## than by hand.
+## poison_damage, shield_hp, turns_until_big_hit (bosses only),
+## trait_flags (Dictionary of 5 bools:
+## bloodhunger/warcaller/frostblooded/relentless/executioner),
+## family (String, enemies only)}. Build these via
+## make_ally_combatant()/make_enemy_combatant() below rather than by hand.
 ##
 ## MASSIVE gap between what §16 specifies and what a working turn engine
 ## needs, flagged in full here rather than scattered: the doc gives move
@@ -40,11 +42,16 @@ const BOSS_BIG_HIT_INTERVAL := 3  ## invented v0: "every few turns" (§16)
 const BOSS_BIG_HIT_MULTIPLIER := 2.0  ## the doc's own number: "~2x a normal attack"
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
-const FROSTBLOODED_FAMILY := "Rime Sylphs"  ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
-const TRAIT_DAMAGE_BONUS := 1.25  ## invented v0: executioner (vs boss) / frostblooded (vs Rime) damage multiplier
-const BLOODHUNGER_HEAL_FRAC := 0.15  ## invented v0: on-kill self-heal, fraction of the killer's max HP
-const WARCALLER_AURA := 0.08  ## invented v0: party-wide PATK/MATK bump if any party member has warcaller
-const RELENTLESS_COOLDOWN_TICK := 2  ## invented v0: cooldown decrement per turn for a relentless actor (vs 1)
+## invented v0: frostblooded's "Rime" target family (content/monsters.json)
+const FROSTBLOODED_FAMILY := "Rime Sylphs"
+## invented v0: executioner (vs boss) / frostblooded (vs Rime) damage multiplier
+const TRAIT_DAMAGE_BONUS := 1.25
+## invented v0: on-kill self-heal, fraction of the killer's max HP
+const BLOODHUNGER_HEAL_FRAC := 0.15
+## invented v0: party-wide PATK/MATK bump if any party member has warcaller
+const WARCALLER_AURA := 0.08
+## invented v0: cooldown decrement per turn for a relentless actor (vs 1)
+const RELENTLESS_COOLDOWN_TICK := 2
 
 const _BATTLE_TRAIT_IDS := ["bloodhunger", "warcaller", "frostblooded", "relentless", "executioner"]
 
@@ -62,6 +69,10 @@ var _moves: Array = []
 var _rng: RandomNumberGenerator
 
 
+## `_apply_warcaller_aura()` mutates the passed-in party combatant dicts in
+## place, so constructing a second `Battle` over the same array objects would
+## re-apply the aura -- callers build fresh combatant dicts per fight
+## (`main.gd._build_battle_party` does).
 func _init(
 	party_combatants: Array,
 	enemy_combatants: Array,

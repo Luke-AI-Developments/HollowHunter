@@ -271,4 +271,6 @@ func test_trait_essence_multiplier_scavenger_and_soulbound() -> void:
 
 func test_trait_essence_multiplier_stacks_duplicates_and_ignores_others() -> void:
 	assert_almost_eq(GameLogic.trait_essence_multiplier(["scavenger", "scavenger"]), 1.20, 0.0001)
-	assert_almost_eq(GameLogic.trait_essence_multiplier(["sturdy", "executioner", "soulbound"]), 1.20, 0.0001)
+	assert_almost_eq(
+		GameLogic.trait_essence_multiplier(["sturdy", "executioner", "soulbound"]), 1.20, 0.0001
+	)

@@ -82,6 +82,11 @@ const ESSENCE_PER_SCRAPPED_ITEM := {
 	"COMMON": 2, "UNCOMMON": 4, "RARE": 8, "EPIC": 16, "LEGENDARY": 32
 }
 
+# --- §6b part 3 economy traits: invented v0 -- +Essence per fielded shadow
+# carrying the trait, applied by trait_essence_multiplier() below. ---
+const SCAVENGER_ESSENCE_BONUS := 0.10
+const SOULBOUND_ESSENCE_BONUS := 0.20
+
 
 # --- Progression (§3): linear curve ---
 static func exp_to_next(level: int) -> int:
@@ -341,10 +346,6 @@ static func essence_for_converted_shadow(grade: String) -> int:
 # --- Essence granted scrapping an unwanted item, by rarity (§17b) ---
 static func essence_for_scrapped_item(rarity: String) -> int:
 	return int(ESSENCE_PER_SCRAPPED_ITEM.get(rarity, 0))
-
-
-const SCAVENGER_ESSENCE_BONUS := 0.10  ## §6b part 3, invented v0: +Essence per fielded scavenger shadow
-const SOULBOUND_ESSENCE_BONUS := 0.20  ## §6b part 3, invented v0: +Essence per fielded soulbound shadow
 
 
 ## §6b part 3: multiplier applied to gate / Nadir-floor Essence rewards for the

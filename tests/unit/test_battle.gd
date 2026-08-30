@@ -84,7 +84,12 @@ func test_ally_combatant_with_no_trait_ids_has_all_flags_false() -> void:
 
 func test_ally_combatant_resolves_known_battle_trait_ids_to_flags() -> void:
 	var c := Battle.make_ally_combatant(
-		"x", "WARRIOR", 1, GameLogic.stats_from(1, "WARRIOR"), "", 0.0,
+		"x",
+		"WARRIOR",
+		1,
+		GameLogic.stats_from(1, "WARRIOR"),
+		"",
+		0.0,
 		["executioner", "bloodhunger", "sturdy", "not_a_trait"]
 	)
 	var f: Dictionary = c["trait_flags"]
@@ -506,7 +511,9 @@ func test_frostblooded_multiplies_damage_vs_rime_family_only() -> void:
 
 func test_executioner_and_frostblooded_stack_multiplicatively() -> void:
 	var plain := _one_hit_damage([], true, Battle.FROSTBLOODED_FAMILY, 4)
-	var both := _one_hit_damage(["executioner", "frostblooded"], true, Battle.FROSTBLOODED_FAMILY, 4)
+	var both := _one_hit_damage(
+		["executioner", "frostblooded"], true, Battle.FROSTBLOODED_FAMILY, 4
+	)
 	var expected := Battle.TRAIT_DAMAGE_BONUS * Battle.TRAIT_DAMAGE_BONUS
 	assert_almost_eq(float(both) / float(plain), expected, 0.06)
 

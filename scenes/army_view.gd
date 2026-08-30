@@ -194,7 +194,7 @@ func _make_shadow_card(e: Dictionary, fielded: bool, big: bool) -> Control:
 	card.add_child(box)
 
 	var portrait := TextureRect.new()
-	portrait.custom_minimum_size = Vector2(0, (150 if big else 92))
+	portrait.custom_minimum_size = Vector2(0, 150 if big else 92)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
