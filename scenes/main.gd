@@ -447,7 +447,7 @@ func _maybe_apply_daily_exp() -> void:
 	# last_exp_date, same "before mark_exp_applied() overwrites it"
 	# requirement as next_streak() below.
 	var rest_bonus := DailyExp.rest_bonus_applies(today, state.last_exp_date)
-	var exp := DailyExp.exp_for_today(_steps, _workouts_json, state.subclass, 0, rest_bonus)
+	var exp := DailyExp.exp_for_today(_steps, _workouts_json, state.subclass, 0, rest_bonus, today)
 	var levels_gained := state.add_exp(exp)
 	# Code-review fix: next_streak() is a pure "is this the next calendar
 	# day" check -- it doesn't know about exp, so a 0-steps/0-workouts day

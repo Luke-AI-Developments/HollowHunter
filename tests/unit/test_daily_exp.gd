@@ -72,6 +72,56 @@ func test_exp_for_today_with_no_workouts_is_steps_only() -> void:
 	assert_eq(exp, GameLogic.daily_exp(8000, 0, 0, false))
 
 
+func test_workouts_for_day_keeps_todays_and_drops_yesterdays() -> void:
+	var ws := [
+		_workout("run", "2026-08-30T07:00:00Z", "2026-08-30T07:30:00Z"),
+		_workout("run", "2026-08-29T18:00:00Z", "2026-08-29T18:51:00Z"),
+	]
+	var kept := DailyExp.workouts_for_day(ws, "2026-08-30")
+	assert_eq(kept.size(), 1)
+	assert_eq(kept[0]["start_time"], "2026-08-30T07:00:00Z")
+
+
+func test_workouts_for_day_drops_malformed_and_empty_start() -> void:
+	var ws := [
+		_workout("a", "", "2026-08-30T07:30:00Z"),
+		_workout("b", "not-a-date", "x"),
+		_workout("c", "2026-08-30T09:00:00Z", "2026-08-30T09:20:00Z"),
+	]
+	assert_eq(DailyExp.workouts_for_day(ws, "2026-08-30").size(), 1)
+
+
+func test_workouts_for_day_empty_input() -> void:
+	assert_eq(DailyExp.workouts_for_day([], "2026-08-30"), [])
+
+
+func test_exp_for_today_with_today_ignores_yesterdays_workout() -> void:
+	var two := _json(
+		[
+			_workout("lift", "2026-08-30T07:00:00Z", "2026-08-30T07:30:00Z"),
+			_workout("lift", "2026-08-29T20:00:00Z", "2026-08-29T20:51:00Z"),
+		]
+	)
+	var one := _json([_workout("lift", "2026-08-30T07:00:00Z", "2026-08-30T07:30:00Z")])
+	assert_eq(
+		DailyExp.exp_for_today(5000, two, "WARRIOR", 0, false, "2026-08-30"),
+		DailyExp.exp_for_today(5000, one, "WARRIOR", 0, false, "2026-08-30")
+	)
+
+
+func test_exp_for_today_without_today_counts_all_workouts_legacy() -> void:
+	var two := _json(
+		[
+			_workout("lift", "2026-08-30T07:00:00Z", "2026-08-30T07:30:00Z"),
+			_workout("lift", "2026-08-29T20:00:00Z", "2026-08-29T20:51:00Z"),
+		]
+	)
+	var one := _json([_workout("lift", "2026-08-30T07:00:00Z", "2026-08-30T07:30:00Z")])
+	assert_ne(
+		DailyExp.exp_for_today(5000, two, "WARRIOR"), DailyExp.exp_for_today(5000, one, "WARRIOR")
+	)
+
+
 func test_next_streak_first_day_ever_is_1() -> void:
 	assert_eq(DailyExp.next_streak("2026-08-08", "", 0), 1)
 

@@ -108,6 +108,7 @@ func refresh(steps: int, workouts_json: String, gps_status: String, health_statu
 	# exp_for_today(), which would re-parse workouts_json from scratch)
 	# since workout_minutes/matched are needed for display anyway.
 	var workouts := DailyExp.parse_workouts(workouts_json)
+	workouts = DailyExp.workouts_for_day(workouts, Time.get_date_string_from_system())
 	var workout_minutes := DailyExp.total_workout_minutes(workouts)
 	var matched := DailyExp.matches_signature_training(workouts, _state.subclass)
 	var steps_display := "%d" % steps if steps >= 0 else "Fetching..."
