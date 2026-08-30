@@ -16,8 +16,12 @@ extends RefCounted
 ## poison_damage, shield_hp, turns_until_big_hit (bosses only),
 ## trait_flags (Dictionary of 5 bools:
 ## bloodhunger/warcaller/frostblooded/relentless/executioner),
-## family (String, enemies only), elite (bool, enemies only)}. Build these via
-## make_ally_combatant()/make_enemy_combatant() below rather than by hand.
+## family (String, enemies only), elite (bool, enemies only),
+## role (String, enemies only -- grunt profile / "boss", spec §3.2),
+## atk_type (String, enemies only -- "physical"/"magic", drives DEF pierce)}.
+## Enemy `def` is derived from base_power/role in v1 -- no longer always 0.
+## Build these via make_ally_combatant()/make_enemy_combatant() below
+## rather than by hand.
 ##
 ## MASSIVE gap between what §16 specifies and what a working turn engine
 ## needs, flagged in full here rather than scattered: the doc gives move
@@ -40,6 +44,7 @@ const BLESSING_ATK_BUFF_MAGNITUDE := 0.15  ## invented v0: Blessing's "attack bu
 ## (its heal half already has its own `power` field in moves.json)
 const BOSS_BIG_HIT_INTERVAL := 3  ## invented v0: "every few turns" (§16)
 const BOSS_BIG_HIT_MULTIPLIER := 2.0  ## the doc's own number: "~2x a normal attack"
+const MAGIC_DEF_PIERCE := 0.60  ## spec §2.3, invented v0: DEF fraction a magic hit ignores
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
 ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
@@ -153,9 +158,12 @@ static func make_ally_combatant(
 
 
 ## A ready-to-fight enemy combatant from a monster's/floor's base_power
-## (§16's enemy_stats). No DEF stat -- the doc only defines enemy HP/ATK
-## from base_power, nothing else, so enemies take full damage rather than
-## inventing a defense number the source never gave them. No crit either
+## (§16's enemy_stats). `role` is the grunt profile (spec §3.2:
+## bruiser/skirmisher/armoured) and scales HP/SPEED/DEF; a boss ignores
+## the passed role and takes the "boss" DEF coefficient with plain
+## (bruiser) HP/SPEED. DEF is real in v1 -- enemies no longer take full
+## damage. `atk_type` ("physical"/"magic") decides whether this enemy's
+## attacks pierce 60% of party DEF (spec §2.3). No crit
 ## (CombatMath.enemy_stats' own docstring already covers that).
 ## Monsters have no traits -- the all-false `trait_flags` is emitted only
 ## so the `_apply_attack` read sites can look it up unconditionally
@@ -171,9 +179,11 @@ static func make_enemy_combatant(
 	is_boss: bool = false,
 	display_name: String = "",
 	family: String = "",
-	elite: bool = false
+	elite: bool = false,
+	role: String = "bruiser",
+	atk_type: String = "physical"
 ) -> Dictionary:
-	var combat := CombatMath.enemy_stats(base_power)
+	var combat := CombatMath.enemy_stats(base_power, "boss" if is_boss else role)
 	return {
 		"id": id,
 		"name": display_name if display_name != "" else id,
@@ -185,7 +195,7 @@ static func make_enemy_combatant(
 		"max_hp": combat["HP"],
 		"patk": float(combat["ATK"]),
 		"matk": float(combat["ATK"]),
-		"def": 0.0,
+		"def": combat["DEF"],
 		"crit_chance": 0.0,
 		"speed": combat["SPEED"],
 		"cooldowns": {},
@@ -201,6 +211,8 @@ static func make_enemy_combatant(
 		"turns_until_big_hit": BOSS_BIG_HIT_INTERVAL,
 		"family": family,
 		"elite": elite,
+		"role": role,
+		"atk_type": atk_type,
 		"trait_flags":
 		{
 			"bloodhunger": false,
@@ -381,7 +393,8 @@ func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:
 	var move_power := BOSS_BIG_HIT_MULTIPLIER if is_big_hit else 1.0
 	var atk: float = actor["patk"] * float(actor.get("atk_multiplier", 1.0))
 	var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
-	var result := CombatMath.resolve_damage(move_power, atk, target_def, 0.0, _rng)
+	var pierce := MAGIC_DEF_PIERCE if String(actor.get("atk_type", "physical")) == "magic" else 0.0
+	var result := CombatMath.resolve_damage(move_power, atk, target_def, 0.0, _rng, pierce)
 	var actual := _apply_shield(target, result["damage"])
 	target["hp"] = maxi(0, target["hp"] - actual)
 	(
@@ -477,8 +490,9 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 		):
 			bonus_mult *= TRAIT_DAMAGE_BONUS
 		var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
+		var pierce := MAGIC_DEF_PIERCE if String(move.get("move_type", "")) == "magic" else 0.0
 		var result := CombatMath.resolve_damage(
-			power * bonus_mult, atk, target_def, float(actor.get("crit_chance", 0.0)), _rng
+			power * bonus_mult, atk, target_def, float(actor.get("crit_chance", 0.0)), _rng, pierce
 		)
 		var actual := _apply_shield(target, result["damage"])
 		target["hp"] = maxi(0, target["hp"] - actual)

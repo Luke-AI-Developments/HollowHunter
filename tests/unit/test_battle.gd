@@ -596,3 +596,57 @@ func test_no_bloodhunger_no_heal_on_kill() -> void:
 	var battle := Battle.new([actor], [enemy], moves, true, rng)
 	battle.step()
 	assert_eq(battle.party[0]["hp"], 10)
+
+
+# --- Enemy role / atk_type + magic DEF pierce (combat v1 §2/§3) ---
+
+
+func test_enemy_combatant_carries_role_and_atk_type_defaults() -> void:
+	var c := Battle.make_enemy_combatant("e", 1000.0)
+	assert_eq(c["role"], "bruiser")
+	assert_eq(c["atk_type"], "physical")
+	assert_almost_eq(c["def"], 1000.0 * 0.05, 0.001)
+
+
+func test_enemy_combatant_armoured_role_has_high_def() -> void:
+	var c := Battle.make_enemy_combatant("e", 1000.0, false, "e", "", false, "armoured")
+	assert_almost_eq(c["def"], 1000.0 * 0.11, 0.001)
+
+
+func test_boss_combatant_uses_boss_def_coeff_not_the_passed_grunt_role() -> void:
+	var c := Battle.make_enemy_combatant("boss", 1000.0, true, "Boss", "", false, "armoured")
+	assert_almost_eq(c["def"], 1000.0 * 0.06, 0.001)  # boss coeff wins over the "armoured" arg
+	assert_eq(c["hp"], Battle.make_enemy_combatant("x", 1000.0)["hp"])  # boss keeps bruiser HP
+
+
+func test_magic_move_pierces_enemy_def_vs_an_armoured_target() -> void:
+	# Same seed, same attacker power/stats; a magic move out-damages a physical
+	# move of equal power against a high-DEF armoured enemy, because magic
+	# ignores 60% of the target's DEF (spec §2.3).
+	var stats := {"STR": 400, "AGI": 100, "VIT": 100, "END": 50, "SEN": 400}
+	var phys_dmg := _first_damage_of_move(stats, "armoured", "physical", 4)
+	var magic_dmg := _first_damage_of_move(stats, "armoured", "magic", 4)
+	assert_gt(magic_dmg, phys_dmg)
+
+
+func _first_damage_of_move(
+	stats: Dictionary, enemy_role: String, move_type: String, seed_value: int
+) -> int:
+	# Mirrors _one_hit_damage: one auto step, return the first logged "damage".
+	# WARRIOR strike (physical) vs MAGE cyan bolt (magic) -- both power 1.0,
+	# single-target, no tag, level 1 (the only attack each has), and the
+	# caller's balanced STR/SEN make PATK == MATK, so the DEF pierce is the
+	# only thing separating the two runs.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var is_magic := move_type == "magic"
+	var actor := Battle.make_ally_combatant("player", "MAGE" if is_magic else "WARRIOR", 1, stats)
+	var enemy := Battle.make_enemy_combatant("e1", 200.0, false, "e1", "", false, enemy_role)
+	enemy["hp"] = 100000
+	enemy["max_hp"] = 100000
+	var battle := Battle.new([actor], [enemy], moves, true, rng)
+	battle.step()
+	for ev in battle.log:
+		if ev.get("type", "") == "damage":
+			return int(ev["damage"])
+	return -1
