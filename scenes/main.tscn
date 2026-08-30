@@ -526,11 +526,11 @@ text = "YOUR PARTY"
 offset_left = 40.0
 offset_top = 44.0
 offset_right = 1040.0
-offset_bottom = 300.0
+offset_bottom = 390.0
 theme_override_constants/separation = 12
 
 [node name="BenchHeader" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
-position = Vector2(0, 410)
+position = Vector2(0, 496)
 
 [node name="Title" type="Label" parent="GameUI/ArmyPanel/RosterTab/BenchHeader"]
 offset_left = 40.0
@@ -555,7 +555,7 @@ text = "Sort: Power"
 
 [node name="BenchScroll" type="ScrollContainer" parent="GameUI/ArmyPanel/RosterTab"]
 offset_left = 20.0
-offset_top = 470.0
+offset_top = 552.0
 offset_right = 1060.0
 offset_bottom = 2300.0
 
@@ -1599,9 +1599,9 @@ offset_bottom = 2412.0
 
 [node name="Portrait" type="TextureRect" parent="GameUI/ShadowRevealPanel/Card"]
 offset_right = 1056.0
-offset_bottom = 2400.0
+offset_bottom = 1000.0
 expand_mode = 1
-stretch_mode = 6
+stretch_mode = 5
 
 [node name="Scrim" type="ColorRect" parent="GameUI/ShadowRevealPanel/Card"]
 offset_right = 1056.0

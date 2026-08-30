@@ -30,8 +30,8 @@ const GRADE_COLOR := {
 	"A": Color("ffcf5c"),
 	"S": Color("ff7b6b"),
 }
-const CARD_BIG := Vector2(300, 250)
-const CARD_SMALL := Vector2(333, 150)
+const CARD_BIG := Vector2(300, 340)
+const CARD_SMALL := Vector2(333, 210)
 
 var _state: HunterState
 var _equipment: Dictionary
@@ -194,9 +194,9 @@ func _make_shadow_card(e: Dictionary, fielded: bool, big: bool) -> Control:
 	card.add_child(box)
 
 	var portrait := TextureRect.new()
-	portrait.custom_minimum_size = Vector2(0, 150 if big else 92)
+	portrait.custom_minimum_size = Vector2(0, 220 if big else 150)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var tex := ArtPaths.monster_portrait(e["monster_id"])
 	if tex != null:
