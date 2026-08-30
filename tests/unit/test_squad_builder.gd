@@ -375,3 +375,17 @@ func test_sort_shadows_does_not_mutate_input() -> void:
 	var before := enr.map(func(e: Dictionary) -> String: return e["instance_id"])
 	SquadBuilder.sort_shadows(enr, "rank")
 	assert_eq(enr.map(func(e: Dictionary) -> String: return e["instance_id"]), before)
+
+
+func test_surplus_shadow_ids_prefers_untraited_over_a_combat_traited_twin() -> void:
+	# Two identical free shadows, one with Sturdy (+0.05 derived power_pct).
+	# Mass-Convert must cull the untraited (genuinely weaker) one first.
+	var plain := _shadow("mon_grubmaw")
+	plain["instance_id"] = "plain"
+	plain["traits"] = []
+	var traited := _shadow("mon_grubmaw")
+	traited["instance_id"] = "traited"
+	traited["traits"] = ["sturdy"]
+	var army := [plain, traited]
+	var ids := SquadBuilder.surplus_shadow_ids(army, monsters, 1, 1, [])
+	assert_eq(ids, ["plain"])

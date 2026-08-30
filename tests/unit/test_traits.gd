@@ -98,14 +98,14 @@ func test_stat_modifiers_sums_combat_pct_per_stat() -> void:
 	var m := Traits.stat_modifiers(pool, ["sturdy", "ironhide"])
 	assert_almost_eq(m["combat_pct"]["VIT"], 0.10, 0.0001)
 	assert_almost_eq(m["combat_pct"]["END"], 0.10, 0.0001)
-	assert_eq(m["power_pct"], 0.0)
+	assert_almost_eq(m["power_pct"], 0.10, 0.0001)  # sturdy 0.05 + ironhide 0.05
 
 
 func test_stat_modifiers_same_stat_from_two_traits_adds() -> void:
 	# keen STR +0.10, monarchs_favour STR +0.08
 	var m := Traits.stat_modifiers(pool, ["keen", "monarchs_favour"])
 	assert_almost_eq(m["combat_pct"]["STR"], 0.18, 0.0001)
-	assert_almost_eq(m["power_pct"], 0.12, 0.0001)
+	assert_almost_eq(m["power_pct"], 0.17, 0.0001)  # keen 0.05 + monarchs_favour 0.12
 
 
 func test_stat_modifiers_negative_subtracts() -> void:
@@ -113,9 +113,18 @@ func test_stat_modifiers_negative_subtracts() -> void:
 	var m := Traits.stat_modifiers(pool, ["brittle", "cowardly"])
 	assert_almost_eq(m["combat_pct"]["END"], -0.12, 0.0001)
 	assert_almost_eq(m["combat_pct"]["STR"], -0.10, 0.0001)
+	assert_almost_eq(m["power_pct"], -0.11, 0.0001)  # brittle -0.06 + cowardly -0.05
 
 
 func test_stat_modifiers_unknown_id_contributes_nothing() -> void:
 	var m := Traits.stat_modifiers(pool, ["sturdy", "not_a_trait"])
 	assert_almost_eq(m["combat_pct"]["VIT"], 0.10, 0.0001)
 	assert_eq(m["combat_pct"].size(), 1)
+	assert_almost_eq(m["power_pct"], 0.05, 0.0001)  # sturdy 0.05, unknown id contributes nothing
+
+
+func test_combat_only_trait_now_contributes_visible_power_pct() -> void:
+	# The whole point of §6b-part-3 Item 3: a combat-only trait must move the
+	# power number, not just the hidden combat stats.
+	assert_almost_eq(Traits.stat_modifiers(pool, ["fleet"])["power_pct"], 0.06, 0.0001)
+	assert_almost_eq(Traits.stat_modifiers(pool, ["sluggish"])["power_pct"], -0.06, 0.0001)
