@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/shadow_recolor.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/shade_color = Color(0.039216, 0.101961, 0.133333, 1)
+shader_parameter/glow_color = Color(0.498039, 0.941176, 1, 1)
+shader_parameter/low = 0.12
+shader_parameter/high = 0.78
+shader_parameter/intensity = 1.0
+shader_parameter/desaturate = 1.0
+shader_parameter/bg_knockout = 0.86
+shader_parameter/bg_softness = 0.08

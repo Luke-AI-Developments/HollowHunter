@@ -13,6 +13,8 @@ class_name ArtPaths
 ## loops over to build its grid, rather than duplicating this list there.
 const PRESET_IDS := ["f1", "f2", "f3", "f4", "f5", "f6", "m1", "m2", "m3", "m4", "m5", "m6"]
 
+const _SHADOW_MATERIAL := preload("res://shaders/shadow_recolor.tres")
+
 
 static func monster_portrait(monster_id: String) -> Texture2D:
 	var path := "res://art/monsters/por_%s.webp" % monster_id
@@ -40,3 +42,12 @@ static func preset_portrait(preset_id: String, stage: String) -> Texture2D:
 static func map_marker(marker_id: String) -> Texture2D:
 	var path := "res://art/map/map_%s.webp" % marker_id
 	return load(path) if ResourceLoader.exists(path) else null
+
+
+## §9b: the shared ShaderMaterial that recolours an owned-shadow portrait to
+## the extracted-shadow look (near-black + cyan inner glow, near-white source
+## background knocked out). Assign to a portrait TextureRect's `material`.
+## One shared resource -- a future re-tune is one file. NOT for un-claimed
+## gate monster art (stays raw) or hunter preset portraits.
+static func shadow_material() -> ShaderMaterial:
+	return _SHADOW_MATERIAL
