@@ -84,6 +84,38 @@ static func stat_modifiers(pool: Array, trait_ids: Array) -> Dictionary:
 	return {"power_pct": power_pct, "combat_pct": combat_pct}
 
 
+## §6b: player-facing magnitude lines for ONE trait, from its `mods`.
+## combat_pct stats render as "+N% <STAT>"; power_pct renders as "+N% power"
+## only for traits with no combat_pct (the combat-only traits' derived
+## power_pct from the ranking-visibility pass is an internal value, not a
+## shown effect) -- monarchs_favour is the one trait that legitimately shows
+## both. Unknown ids / empty mods -> []. Order: power_pct line first (if
+## shown), then combat_pct stats in dict order. Used by the claim/detail
+## card (scenes/shadow_reveal_card.gd).
+static func effect_lines(pool: Array, trait_id: String) -> Array:
+	var by_id := {}
+	for t: Dictionary in pool:
+		by_id[t["id"]] = t
+	if not by_id.has(trait_id):
+		return []
+	var mods: Dictionary = by_id[trait_id].get("mods", {})
+	var combat_pct: Dictionary = mods.get("combat_pct", {})
+	var lines: Array = []
+	var show_power: bool = (
+		mods.has("power_pct") and (combat_pct.is_empty() or trait_id == "monarchs_favour")
+	)
+	if show_power:
+		lines.append(_pct_line(float(mods["power_pct"]), "power"))
+	for stat in combat_pct:
+		lines.append(_pct_line(float(combat_pct[stat]), String(stat)))
+	return lines
+
+
+static func _pct_line(pct: float, label: String) -> String:
+	var n := int(round(pct * 100.0))
+	return "%s%d%% %s" % ["+" if n >= 0 else "", n, label]
+
+
 static func _weighted_key(weights: Dictionary, rng: RandomNumberGenerator) -> int:
 	var total := 0.0
 	for w in weights.values():

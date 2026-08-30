@@ -143,9 +143,12 @@ func _populate_traits(traits: Array) -> void:
 		var color: Color = (
 			_NEGATIVE_COLOR if is_neg else _RARITY_COLOR.get(t["rarity"], Color.WHITE)
 		)
-		row.text = (
-			"%s  (%s)  —  %s" % [t["name"], String(t["rarity"]).capitalize(), t["effect_text"]]
-		)
+		var effect_lines: Array = Traits.effect_lines(_trait_pool, String(t["id"]))
+		var parts: Array = ["%s  (%s)" % [t["name"], String(t["rarity"]).capitalize()]]
+		if not effect_lines.is_empty():
+			parts.append("   %s" % " · ".join(effect_lines))
+		parts.append("   %s" % t["effect_text"])
+		row.text = "\n".join(parts)
 		row.add_theme_color_override("font_color", color)
 		_traits_list.add_child(row)
 

@@ -128,3 +128,31 @@ func test_combat_only_trait_now_contributes_visible_power_pct() -> void:
 	# power number, not just the hidden combat stats.
 	assert_almost_eq(Traits.stat_modifiers(pool, ["fleet"])["power_pct"], 0.06, 0.0001)
 	assert_almost_eq(Traits.stat_modifiers(pool, ["sluggish"])["power_pct"], -0.06, 0.0001)
+
+
+func test_effect_lines_combat_only_trait_shows_percent_stats_not_power() -> void:
+	# sturdy: mods {combat_pct:{VIT:0.10}} + derived power_pct 0.05 (ffa6770) -- power hidden
+	assert_eq(Traits.effect_lines(pool, "sturdy"), ["+10% VIT"])
+
+
+func test_effect_lines_two_stat_combat_trait() -> void:
+	assert_eq(Traits.effect_lines(pool, "keen"), ["+10% STR", "+10% SEN"])
+
+
+func test_effect_lines_negative_trait_uses_minus() -> void:
+	assert_eq(Traits.effect_lines(pool, "brittle"), ["-12% END"])
+
+
+func test_effect_lines_power_only_trait_shows_power() -> void:
+	assert_eq(Traits.effect_lines(pool, "bloodhunger"), ["+6% power"])
+
+
+func test_effect_lines_monarchs_favour_shows_power_then_stats() -> void:
+	var lines := Traits.effect_lines(pool, "monarchs_favour")
+	assert_eq(lines[0], "+12% power")
+	assert_true(lines.has("+8% STR") and lines.has("+8% VIT"))
+	assert_eq(lines.size(), 6)
+
+
+func test_effect_lines_unknown_id_is_empty() -> void:
+	assert_eq(Traits.effect_lines(pool, "not_a_trait"), [])
