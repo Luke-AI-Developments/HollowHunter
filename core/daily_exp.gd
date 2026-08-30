@@ -47,17 +47,23 @@ static func _parse_iso_to_unix(iso: String) -> float:
 	return float(Time.get_unix_time_from_datetime_string(normalized))
 
 
-## §4/§21: the subset of `workouts` that started on device-local calendar
-## date `day` ("YYYY-MM-DD"). Match is a string prefix on the workout's
-## `start_time` ISO date -- no timezone conversion in v0, so a workout
-## within the local-midnight tz offset can fall on the adjacent day;
-## acceptable, and far better than the rolling-24h window the plugin
-## returns. Empty / missing / malformed start_time -> excluded.
-static func workouts_for_day(workouts: Array, day: String) -> Array:
+## §4/§21: the subset of `workouts` that started on calendar date `day`
+## ("YYYY-MM-DD"), by string-prefix match on the workout's `start_time` ISO
+## date. The plugin stamps `start_time` from Kotlin `Instant.toString()`,
+## which is always UTC ("...Z"), so a caller passes BOTH the device-local
+## date and the UTC date as `day` / `day_alt` and a workout matching either
+## is kept -- otherwise every evening session in a negative-UTC timezone
+## would be dropped from "today" (lost EXP, broken streak). Proper fix is
+## native (emit a tz-aware local date from the plugin); this is the v0
+## stopgap. Empty / missing / malformed start_time -> excluded.
+static func workouts_for_day(workouts: Array, day: String, day_alt: String = "") -> Array:
 	var out: Array = []
 	for w: Dictionary in workouts:
 		var start := String(w.get("start_time", ""))
-		if start.length() >= 10 and start.substr(0, 10) == day:
+		if start.length() < 10:
+			continue
+		var prefix := start.substr(0, 10)
+		if prefix == day or (day_alt != "" and prefix == day_alt):
 			out.append(w)
 	return out
 
@@ -93,11 +99,12 @@ static func exp_for_today(
 	subclass: String,
 	active_minutes: int = 0,
 	rest_bonus: bool = false,
-	today: String = ""
+	today: String = "",
+	today_utc: String = ""
 ) -> int:
 	var workouts := parse_workouts(workouts_json)
 	if today != "":
-		workouts = workouts_for_day(workouts, today)
+		workouts = workouts_for_day(workouts, today, today_utc)
 	var workout_minutes := total_workout_minutes(workouts)
 	var matches := matches_signature_training(workouts, subclass)
 	return GameLogic.daily_exp(steps, active_minutes, workout_minutes, matches, rest_bonus)

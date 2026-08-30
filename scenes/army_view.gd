@@ -31,7 +31,7 @@ const GRADE_COLOR := {
 	"S": Color("ff7b6b"),
 }
 const CARD_BIG := Vector2(300, 340)
-const CARD_SMALL := Vector2(333, 210)
+const CARD_SMALL := Vector2(333, 220)
 
 var _state: HunterState
 var _equipment: Dictionary

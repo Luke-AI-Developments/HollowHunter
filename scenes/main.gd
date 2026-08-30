@@ -449,7 +449,15 @@ func _maybe_apply_daily_exp() -> void:
 	# last_exp_date, same "before mark_exp_applied() overwrites it"
 	# requirement as next_streak() below.
 	var rest_bonus := DailyExp.rest_bonus_applies(today, state.last_exp_date)
-	var exp := DailyExp.exp_for_today(_steps, _workouts_json, state.subclass, 0, rest_bonus, today)
+	var exp := DailyExp.exp_for_today(
+		_steps,
+		_workouts_json,
+		state.subclass,
+		0,
+		rest_bonus,
+		today,
+		Time.get_date_string_from_system(true)
+	)
 	var levels_gained := state.add_exp(exp)
 	# Code-review fix: next_streak() is a pure "is this the next calendar
 	# day" check -- it doesn't know about exp, so a 0-steps/0-workouts day
@@ -501,8 +509,9 @@ func _maybe_apply_daily_exp() -> void:
 ## a parallel instance_id -> Texture2D lookup for BattleView's party-slot
 ## icons. Built here (not in core/battle.gd) since this is the one place
 ## that still has each shadow's real monster_id before it gets flattened
-## into a combatant dict; "player" has no portrait entry, same
-## "no preset-selection feature exists yet" gap noted elsewhere.
+## into a combatant dict. "player"'s portrait is the rank-appropriate preset
+## portrait (ArtPaths.preset_portrait + GameLogic.stage_for_rank), same as
+## the Character screen.
 func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 	var chosen := SquadBuilder.resolve_party(
 		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
@@ -1187,6 +1196,7 @@ func _on_nadir_take_on_pressed() -> void:
 		_nadir_run_active = true
 		SaveService.save(state)
 		_refresh_label()
+		_refresh_nadir_panel()
 	_start_nadir_battle()
 
 

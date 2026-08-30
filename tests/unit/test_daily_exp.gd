@@ -95,6 +95,18 @@ func test_workouts_for_day_empty_input() -> void:
 	assert_eq(DailyExp.workouts_for_day([], "2026-08-30"), [])
 
 
+func test_workouts_for_day_matches_the_utc_alt_date() -> void:
+	# Negative-UTC player: 19:00 local Aug 30 stamps as 2026-08-31T00:00Z.
+	# local "today" is 2026-08-30, UTC "today" is 2026-08-31 -- must keep it.
+	var ws := [
+		_workout("run", "2026-08-31T00:00:00Z", "2026-08-31T00:45:00Z"),
+		_workout("run", "2026-08-28T10:00:00Z", "2026-08-28T10:30:00Z"),
+	]
+	var kept := DailyExp.workouts_for_day(ws, "2026-08-30", "2026-08-31")
+	assert_eq(kept.size(), 1)
+	assert_eq(kept[0]["start_time"], "2026-08-31T00:00:00Z")
+
+
 func test_exp_for_today_with_today_ignores_yesterdays_workout() -> void:
 	var two := _json(
 		[
