@@ -93,6 +93,33 @@ func test_claim_shadow_ids_are_unique() -> void:
 	assert_ne(a["instance_id"], b["instance_id"])
 
 
+func test_claim_shadow_id_does_not_collide_after_a_removal() -> void:
+	# next_army_id is monotonic -- army.size() (the old scheme) would reuse an
+	# id after convert_shadow() shrank the army.
+	var s := HunterState.new_default("WARRIOR")
+	var a := s.claim_shadow("mon_grubmaw", "E")
+	s.claim_shadow("mon_grubmaw", "E")
+	s.convert_shadow(a["instance_id"])  # army back to size 1
+	var c := s.claim_shadow("mon_grubmaw", "E")
+	var live_ids := {}
+	for shadow in s.army:
+		assert_false(live_ids.has(shadow["instance_id"]), "duplicate id %s" % shadow["instance_id"])
+		live_ids[shadow["instance_id"]] = true
+	assert_false(live_ids.has(a["instance_id"]))  # the converted id is gone, not reused
+	assert_true(live_ids.has(c["instance_id"]))
+
+
+func test_from_dict_derives_next_army_id_for_a_pre_counter_save() -> void:
+	# A legacy save dict with army ids but no next_army_id: the counter must
+	# clear every surviving suffix so a fresh claim can't collide.
+	var d := HunterState.new_default("WARRIOR").to_dict()
+	d["army"] = [{"instance_id": "shadow_5", "monster_id": "mon_grubmaw", "grade": "E", "level": 1}]
+	d.erase("next_army_id")
+	var s := HunterState.from_dict(d)
+	var fresh := s.claim_shadow("mon_grubmaw", "E")
+	assert_eq(fresh["instance_id"], "shadow_6")
+
+
 func test_army_round_trips_through_dict() -> void:
 	var s := HunterState.new_default("WARRIOR")
 	s.claim_shadow("mon_ashen_warden", "C")

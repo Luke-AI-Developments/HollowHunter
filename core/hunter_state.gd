@@ -23,9 +23,11 @@ var inventory: Array  ## Array[Dictionary]: {instance_id, equipment_def_id, enha
 var next_inventory_id: int = 0  ## §17b: monotonic counter for inventory instance_ids. NOT
 ## inventory.size() (the old scheme) -- that gets reused after scrap_item() removes an item,
 ## colliding with a surviving item's id. Bulk scrap is what makes this reachable for the
-## first time; fixed here rather than left as a "flagged gap" like the identical (still
-## unfixed) pattern in claim_shadow()'s shadow ids, which nothing removes-then-adds fast
-## enough to hit in practice today.
+## first time.
+var next_army_id: int = 0  ## Monotonic counter for army instance_ids, same reasoning as
+## next_inventory_id -- army.size() (the old scheme) got reused after convert_shadow() /
+## fuse_shadow() remove_at()'d an entry. DebugGrant.grant_all's burst of claims made this
+## acute; migrated from existing "shadow_N" suffixes for old saves (from_dict).
 var equipped: Dictionary  ## slot (Equip.SLOTS) -> inventory instance_id. The hunter's own
 ## 7-slot loadout. Each army shadow carries its own equipped dict too (see claim_shadow()).
 var nadir_deepest_floor: int  ## Phase 2/P3 step 1: highest Nadir floor ever cleared (§20) --
@@ -113,6 +115,7 @@ static func new_default(
 	s.last_exp_date = ""
 	s.inventory = []
 	s.next_inventory_id = 0
+	s.next_army_id = 0
 	s.equipped = {}
 	s.nadir_deepest_floor = 0
 	s.stronghold_level = 1
@@ -164,7 +167,7 @@ func claim_shadow(monster_id: String, grade: String) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var shadow := {
-		"instance_id": "shadow_%d" % army.size(),
+		"instance_id": "shadow_%d" % next_army_id,
 		"monster_id": monster_id,
 		"grade": grade,
 		"level": 1,
@@ -176,6 +179,7 @@ func claim_shadow(monster_id: String, grade: String) -> Dictionary:
 		"traits": Traits.roll_traits(Traits.load_pool(), rng),
 	}
 	army.append(shadow)
+	next_army_id += 1
 	return shadow
 
 
@@ -835,6 +839,7 @@ func to_dict() -> Dictionary:
 		"last_exp_date": last_exp_date,
 		"inventory": inventory,
 		"next_inventory_id": next_inventory_id,
+		"next_army_id": next_army_id,
 		"equipped": equipped,
 		"nadir_deepest_floor": nadir_deepest_floor,
 		"stronghold_level": stronghold_level,
@@ -867,6 +872,7 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.last_exp_date = String(d.get("last_exp_date", ""))
 	s.inventory = d.get("inventory", [])
 	s.next_inventory_id = int(d.get("next_inventory_id", s.inventory.size()))
+	s.next_army_id = int(d.get("next_army_id", _derive_next_army_id(s.army)))
 	s.equipped = d.get("equipped", {})
 	s.nadir_deepest_floor = int(d.get("nadir_deepest_floor", 0))
 	s.stronghold_level = int(d.get("stronghold_level", 1))
@@ -893,3 +899,15 @@ static func _default_facilities() -> Dictionary:
 		"TRAINING_YARD": {"level": 1, "assigned": []},
 		"GATE_WATCH": {"level": 1, "assigned": []},
 	}
+
+
+## Migration for saves written before next_army_id existed: the next id must
+## clear every surviving "shadow_N" so a fresh claim can't collide with one.
+## Falls back to army.size() only if no id parses (there shouldn't be any).
+static func _derive_next_army_id(loaded_army: Array) -> int:
+	var highest := -1
+	for shadow: Dictionary in loaded_army:
+		var id := String(shadow.get("instance_id", ""))
+		if id.begins_with("shadow_") and id.substr(7).is_valid_int():
+			highest = maxi(highest, int(id.substr(7)))
+	return highest + 1 if highest >= 0 else loaded_army.size()

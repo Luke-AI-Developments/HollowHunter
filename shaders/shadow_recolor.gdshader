@@ -17,7 +17,7 @@ uniform float intensity : hint_range(0.0, 1.0) = 1.0;
 uniform float desaturate : hint_range(0.0, 1.0) = 1.0;
 uniform float bg_knockout : hint_range(0.5, 1.0) = 0.86;
 uniform float bg_softness : hint_range(0.01, 0.3) = 0.08;
-uniform float bg_desat_max : hint_range(0.02, 0.4) = 0.12;
+uniform float bg_desat_max : hint_range(0.02, 0.4) = 0.2;  // tune on device: raise if white highlights thin out
 
 void fragment() {
 	vec4 src = texture(TEXTURE, UV);
@@ -26,10 +26,15 @@ void fragment() {
 	float t = smoothstep(low, high, lum);
 	vec3 shaded = mix(shade_color.rgb, glow_color.rgb, t);
 	vec3 out_rgb = mix(desat, shaded, intensity);
+	// Knock out a pixel only when it IS near-white AND low-saturation (the true
+	// paper-white background). A dark or coloured body pixel keeps full alpha;
+	// a tinted white highlight (fang / eye-glint) keeps alpha because its
+	// saturation exceeds bg_desat_max.
 	float whiteness = min(src.r, min(src.g, src.b));
 	float maxc = max(src.r, max(src.g, src.b));
 	float sat = maxc > 0.0001 ? (maxc - whiteness) / maxc : 0.0;
-	float near_white = 1.0 - smoothstep(bg_knockout - bg_softness, bg_knockout + bg_softness, whiteness);
-	float low_sat = 1.0 - smoothstep(bg_desat_max, bg_desat_max * 2.0, sat);
-	COLOR = vec4(out_rgb, src.a * near_white * low_sat);
+	float is_white = smoothstep(bg_knockout - bg_softness, bg_knockout + bg_softness, whiteness);
+	float is_low_sat = 1.0 - smoothstep(bg_desat_max, bg_desat_max * 2.0, sat);
+	float knock = is_white * is_low_sat;
+	COLOR = vec4(out_rgb, src.a * (1.0 - knock));
 }

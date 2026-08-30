@@ -273,6 +273,11 @@ func _start_game() -> void:
 	if OS.is_debug_build() and ProjectSettings.get_setting("debug/grant_all_content", false):
 		var granted := DebugGrant.grant_all(state, _monsters, _equipment)
 		if granted["shadows_added"] > 0 or granted["items_added"] > 0:
+			# One-time backup before the first grant mutates the real save --
+			# grant_all is irreversible and SaveService.save() overwrites in place.
+			var backup := SaveService.SAVE_PATH + ".pre_grant_backup"
+			if FileAccess.file_exists(SaveService.SAVE_PATH) and not FileAccess.file_exists(backup):
+				DirAccess.copy_absolute(SaveService.SAVE_PATH, backup)
 			SaveService.save(state)
 			system_toast.show_toast(
 				(

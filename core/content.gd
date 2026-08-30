@@ -2,6 +2,9 @@ class_name Content
 ## Loads static game content (monsters, equipment) from res://content/*.json
 ## into plain Dictionaries/Arrays. Pure and side-effect free except for the
 ## file read itself -- no engine/scene dependency, unit-testable with GUT.
+## (load_traits() additionally memoises the default-path result -- see there.)
+
+static var _traits_cache: Array = []  ## load_traits() memo for the default path only
 
 
 static func load_monsters(path: String = "res://content/monsters.json") -> Array:
@@ -101,11 +104,20 @@ static func load_shop(path: String = "res://content/shop.json") -> Dictionary:
 
 
 ## §6b shadow traits pool (content/traits.json). §6b traits pool -- see
-## that file's _comment.
+## that file's _comment. Memoised for the default path (see _traits_cache):
+## claim_shadow() rolls traits per shadow and DebugGrant.grant_all fires 50+
+## claims in one frame, so re-reading + re-parsing the file each time is pure
+## startup waste. The data is immutable at runtime; a non-default `path`
+## bypasses the cache.
 static func load_traits(path: String = "res://content/traits.json") -> Array:
+	var is_default := path == "res://content/traits.json"
+	if is_default and not _traits_cache.is_empty():
+		return _traits_cache
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if data == null or not data.has("traits"):
 		return []
+	if is_default:
+		_traits_cache = data["traits"]
 	return data["traits"]
 
 
