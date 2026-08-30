@@ -28,6 +28,25 @@ const ENEMY_SPEED_SCALE := 0.02  # invented v0, real gap: §16 never gives enemi
 ## queue needs everyone ordered, so this derives one from base_power the same way HP/ATK
 ## are derived, landing enemy speed in roughly the same range as player/shadow AGI-speed.
 
+const ENEMY_DEF_COEFF := {  ## invented v0 (spec §2.2): base_power fraction -> enemy DEF, by role
+	"bruiser": 0.05,
+	"skirmisher": 0.02,
+	"armoured": 0.11,
+	"boss": 0.06,
+}
+const ENEMY_ROLE_HP_MULT := {  ## invented v0
+	"bruiser": 1.0,
+	"skirmisher": 0.6,
+	"armoured": 1.25,
+	"boss": 1.0,
+}
+const ENEMY_ROLE_SPEED_MULT := {  ## invented v0
+	"bruiser": 1.0,
+	"skirmisher": 1.6,
+	"armoured": 0.8,
+	"boss": 1.0,
+}
+
 const ARMY_SYNERGY_PCT_PER_10K := 0.01  # §16/§20's own number: "+1% ... per 10,000
 ## total army_power"
 const ARMY_SYNERGY_CAP := 0.50  # §16/§20's own number: "capped at +50%"
@@ -77,12 +96,16 @@ static func combat_stats(stats: Dictionary) -> Dictionary:
 ## tuned base_power (§16: "nothing gets re-authored, it's just
 ## reinterpreted"). Enemies don't crit or split PATK/MATK in this v0 --
 ## the source only defines a flat HP/ATK pair for them (SPEED is also
-## derived here, out of necessity -- see ENEMY_SPEED_SCALE above).
-static func enemy_stats(base_power: float) -> Dictionary:
+## derived here, out of necessity -- see ENEMY_SPEED_SCALE above). DEF is
+## new in v1 (was always 0.0). `role` is the grunt profile (spec §3.2) or
+## "boss"; defaults to "bruiser". Role scales HP and SPEED but not ATK.
+static func enemy_stats(base_power: float, role: String = "bruiser") -> Dictionary:
+	var r := role if ENEMY_DEF_COEFF.has(role) else "bruiser"
 	return {
-		"HP": int(round(base_power * ENEMY_HP_SCALE)),
+		"HP": int(round(base_power * ENEMY_HP_SCALE * float(ENEMY_ROLE_HP_MULT[r]))),
 		"ATK": int(round(base_power * ENEMY_ATK_SCALE)),
-		"SPEED": int(round(base_power * ENEMY_SPEED_SCALE)),
+		"SPEED": int(round(base_power * ENEMY_SPEED_SCALE * float(ENEMY_ROLE_SPEED_MULT[r]))),
+		"DEF": base_power * float(ENEMY_DEF_COEFF[r]),
 	}
 
 

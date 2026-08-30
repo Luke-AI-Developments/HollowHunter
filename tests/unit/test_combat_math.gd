@@ -158,3 +158,39 @@ func test_resolve_damage_full_pierce_ignores_def_entirely() -> void:
 	var no_def := CombatMath.resolve_damage(1.0, 100.0, 0.0, 0.0, rng_a, 0.0)
 	var pierced := CombatMath.resolve_damage(1.0, 100.0, 200.0, 0.0, rng_b, 1.0)
 	assert_eq(pierced["damage"], no_def["damage"])
+
+
+func test_enemy_stats_bruiser_adds_a_small_def_and_keeps_hp_speed() -> void:
+	var b := CombatMath.enemy_stats(1000.0)  # default role = bruiser
+	assert_eq(b["HP"], int(round(1000.0 * CombatMath.ENEMY_HP_SCALE)))
+	assert_eq(b["SPEED"], int(round(1000.0 * CombatMath.ENEMY_SPEED_SCALE)))
+	assert_almost_eq(b["DEF"], 1000.0 * 0.05, 0.001)
+
+
+func test_enemy_stats_armoured_is_tankier_and_slower_with_high_def() -> void:
+	var bruiser := CombatMath.enemy_stats(1000.0, "bruiser")
+	var armoured := CombatMath.enemy_stats(1000.0, "armoured")
+	assert_gt(armoured["HP"], bruiser["HP"])  # 1.25x HP
+	assert_lt(armoured["SPEED"], bruiser["SPEED"])  # 0.8x SPEED
+	assert_almost_eq(armoured["DEF"], 1000.0 * 0.11, 0.001)
+	assert_eq(armoured["ATK"], bruiser["ATK"])  # role never scales ATK
+
+
+func test_enemy_stats_skirmisher_is_fast_and_fragile() -> void:
+	var bruiser := CombatMath.enemy_stats(1000.0, "bruiser")
+	var skirm := CombatMath.enemy_stats(1000.0, "skirmisher")
+	assert_lt(skirm["HP"], bruiser["HP"])  # 0.6x HP
+	assert_gt(skirm["SPEED"], bruiser["SPEED"])  # 1.6x SPEED
+	assert_almost_eq(skirm["DEF"], 1000.0 * 0.02, 0.001)
+
+
+func test_enemy_stats_boss_role_high_def_no_hp_speed_change() -> void:
+	var bruiser := CombatMath.enemy_stats(1000.0, "bruiser")
+	var boss := CombatMath.enemy_stats(1000.0, "boss")
+	assert_eq(boss["HP"], bruiser["HP"])  # boss HP/SPEED unchanged
+	assert_eq(boss["SPEED"], bruiser["SPEED"])
+	assert_almost_eq(boss["DEF"], 1000.0 * 0.06, 0.001)
+
+
+func test_enemy_stats_unknown_role_falls_back_to_bruiser() -> void:
+	assert_eq(CombatMath.enemy_stats(1000.0, "nonsense"), CombatMath.enemy_stats(1000.0, "bruiser"))
