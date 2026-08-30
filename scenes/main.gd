@@ -50,6 +50,8 @@ var _pending_nadir_is_boss: bool = false  ## whether that floor is a boss floor 
 var _pending_nadir_boss_id: String = ""  ## that boss floor's stand-in boss monster id
 var _pending_reveal_shadow_id: String = ""  ## §6b/§6c: shadow instance_id awaiting the
 ## reveal card after a CLAIM SystemPanel dismisses; "" when nothing is pending.
+var _pending_battle_party_trait_ids: Array = []  ## §6b pt3: fielded party's
+## trait ids, carried into the reward handlers for the Essence-bonus traits
 
 @onready var preset_picker: Node2D = $PresetPicker
 @onready var preset_grid: GridContainer = $PresetPicker/Grid
@@ -510,6 +512,7 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 		)
 	]
 	var portraits := {}
+	var party_trait_ids: Array = []
 	for member: Dictionary in chosen:
 		var shadow_stats := GameLogic.shadow_combat_stats(
 			int(member["base_power"]),
@@ -517,6 +520,10 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 			String(member["clazz"]),
 			member.get("trait_combat_pct", {})
 		)
+		var member_trait_ids: Array = []
+		for t in member.get("traits", []):
+			member_trait_ids.append(t["id"] if t is Dictionary else t)
+		party_trait_ids.append_array(member_trait_ids)
 		party.append(
 			Battle.make_ally_combatant(
 				member["instance_id"],
@@ -524,11 +531,12 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 				member["level"],
 				shadow_stats,
 				member["display_name"],
-				synergy_bonus
+				synergy_bonus,
+				member_trait_ids
 			)
 		)
 		portraits[member["instance_id"]] = ArtPaths.monster_portrait(member["monster_id"])
-	return {"party": party, "portraits": portraits}
+	return {"party": party, "portraits": portraits, "party_trait_ids": party_trait_ids}
 
 
 ## Army Synergy (§16/§20): "your full army beyond the 3 in your active
@@ -565,12 +573,14 @@ func _start_gate_battle(
 	_pending_battle_gate_index = gate_index
 	_pending_battle_prefix = prefix
 	_pending_battle_is_break = is_break
+	var family := String(Content.monster_by_id(_monsters, gate["monster_id"]).get("family", ""))
 	var enemies := [
 		Battle.make_enemy_combatant(
-			gate["monster_id"], gate["monster_base_power"], true, gate["monster_name"]
+			gate["monster_id"], gate["monster_base_power"], true, gate["monster_name"], family
 		)
 	]
 	var battle_party := _build_battle_party()
+	_pending_battle_party_trait_ids = battle_party["party_trait_ids"]
 	battle_view.start_battle(
 		battle_party["party"], enemies, _moves, false, battle_party["portraits"]
 	)
@@ -592,18 +602,22 @@ func _start_nadir_battle() -> void:
 	)
 	var enemy_name := "Floor %d Sentinel" % floor_n  # invented v0 placeholder name --
 	## non-boss Nadir floors have no monster in the source to name them after
+	var enemy_family := ""
 	if _pending_nadir_is_boss and _pending_nadir_boss_id != "":
 		var boss_monster := Content.monster_by_id(_monsters, _pending_nadir_boss_id)
 		enemy_name = String(boss_monster.get("name", enemy_name))
+		enemy_family = String(boss_monster.get("family", ""))
 	var enemies := [
 		Battle.make_enemy_combatant(
 			"nadir_floor_%d" % floor_n,
 			GameLogic.floor_power(floor_n),
 			_pending_nadir_is_boss,
-			enemy_name
+			enemy_name,
+			enemy_family
 		)
 	]
 	var battle_party := _build_battle_party(true)
+	_pending_battle_party_trait_ids = battle_party["party_trait_ids"]
 	battle_view.start_battle(
 		battle_party["party"], enemies, _moves, false, battle_party["portraits"]
 	)
@@ -628,10 +642,12 @@ func _on_battle_finished(won: bool) -> void:
 	if not prefix.is_empty():
 		body = prefix + "\n" + body
 	var gate_index := _pending_battle_gate_index
+	var party_trait_ids := _pending_battle_party_trait_ids
 	_pending_battle_gate = {}
 	_pending_battle_gate_index = -1
 	_pending_battle_prefix = ""
 	_pending_battle_is_break = false
+	_pending_battle_party_trait_ids = []
 
 	var claimed_ok := false
 	if won:
@@ -657,6 +673,10 @@ func _on_battle_finished(won: bool) -> void:
 		elif gate.get("incursion_bonus", false):
 			essence_gain = Incursion.bonus_essence(essence_gain)
 			body += "\n(Incursion bonus)"
+		var trait_mult := GameLogic.trait_essence_multiplier(party_trait_ids)
+		if trait_mult > 1.0:
+			essence_gain = int(round(essence_gain * trait_mult))
+			body += "\n(Trait Essence bonus +%d%%)" % int(round((trait_mult - 1.0) * 100.0))
 		state.essence += essence_gain
 		body += "\nEssence +%d" % essence_gain
 
@@ -1155,9 +1175,11 @@ func _apply_nadir_battle_result(won: bool) -> void:
 	var floor_n := _pending_nadir_floor
 	var is_boss := _pending_nadir_is_boss
 	var boss_id := _pending_nadir_boss_id
+	var party_trait_ids := _pending_battle_party_trait_ids
 	_pending_nadir_floor = -1
 	_pending_nadir_is_boss = false
 	_pending_nadir_boss_id = ""
+	_pending_battle_party_trait_ids = []
 
 	var header := "FLOOR CLEARED" if won else "FLOOR FAILED"
 	var body := "Nadir Floor %d" % floor_n
@@ -1167,6 +1189,10 @@ func _apply_nadir_battle_result(won: bool) -> void:
 		rng.randomize()
 
 		var essence_gain := Nadir.essence_for_floor(floor_n)
+		var trait_mult := GameLogic.trait_essence_multiplier(party_trait_ids)
+		if trait_mult > 1.0:
+			essence_gain = int(round(essence_gain * trait_mult))
+			body += "\n(Trait Essence bonus +%d%%)" % int(round((trait_mult - 1.0) * 100.0))
 		state.essence += essence_gain
 		body += "\nEssence +%d" % essence_gain
 
