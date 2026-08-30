@@ -153,7 +153,7 @@ So a D-rank *can* punch up into a C gate and pull off an upset ~1 in 4 tries, bu
 
 The **boss** of a cleared gate can be **extracted** as a shadow via the **CLAIM** command — a dramatic prompt with **3 RNG attempts** (success rises with hunter level; full flow in §18). Only the boss is claimable — trash mobs aren't. Raid bosses can be claimed the same way. (Fiction naming in §14b.)
 
-- **Where they matter:** shadows contribute to power as a **deployed squad of 6 at gates**, and as your **entire army in raids** (§16) — raids are where a big collection truly pays off.
+- **Where they matter:** the **up to 3 you field** join a gate fight directly (you + them = the party of 4, §16); your **entire army** still feeds a raid via Army Synergy (§16, §20) — raids are where a big collection truly pays off.
 - **Upgrading:** shadows can be strengthened with **equipment** dropped from gates. Each shadow has gear slots; better gear = higher `shadow_power` and a bigger `equipment_multiplier`.
 - **Roster depth:** rarer/higher-rank monsters extract into stronger shadows (with a lower extraction chance), giving a collection chase on top of raw power.
 
@@ -544,7 +544,7 @@ Broodlands (insectoid), the Ashen March (undead knights), Rimefell (frost), the 
 Draw on many sources as a *mood board* (Solo Leveling's tone, Dragon Quest's iconic legible silhouettes, folklore, etc.), then design creatures that don't point back to any one specific protected character. **Never** combine specific copyrighted characters (e.g. "2/3 character X + 1/3 monster Y") — that's a derivative of *both* and infringes both. Ratios don't matter; recognizability does. The test: could anyone name the source character it came from? If yes, redesign. Borrow *sensibilities* (clean silhouettes + dark arcane palette), not characters.
 
 ### Classes (gate equipment loadouts)
-Every monster — and therefore its shadow — has a **class**. **Classes matter for exactly two things:** (1) **gear gating** — a caster can't hold a greatsword, a bruiser can't wear robes, so gearing each shadow is a small puzzle; and (2) the **gate-squad class slots** (§17) — one of each class + a flex, which forces a balanced team and a reason to collect all five. Combat itself is just summed power (§30), so classes deliberately carry **no** combat-role mechanics — those two jobs are enough.
+Every monster — and therefore its shadow — has a **class**. **Classes matter for two things:** (1) **gear gating** — a caster can't hold a greatsword, a bruiser can't wear robes, so gearing each shadow is a small puzzle; and (2) **combat role** — since the §16 active-combat overhaul, each class runs its own moveset (a Guardian taunts, a Support heals), so fielding a balanced 3 genuinely plays better and there's a reason to collect and gear all five. There are **no enforced class slots** — the fielded party is a free manual pick of up to 3 shadows (§17).
 
 | Class | Role | Weapons | Armor | Stat lean |
 |-------|------|---------|-------|-----------|
@@ -1159,7 +1159,7 @@ The screen §16's combat system actually plays out on. Shared by **every** fight
 
 **Duplicates:** kept in the roster and **merged to level** the copy you're building (fuel toward the level cap).
 
-**Raid readiness:** since raids are whole-army and automatic, just a small readout of total **RAID_POWER** — no per-raid roster management.
+**Raid readiness:** raids field your picked party plus Army Synergy from the wider army (§16, §20) — just a small raid-power readout, no separate raid roster to manage.
 
 **Hunter gear (open):** the player's own loadout (the §14b open question) can live on a sibling **Hunter** tab using the same inline paper-doll — finalize once the hunter's class/loadout is decided.
 
@@ -1551,7 +1551,7 @@ The smallest slice that's genuinely fun: *exercise makes you stronger; walk, fig
 - Health → EXP → **level** (single track, §4); pick one **subclass** at start (§21); stats from level × class (§16).
 - A **map** with level-matched **POI gates** near you (§19); walk into the area to run one.
 - **Gate encounter** (§18): 3-round auto sprite-clash + boss **CLAIM** (3 tries). Loot = EXP + Essence + the claimed shadow.
-- Basic **army**: collect shadows into a **squad of 6** (auto-fill); squad power feeds combat (§16).
+- Basic **army**: collect shadows and **field up to 3** you pick; the fielded party feeds combat (§16).
 - Core loop closed: level up → beat higher gates → bigger army. **Placeholder art, on-device, no backend, no gear/shop/raids yet.**
 This is §11's MVP kernel, now the target for a first playable you'd actually enjoy.
 
@@ -1708,7 +1708,7 @@ A pass over how the game feels over time — and it forced a fix. **Finding:** t
 **The journey:**
 - **First session (~5 min):** onboarding → subclass → first gate → first CLAIM. Hooked.
 - **Day 1:** a few gates, 2–3 shadows, first gear, ~L1–2. Learn the loop.
-- **First week:** ~D-rank, a squad of 6, first equipment, discover Sanctuaries + the daily free gate, deploy the Stronghold.
+- **First week:** ~D-rank, a handful of shadows with a fielded party of 3, first equipment, discover Sanctuaries + the daily free gate, deploy the Stronghold.
 - **First month:** ~C-rank, army growing, first set pieces, first Nadir floors, first incursion. Systems opening up.
 - **Months 2–4:** B→A rank, army maturing (grades, leveling, merges), Stronghold humming, pushing the Castle, chasing sets. The "main game."
 - **6–12 months:** S-rank, deep Castle floors, completed sets, a broad leveled army. Endless endgame: incursions, leaderboard, deeper floors.
