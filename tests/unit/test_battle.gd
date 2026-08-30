@@ -109,6 +109,78 @@ func test_enemy_combatant_has_all_false_trait_flags() -> void:
 	assert_false(f["frostblooded"])
 
 
+func test_warcaller_raises_every_party_members_patk_and_matk() -> void:
+	var stats := {"STR": 100, "AGI": 50, "VIT": 100, "END": 100, "SEN": 100}
+	var base_p := Battle.make_ally_combatant("p", "WARRIOR", 10, stats)
+	var base_s := Battle.make_ally_combatant("s", "MAGE", 10, stats)
+	var plain := Battle.new(
+		[base_p.duplicate(true), base_s.duplicate(true)],
+		[Battle.make_enemy_combatant("e", 100.0)],
+		moves
+	)
+	var p_with := Battle.make_ally_combatant("p", "WARRIOR", 10, stats, "", 0.0, ["warcaller"])
+	var s_with := Battle.make_ally_combatant("s", "MAGE", 10, stats)
+	var aura := Battle.new([p_with, s_with], [Battle.make_enemy_combatant("e", 100.0)], moves)
+	assert_almost_eq(
+		aura.party[0]["patk"], plain.party[0]["patk"] * (1.0 + Battle.WARCALLER_AURA), 0.001
+	)
+	assert_almost_eq(
+		aura.party[1]["matk"], plain.party[1]["matk"] * (1.0 + Battle.WARCALLER_AURA), 0.001
+	)
+	assert_eq(aura.party[0]["speed"], plain.party[0]["speed"])  # speed untouched
+	assert_eq(aura.party[0]["def"], plain.party[0]["def"])  # def untouched
+
+
+func test_no_warcaller_leaves_party_atk_unchanged() -> void:
+	var stats := {"STR": 100, "AGI": 50, "VIT": 100, "END": 100, "SEN": 100}
+	var a := Battle.new(
+		[Battle.make_ally_combatant("p", "WARRIOR", 10, stats)],
+		[Battle.make_enemy_combatant("e", 100.0)],
+		moves
+	)
+	var expected := Battle.make_ally_combatant("p", "WARRIOR", 10, stats)
+	assert_eq(a.party[0]["patk"], expected["patk"])
+
+
+func test_warcaller_does_not_touch_enemy_stats() -> void:
+	var stats := {"STR": 100, "AGI": 50, "VIT": 100, "END": 100, "SEN": 100}
+	var with_aura := Battle.new(
+		[Battle.make_ally_combatant("p", "WARRIOR", 10, stats, "", 0.0, ["warcaller"])],
+		[Battle.make_enemy_combatant("e", 300.0)],
+		moves
+	)
+	var bare_enemy := Battle.make_enemy_combatant("e", 300.0)
+	assert_eq(with_aura.enemies[0]["patk"], bare_enemy["patk"])
+
+
+func test_relentless_ticks_cooldowns_down_by_two() -> void:
+	var actor := Battle.make_ally_combatant(
+		"player",
+		"GUARDIAN",
+		1,
+		{"STR": 10, "AGI": 10, "VIT": 10, "END": 10, "SEN": 10},
+		"",
+		0.0,
+		["relentless"]
+	)
+	actor["cooldowns"] = {"move_x": 4}
+	var battle := Battle.new([actor], [Battle.make_enemy_combatant("e", 50.0)], moves, true)
+	battle._tick_start_of_turn(actor)
+	assert_eq(int(actor["cooldowns"]["move_x"]), 2)
+	battle._tick_start_of_turn(actor)
+	assert_eq(int(actor["cooldowns"]["move_x"]), 0)
+
+
+func test_non_relentless_ticks_cooldowns_down_by_one() -> void:
+	var actor := Battle.make_ally_combatant(
+		"player", "GUARDIAN", 1, {"STR": 10, "AGI": 10, "VIT": 10, "END": 10, "SEN": 10}
+	)
+	actor["cooldowns"] = {"move_x": 4}
+	var battle := Battle.new([actor], [Battle.make_enemy_combatant("e", 50.0)], moves, true)
+	battle._tick_start_of_turn(actor)
+	assert_eq(int(actor["cooldowns"]["move_x"]), 3)
+
+
 # --- Turn order ---
 
 

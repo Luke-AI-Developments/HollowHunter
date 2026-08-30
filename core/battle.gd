@@ -77,6 +77,7 @@ func _init(
 	if not party.is_empty():
 		player_id = party[0]["id"]
 	_build_turn_queue()
+	_apply_warcaller_aura()
 
 
 ## A ready-to-fight ally combatant from a raw STR/AGI/VIT/END/SEN dict
@@ -312,10 +313,30 @@ func _build_turn_queue() -> void:
 	turn_queue = ids
 
 
+## §6b part 3: if any living party member has warcaller, the whole party's
+## PATK/MATK get a one-time flat bump for the rest of the fight. The flavour
+## ("aura while the warcaller lives") is simplified to battle-long in v0 --
+## no dynamic recompute when the warcaller falls.
+func _apply_warcaller_aura() -> void:
+	var has_warcaller := false
+	for c: Dictionary in party:
+		if c["hp"] > 0 and c.get("trait_flags", {}).get("warcaller", false):
+			has_warcaller = true
+			break
+	if not has_warcaller:
+		return
+	for c: Dictionary in party:
+		c["patk"] = float(c["patk"]) * (1.0 + WARCALLER_AURA)
+		c["matk"] = float(c["matk"]) * (1.0 + WARCALLER_AURA)
+
+
 func _tick_start_of_turn(actor: Dictionary) -> void:
+	var cd_step := (
+		RELENTLESS_COOLDOWN_TICK if actor.get("trait_flags", {}).get("relentless", false) else 1
+	)
 	var cooldowns: Dictionary = actor.get("cooldowns", {})
 	for move_id in cooldowns.keys():
-		cooldowns[move_id] = maxi(0, int(cooldowns[move_id]) - 1)
+		cooldowns[move_id] = maxi(0, int(cooldowns[move_id]) - cd_step)
 	if actor.get("atk_buff_turns", 0) > 0:
 		actor["atk_buff_turns"] -= 1
 		if actor["atk_buff_turns"] <= 0:
