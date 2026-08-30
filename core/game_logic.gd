@@ -341,3 +341,22 @@ static func essence_for_converted_shadow(grade: String) -> int:
 # --- Essence granted scrapping an unwanted item, by rarity (§17b) ---
 static func essence_for_scrapped_item(rarity: String) -> int:
 	return int(ESSENCE_PER_SCRAPPED_ITEM.get(rarity, 0))
+
+
+const SCAVENGER_ESSENCE_BONUS := 0.10  ## §6b part 3, invented v0: +Essence per fielded scavenger shadow
+const SOULBOUND_ESSENCE_BONUS := 0.20  ## §6b part 3, invented v0: +Essence per fielded soulbound shadow
+
+
+## §6b part 3: multiplier applied to gate / Nadir-floor Essence rewards for the
+## economy traits carried by the FIELDED party. `party_trait_ids` is a flat
+## Array[String] of every trait id across the fielded shadows (duplicates
+## intended -- each fielded shadow's scavenger/soulbound counts). Returns
+## >= 1.0; unknown ids contribute nothing. No cap in v0.
+static func trait_essence_multiplier(party_trait_ids: Array) -> float:
+	var bonus := 0.0
+	for id in party_trait_ids:
+		if id == "scavenger":
+			bonus += SCAVENGER_ESSENCE_BONUS
+		elif id == "soulbound":
+			bonus += SOULBOUND_ESSENCE_BONUS
+	return 1.0 + bonus

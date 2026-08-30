@@ -257,3 +257,18 @@ func test_army_power_reads_per_shadow_trait_power_pct() -> void:
 	var plain := [{"base_power": 1000, "level": 5}]
 	var boosted := [{"base_power": 1000, "level": 5, "trait_power_pct": 0.10}]
 	assert_gt(GameLogic.army_power(boosted, 10), GameLogic.army_power(plain, 10))
+
+
+func test_trait_essence_multiplier_empty_is_one() -> void:
+	assert_eq(GameLogic.trait_essence_multiplier([]), 1.0)
+
+
+func test_trait_essence_multiplier_scavenger_and_soulbound() -> void:
+	assert_almost_eq(GameLogic.trait_essence_multiplier(["scavenger"]), 1.10, 0.0001)
+	assert_almost_eq(GameLogic.trait_essence_multiplier(["soulbound"]), 1.20, 0.0001)
+	assert_almost_eq(GameLogic.trait_essence_multiplier(["scavenger", "soulbound"]), 1.30, 0.0001)
+
+
+func test_trait_essence_multiplier_stacks_duplicates_and_ignores_others() -> void:
+	assert_almost_eq(GameLogic.trait_essence_multiplier(["scavenger", "scavenger"]), 1.20, 0.0001)
+	assert_almost_eq(GameLogic.trait_essence_multiplier(["sturdy", "executioner", "soulbound"]), 1.20, 0.0001)
