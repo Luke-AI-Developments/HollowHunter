@@ -512,6 +512,9 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 		)
 	]
 	var portraits := {}
+	portraits["player"] = ArtPaths.preset_portrait(
+		state.preset_id, GameLogic.stage_for_rank(state.hunter_rank)
+	)
 	var party_trait_ids: Array = []
 	for member: Dictionary in chosen:
 		var shadow_stats := GameLogic.shadow_combat_stats(
