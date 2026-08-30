@@ -56,6 +56,9 @@ var _context_slot: String = ""
 
 
 func _ready() -> void:
+	# Touch: let a near-stationary tap pass through to a grid Button instead of
+	# being captured as a scroll drag (default deadzone 0 eats every tap on device).
+	($GridTab/GridScroll as ScrollContainer).scroll_deadzone = 12
 	$GridTabButton.pressed.connect(_on_grid_tab_pressed)
 	$SetsTabButton.pressed.connect(_on_sets_tab_pressed)
 	$CloseButton.pressed.connect(func() -> void: visible = false)
@@ -247,7 +250,8 @@ func _refresh_grid() -> void:
 
 	for item: Dictionary in _grid_items:
 		var cell := Button.new()
-		cell.custom_minimum_size = Vector2(480, 220)
+		cell.custom_minimum_size = Vector2(520, 220)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cell.icon = ArtPaths.equipment_icon(item["equipment_def_id"])
 		cell.expand_icon = true
 		var lock_mark := " [L]" if item["locked"] else ""

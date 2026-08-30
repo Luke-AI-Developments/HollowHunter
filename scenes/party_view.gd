@@ -23,6 +23,9 @@ var _sort_mode: String = "power"
 
 
 func _ready() -> void:
+	# Touch: let a near-stationary tap reach a row's Field button instead of being
+	# captured as a scroll drag (ScrollContainer's default deadzone 0 eats taps).
+	($RowsScroll as ScrollContainer).scroll_deadzone = 12
 	$CloseButton.pressed.connect(func() -> void: close_requested.emit())
 	$AutoEquipSquadButton.pressed.connect(func() -> void: auto_equip_requested.emit())
 	$SortButton.pressed.connect(_on_sort_pressed)

@@ -55,6 +55,9 @@ var _party_sort_mode: String = "power"  ## Party tab's own sort cycle (PartyView
 
 
 func _ready() -> void:
+	# Touch: let a near-stationary tap reach a bench card Button instead of being
+	# captured as a scroll drag (ScrollContainer's default deadzone 0 eats taps).
+	($RosterTab/BenchScroll as ScrollContainer).scroll_deadzone = 12
 	$RosterTabButton.pressed.connect(_on_roster_tab_pressed)
 	$SquadTabButton.pressed.connect(_on_squad_tab_pressed)
 	$CloseButton.pressed.connect(func() -> void: visible = false)
