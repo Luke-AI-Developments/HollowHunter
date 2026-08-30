@@ -18,20 +18,20 @@ signal marker_tapped(info: Dictionary)  ## emitted by _unhandled_input() when a
 signal map_tapped_empty  ## emitted instead of marker_tapped when that same
 ## tap doesn't land on anything -- main.gd uses this to dismiss MarkerCard.
 
-const PLAYER_RADIUS := 14.0  ## fallback draw_circle() radius, used only if
+const PLAYER_RADIUS := 18.0  ## fallback draw_circle() radius, used only if
 ## ArtPaths.map_marker("player") has no art yet (placeholder-first, §24).
-const PLAYER_MARKER_SIZE := 48.0  ## on-screen diameter for the real marker
+const PLAYER_MARKER_SIZE := 56.0  ## on-screen diameter for the real marker
 ## texture, before the zoom-scale clamp below -- bigger than PLAYER_RADIUS's
 ## 28px circle since the real icon has fine detail (an arrow/compass shape)
 ## that needs more room to read than a flat dot did.
-const GATE_RADIUS := 20.0  ## fallback draw_circle() radius, used only if
+const GATE_RADIUS := 30.0  ## fallback draw_circle() radius, used only if
 ## ArtPaths.map_marker("gate") has no art yet (placeholder-first, §24).
-const GATE_MARKER_SIZE := 44.0  ## on-screen diameter for the real marker
+const GATE_MARKER_SIZE := 68.0  ## on-screen diameter for the real marker
 ## texture -- see PLAYER_MARKER_SIZE, same reasoning.
-const SANCTUARY_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
-const LORESTONE_MARKER_SIZE := 40.0  ## slightly smaller -- a discoverable
+const SANCTUARY_MARKER_SIZE := 60.0  ## same reasoning as GATE_MARKER_SIZE.
+const LORESTONE_MARKER_SIZE := 56.0  ## slightly smaller -- a discoverable
 ## flavour POI, not as prominent as a Sanctuary's recurring daily stop.
-const STRONGHOLD_MARKER_SIZE := 44.0  ## same reasoning as GATE_MARKER_SIZE.
+const STRONGHOLD_MARKER_SIZE := 76.0  ## same reasoning as GATE_MARKER_SIZE.
 const TAP_TOLERANCE_PX := 16.0  ## extra hit-test radius beyond a marker's own
 ## on-screen half-size, so small icons stay comfortably tappable with a
 ## finger without the icon itself needing to grow.
