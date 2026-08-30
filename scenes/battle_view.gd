@@ -246,6 +246,8 @@ func _describe_event(e: Dictionary) -> String:
 			text = "%s attacked %s for %d%s" % [actor_name, target_name, e["damage"], big_tag]
 		"heal":
 			text = "%s healed %s for %d" % [actor_name, target_name, e["amount"]]
+		"lifesteal":
+			text = "%s drains %d HP" % [actor_name, e["amount"]]
 		"buff":
 			text = "%s buffed %s" % [actor_name, target_name]
 		"debuff":

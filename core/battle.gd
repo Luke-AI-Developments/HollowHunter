@@ -431,12 +431,27 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 			bonus_mult = BONUS_VS_LOW_HP_MULTIPLIER
 		elif tag == "bonus_vs_debuffed" and float(target.get("def_multiplier", 1.0)) < 1.0:
 			bonus_mult = BONUS_VS_DEBUFFED_MULTIPLIER
+		var actor_flags: Dictionary = actor.get("trait_flags", {})
+		if actor_flags.get("executioner", false) and bool(target.get("is_boss", false)):
+			bonus_mult *= TRAIT_DAMAGE_BONUS
+		if (
+			actor_flags.get("frostblooded", false)
+			and String(target.get("family", "")) == FROSTBLOODED_FAMILY
+		):
+			bonus_mult *= TRAIT_DAMAGE_BONUS
 		var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
 		var result := CombatMath.resolve_damage(
 			power * bonus_mult, atk, target_def, float(actor.get("crit_chance", 0.0)), _rng
 		)
 		var actual := _apply_shield(target, result["damage"])
 		target["hp"] = maxi(0, target["hp"] - actual)
+		if target["hp"] == 0 and actor_flags.get("bloodhunger", false) and actor["hp"] > 0:
+			var heal := int(round(float(actor["max_hp"]) * BLOODHUNGER_HEAL_FRAC))
+			var hp_before: int = actor["hp"]
+			actor["hp"] = mini(int(actor["max_hp"]), actor["hp"] + heal)
+			events.append(
+				{"type": "lifesteal", "actor_id": actor["id"], "amount": actor["hp"] - hp_before}
+			)
 		(
 			events
 			. append(

@@ -379,3 +379,118 @@ func test_battle_is_deterministic_with_the_same_seed() -> void:
 	assert_eq(result_a, result_b)
 	assert_eq(battle_a.party[0]["hp"], battle_b.party[0]["hp"])
 	assert_eq(battle_a.enemies[0]["hp"], battle_b.enemies[0]["hp"])
+
+
+func _one_hit_damage(
+	actor_trait_ids: Array, enemy_is_boss: bool, enemy_family: String, seed_value: int
+) -> int:
+	# One auto-battle step: the ally attacks once; return the logged damage.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var actor := Battle.make_ally_combatant(
+		"player",
+		"WARRIOR",
+		10,
+		{"STR": 300, "AGI": 100, "VIT": 200, "END": 50, "SEN": 10},
+		"",
+		0.0,
+		actor_trait_ids
+	)
+	# Low base_power keeps enemy SPEED below the actor's so the actor's hit
+	# lands first; HP/max_hp are then overridden way up so the measured hit
+	# never drops the target below LOW_HP_THRESHOLD (which would trigger a
+	# bonus_vs_low_hp move tag and skew the ratio). Same speed/HP-coupling
+	# workaround the taunt/shield tests use.
+	var enemy := Battle.make_enemy_combatant("e1", 200.0, enemy_is_boss, "e1", enemy_family)
+	enemy["hp"] = 100000
+	enemy["max_hp"] = 100000
+	var battle := Battle.new([actor], [enemy], moves, true, rng)
+	battle.step()
+	for ev in battle.log:
+		if ev.get("type", "") == "damage":
+			return int(ev["damage"])
+	return -1
+
+
+func test_executioner_multiplies_damage_vs_a_boss() -> void:
+	var plain := _one_hit_damage([], true, "", 4)
+	var exec := _one_hit_damage(["executioner"], true, "", 4)
+	assert_almost_eq(float(exec) / float(plain), Battle.TRAIT_DAMAGE_BONUS, 0.04)
+
+
+func test_executioner_does_nothing_vs_a_non_boss() -> void:
+	assert_eq(_one_hit_damage(["executioner"], false, "", 4), _one_hit_damage([], false, "", 4))
+
+
+func test_frostblooded_multiplies_damage_vs_rime_family_only() -> void:
+	var vs_rime_plain := _one_hit_damage([], false, Battle.FROSTBLOODED_FAMILY, 4)
+	var vs_rime_frost := _one_hit_damage(["frostblooded"], false, Battle.FROSTBLOODED_FAMILY, 4)
+	assert_almost_eq(float(vs_rime_frost) / float(vs_rime_plain), Battle.TRAIT_DAMAGE_BONUS, 0.04)
+	assert_eq(
+		_one_hit_damage(["frostblooded"], false, "Gravekin", 4),
+		_one_hit_damage([], false, "Gravekin", 4)
+	)
+
+
+func test_executioner_and_frostblooded_stack_multiplicatively() -> void:
+	var plain := _one_hit_damage([], true, Battle.FROSTBLOODED_FAMILY, 4)
+	var both := _one_hit_damage(["executioner", "frostblooded"], true, Battle.FROSTBLOODED_FAMILY, 4)
+	var expected := Battle.TRAIT_DAMAGE_BONUS * Battle.TRAIT_DAMAGE_BONUS
+	assert_almost_eq(float(both) / float(plain), expected, 0.06)
+
+
+func test_bloodhunger_heals_the_killer_on_a_kill() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	var actor := Battle.make_ally_combatant(
+		"player",
+		"WARRIOR",
+		20,
+		{"STR": 5000, "AGI": 100, "VIT": 400, "END": 100, "SEN": 10},
+		"",
+		0.0,
+		["bloodhunger"]
+	)
+	actor["hp"] = 10  # well below max
+	var expected_heal := int(round(actor["max_hp"] * Battle.BLOODHUNGER_HEAL_FRAC))
+	var enemy := Battle.make_enemy_combatant("e1", 20.0)  # 12 HP -- one hit kills
+	var battle := Battle.new([actor], [enemy], moves, true, rng)
+	battle.step()
+	assert_eq(battle.enemies[0]["hp"], 0)
+	assert_eq(battle.party[0]["hp"], mini(actor["max_hp"], 10 + expected_heal))
+
+
+func test_bloodhunger_does_not_heal_on_a_non_killing_hit() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	var actor := Battle.make_ally_combatant(
+		"player",
+		"WARRIOR",
+		5,
+		{"STR": 10, "AGI": 100, "VIT": 200, "END": 50, "SEN": 10},
+		"",
+		0.0,
+		["bloodhunger"]
+	)
+	actor["hp"] = 10
+	# Low base_power -> low SPEED so the actor swings first; HP overridden up
+	# so the enemy survives the hit (no kill -> no bloodhunger heal).
+	var enemy := Battle.make_enemy_combatant("e1", 200.0)
+	enemy["hp"] = 100000
+	enemy["max_hp"] = 100000
+	var battle := Battle.new([actor], [enemy], moves, true, rng)
+	battle.step()
+	assert_eq(battle.party[0]["hp"], 10)
+
+
+func test_no_bloodhunger_no_heal_on_kill() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 20, {"STR": 5000, "AGI": 100, "VIT": 400, "END": 100, "SEN": 10}
+	)
+	actor["hp"] = 10
+	var enemy := Battle.make_enemy_combatant("e1", 20.0)
+	var battle := Battle.new([actor], [enemy], moves, true, rng)
+	battle.step()
+	assert_eq(battle.party[0]["hp"], 10)
