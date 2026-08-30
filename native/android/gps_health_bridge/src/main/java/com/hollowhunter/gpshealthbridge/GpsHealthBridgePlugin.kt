@@ -32,6 +32,7 @@ import org.godotengine.godot.plugin.UsedByGodot
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Throwaway spike: bridges FusedLocationProvider (GPS) and Health Connect
@@ -260,6 +261,13 @@ class GpsHealthBridgePlugin(godot: Godot) : GodotPlugin(godot) {
                             put("exercise_type", record.exerciseType)
                             put("start_time", record.startTime.toString())
                             put("end_time", record.endTime.toString())
+                            put(
+                                "start_date_local",
+                                record.startTime
+                                    .atZone(record.startZoneOffset ?: ZoneId.systemDefault())
+                                    .toLocalDate()
+                                    .toString()
+                            )
                         }
                     )
                 }

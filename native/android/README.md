@@ -29,6 +29,15 @@ no Android toolchain was installed on this machine when it was written. See
 the two `// VERIFY` comments at the top of `GpsHealthBridgePlugin.kt` before
 you build.
 
+## Pending source changes not yet in the built .aar
+
+- `readRecentWorkouts` now also emits `start_date_local` (tz-aware local date
+  via `record.startZoneOffset`). The shipped
+  `addons/gps_health_bridge/GpsHealthBridge.debug.aar` predates this — rebuild
+  to pick it up. `DailyExp.workouts_for_day` already prefers the field when
+  present and falls back to the UTC-`start_time` heuristic otherwise, so there
+  is no behaviour change until the rebuild.
+
 ## Build (once JDK 17 + Android Studio/SDK are installed)
 
 ```powershell

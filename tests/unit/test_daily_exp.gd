@@ -5,9 +5,12 @@ extends GutTest
 
 
 static func _workout(
-	title: String, start: String, end: String, exercise_type: int = 0
+	title: String, start: String, end: String, exercise_type: int = 0, start_date_local: String = ""
 ) -> Dictionary:
-	return {"title": title, "exercise_type": exercise_type, "start_time": start, "end_time": end}
+	var w := {"title": title, "exercise_type": exercise_type, "start_time": start, "end_time": end}
+	if start_date_local != "":
+		w["start_date_local"] = start_date_local
+	return w
 
 
 static func _json(workouts: Array) -> String:
@@ -105,6 +108,23 @@ func test_workouts_for_day_matches_the_utc_alt_date() -> void:
 	var kept := DailyExp.workouts_for_day(ws, "2026-08-30", "2026-08-31")
 	assert_eq(kept.size(), 1)
 	assert_eq(kept[0]["start_time"], "2026-08-31T00:00:00Z")
+
+
+func test_workouts_for_day_prefers_start_date_local_over_utc_start_time() -> void:
+	# UTC start_time says the 31st; start_date_local says the 30th -> kept for "2026-08-30".
+	var ws := [_workout("run", "2026-08-31T00:30:00Z", "2026-08-31T01:00:00Z", 0, "2026-08-30")]
+	assert_eq(DailyExp.workouts_for_day(ws, "2026-08-30").size(), 1)
+
+
+func test_workouts_for_day_start_date_local_mismatch_drops_regardless_of_start_time() -> void:
+	# start_time UTC prefix is today, but start_date_local says yesterday -> dropped.
+	var ws := [_workout("run", "2026-08-30T09:00:00Z", "2026-08-30T09:30:00Z", 0, "2026-08-29")]
+	assert_eq(DailyExp.workouts_for_day(ws, "2026-08-30", "2026-08-30"), [])
+
+
+func test_workouts_for_day_empty_start_date_local_falls_back_to_start_time() -> void:
+	var ws := [_workout("run", "2026-08-30T09:00:00Z", "2026-08-30T09:30:00Z")]  # no start_date_local
+	assert_eq(DailyExp.workouts_for_day(ws, "2026-08-30").size(), 1)
 
 
 func test_exp_for_today_with_today_ignores_yesterdays_workout() -> void:

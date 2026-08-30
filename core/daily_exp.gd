@@ -48,17 +48,24 @@ static func _parse_iso_to_unix(iso: String) -> float:
 
 
 ## §4/§21: the subset of `workouts` that started on calendar date `day`
-## ("YYYY-MM-DD"), by string-prefix match on the workout's `start_time` ISO
-## date. The plugin stamps `start_time` from Kotlin `Instant.toString()`,
-## which is always UTC ("...Z"), so a caller passes BOTH the device-local
-## date and the UTC date as `day` / `day_alt` and a workout matching either
-## is kept -- otherwise every evening session in a negative-UTC timezone
-## would be dropped from "today" (lost EXP, broken streak). Proper fix is
-## native (emit a tz-aware local date from the plugin); this is the v0
-## stopgap. Empty / missing / malformed start_time -> excluded.
+## ("YYYY-MM-DD"). When an entry carries a non-empty `start_date_local` (a
+## timezone-aware local date the plugin emits), that is authoritative -- an
+## exact match on `day` keeps it, anything else drops it. Otherwise the
+## fallback for data from an older `.aar` applies: string-prefix match on
+## the workout's `start_time` ISO date, which the plugin stamps from Kotlin
+## `Instant.toString()` and is always UTC ("...Z"), so a caller passes BOTH
+## the device-local date and the UTC date as `day` / `day_alt` and a
+## workout matching either is kept -- otherwise every evening session in a
+## negative-UTC timezone would be dropped from "today" (lost EXP, broken
+## streak). Empty / missing / malformed start_time -> excluded.
 static func workouts_for_day(workouts: Array, day: String, day_alt: String = "") -> Array:
 	var out: Array = []
 	for w: Dictionary in workouts:
+		var local_date := String(w.get("start_date_local", ""))
+		if local_date != "":
+			if local_date == day:
+				out.append(w)
+			continue
 		var start := String(w.get("start_time", ""))
 		if start.length() < 10:
 			continue
