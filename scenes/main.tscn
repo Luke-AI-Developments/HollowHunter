@@ -512,33 +512,59 @@ text = "Close"
 
 [node name="RosterTab" type="Node2D" parent="GameUI/ArmyPanel"]
 
-[node name="FilterBar" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
+[node name="FieldStrip" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
 position = Vector2(0, 90)
 
-[node name="GradeFilterButton" type="Button" parent="GameUI/ArmyPanel/RosterTab/FilterBar"]
+[node name="Heading" type="Label" parent="GameUI/ArmyPanel/RosterTab/FieldStrip"]
 offset_left = 40.0
-offset_top = 0.0
-offset_right = 260.0
-offset_bottom = 50.0
+offset_right = 1040.0
+offset_bottom = 36.0
+theme_override_font_sizes/font_size = 20
+text = "YOUR PARTY"
+
+[node name="Cards" type="HBoxContainer" parent="GameUI/ArmyPanel/RosterTab/FieldStrip"]
+offset_left = 40.0
+offset_top = 44.0
+offset_right = 1040.0
+offset_bottom = 300.0
+theme_override_constants/separation = 12
+
+[node name="BenchHeader" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
+position = Vector2(0, 360)
+
+[node name="Title" type="Label" parent="GameUI/ArmyPanel/RosterTab/BenchHeader"]
+offset_left = 40.0
+offset_right = 300.0
+offset_bottom = 40.0
+theme_override_font_sizes/font_size = 20
+text = "BENCH"
+
+[node name="GradeFilterButton" type="Button" parent="GameUI/ArmyPanel/RosterTab/BenchHeader"]
+offset_left = 320.0
+offset_right = 620.0
+offset_bottom = 44.0
 theme_override_font_sizes/font_size = 18
 text = "Grade: ALL"
 
-[node name="SortButton" type="Button" parent="GameUI/ArmyPanel/RosterTab/FilterBar"]
-offset_left = 280.0
-offset_top = 0.0
-offset_right = 500.0
-offset_bottom = 50.0
+[node name="SortButton" type="Button" parent="GameUI/ArmyPanel/RosterTab/BenchHeader"]
+offset_left = 640.0
+offset_right = 940.0
+offset_bottom = 44.0
 theme_override_font_sizes/font_size = 18
 text = "Sort: Power"
 
-[node name="SectionsScroll" type="ScrollContainer" parent="GameUI/ArmyPanel/RosterTab"]
-offset_left = 0.0
-offset_top = 160.0
-offset_right = 1080.0
+[node name="BenchScroll" type="ScrollContainer" parent="GameUI/ArmyPanel/RosterTab"]
+offset_left = 20.0
+offset_top = 420.0
+offset_right = 1060.0
 offset_bottom = 2300.0
 
-[node name="Sections" type="Control" parent="GameUI/ArmyPanel/RosterTab/SectionsScroll"]
+[node name="BenchGrid" type="GridContainer" parent="GameUI/ArmyPanel/RosterTab/BenchScroll"]
 layout_mode = 2
+size_flags_horizontal = 3
+columns = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
 
 [node name="BulkBar" type="Node2D" parent="GameUI/ArmyPanel/RosterTab"]
 position = Vector2(0, 2320)

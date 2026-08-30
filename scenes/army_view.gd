@@ -1,7 +1,8 @@
 class_name ArmyView
 extends Node2D
-## §17: the Army management screen. Roster tab (class-grouped, sortable/
-## filterable browse over the whole owned army) and Party tab (party_view.gd:
+## §17: the Army management screen. Roster tab (§9b Layout C: a pinned
+## fielded strip of up to 3 big shadow cards, then a scrolling 3-column
+## bench grid of the rest, grade-filtered and sortable) and Party tab (party_view.gd:
 ## the manual "pick up to 3 who fight" picker over a sorted full-army list)
 ## in one panel. Self-contained controller -- holds HunterState
 ## directly and mutates it itself, same pattern as StrongholdView/
@@ -19,6 +20,19 @@ const GRADE_FILTER_OPTIONS := ["ALL", "E", "D", "C", "B", "A", "S"]
 const SORT_MODES := ["power", "grade"]
 const MASS_CONVERT_COUNT := 3  ## same v0 batch size main.gd used before this split
 
+## §9b Layout-C grade ramp -- the mock's `--g-*` swatches, used for the
+## per-card meta line colour so grade reads at a glance in the grid.
+const GRADE_COLOR := {
+	"E": Color("9fb2b8"),
+	"D": Color("5fd6a4"),
+	"C": Color("5db4ff"),
+	"B": Color("c08bff"),
+	"A": Color("ffcf5c"),
+	"S": Color("ff7b6b"),
+}
+const CARD_BIG := Vector2(300, 250)
+const CARD_SMALL := Vector2(333, 150)
+
 var _state: HunterState
 var _equipment: Dictionary
 var _monsters: Array
@@ -28,13 +42,15 @@ var _awaiting_reveal_close: bool = false
 var _grade_filter: String = "ALL"
 var _sort_mode: String = "power"
 var _party_sort_mode: String = "power"  ## Party tab's own sort cycle (PartyView.sort_changed)
-var _collapsed: Dictionary = {}  ## clazz -> bool, session-only (resets on reopen)
 
 @onready var roster_tab: Node2D = $RosterTab
 @onready var party_tab: PartyView = $SquadTab
-@onready var grade_filter_button: Button = $RosterTab/FilterBar/GradeFilterButton
-@onready var sort_button: Button = $RosterTab/FilterBar/SortButton
-@onready var sections_container: Control = $RosterTab/SectionsScroll/Sections
+@onready var field_strip_heading: Label = $RosterTab/FieldStrip/Heading
+@onready var field_strip_cards: HBoxContainer = $RosterTab/FieldStrip/Cards
+@onready var bench_title: Label = $RosterTab/BenchHeader/Title
+@onready var grade_filter_button: Button = $RosterTab/BenchHeader/GradeFilterButton
+@onready var sort_button: Button = $RosterTab/BenchHeader/SortButton
+@onready var bench_grid: GridContainer = $RosterTab/BenchScroll/BenchGrid
 @onready var mass_convert_button: Button = $RosterTab/BulkBar/MassConvertButton
 
 
@@ -111,82 +127,139 @@ func _on_sort_pressed() -> void:
 	_refresh_roster()
 
 
-## Builds one collapsible section per class, each holding that class's
-## (filtered, sorted) shadows as tappable rows -- opens the shadow detail
-## hub on tap, same panel the old flat ArmyLabel + ShadowGearButton used to
-## reach separately. Rebuilds from scratch each call (Sections' children
-## are freed first) rather than diffing -- this list changes rarely enough
-## (claim/level/fuse/convert) that rebuild-on-refresh is simpler and cheap.
+## §9b Layout C: a pinned "fielded strip" of up to PARTY_SIZE big shadow
+## cards (active_party_ids in pick order, padded with dim placeholders when
+## understrength), then a scrolling 3-column "bench grid" of every other
+## owned shadow, grade-filtered and sorted by the bench header's buttons.
+## Class grouping is gone. Each real card is a Button routing to the shadow
+## detail hub, same as the old roster rows. Rebuilds from scratch each call.
 func _refresh_roster() -> void:
-	for child in sections_container.get_children():
-		child.queue_free()
+	for c in field_strip_cards.get_children():
+		c.queue_free()
+	for c in bench_grid.get_children():
+		c.queue_free()
 
 	var enriched := SquadBuilder.enrich_army(
 		_state.army, _monsters, _state.level, _equipment, _state.inventory
 	)
-	if _grade_filter != "ALL":
-		enriched = enriched.filter(func(e: Dictionary) -> bool: return e["grade"] == _grade_filter)
-	var sort_key := "power" if _sort_mode == "power" else "grade"
-	enriched.sort_custom(
-		func(a: Dictionary, b: Dictionary) -> bool:
-			if sort_key == "power":
-				return a["power"] > b["power"]
-			return GameLogic.RANK_ORDER.find(b["grade"]) < GameLogic.RANK_ORDER.find(a["grade"])
-	)
-
 	var fielded_ids := {}
 	for id in _state.active_party_ids:
 		fielded_ids[id] = true
 
-	var y := 0.0
-	for clazz in SquadBuilder.CLASSES:
-		var class_shadows: Array = enriched.filter(
-			func(e: Dictionary) -> bool: return e["clazz"] == clazz
-		)
-		var collapsed: bool = _collapsed.get(clazz, false)
-		var header := Button.new()
-		header.position = Vector2(40, y)
-		header.size = Vector2(1000, 44)
-		header.text = (
-			"%s %s (%d)" % ["▸" if collapsed else "▾", clazz.capitalize(), class_shadows.size()]
-		)
-		header.pressed.connect(_on_section_header_pressed.bind(clazz))
-		sections_container.add_child(header)
-		y += 50
+	# --- fielded strip: active_party_ids in pick order, padded to PARTY_SIZE ---
+	var by_id := {}
+	for e: Dictionary in enriched:
+		by_id[e["instance_id"]] = e
+	var fielded_count := 0
+	for id in _state.active_party_ids:
+		if by_id.has(id):
+			field_strip_cards.add_child(_make_shadow_card(by_id[id], true, true))
+			fielded_count += 1
+	for _i in range(GameLogic.PARTY_SIZE - fielded_count):
+		field_strip_cards.add_child(_make_empty_slot_card())
+	field_strip_heading.text = (
+		"YOUR PARTY -- %d / %d fielded" % [fielded_count, GameLogic.PARTY_SIZE]
+	)
 
-		if collapsed:
-			continue
-
-		for e: Dictionary in class_shadows:
-			var row := Button.new()
-			row.position = Vector2(60, y)
-			row.size = Vector2(960, 40)
-			row.icon = ArtPaths.monster_portrait(e["monster_id"])
-			row.expand_icon = true
-			var marker := " [P]" if fielded_ids.has(e["instance_id"]) else ""
-			marker += " [L]" if e["locked"] else ""
-			marker += " [F]" if e["favorite"] else ""
-			row.text = (
-				"%s (%s·%s Lv%d) pwr:%d%s"
-				% [e["display_name"], e["grade_name"], e["grade"], e["level"], e["power"], marker]
-			)
-			row.pressed.connect(_on_shadow_row_pressed.bind(e["instance_id"]))
-			sections_container.add_child(row)
-			y += 44
-
-	# Lets SectionsScroll (the ScrollContainer wrapping this node) know the
-	# true content height so it knows how far there is to scroll -- a bare
-	# Control reports zero minimum size otherwise since nothing here is
-	# laid out by an auto-layout container.
-	sections_container.custom_minimum_size = Vector2(1000, y)
+	# --- bench: everything not fielded, grade-filtered, sorted ---
+	var bench: Array = enriched.filter(
+		func(e: Dictionary) -> bool: return not fielded_ids.has(e["instance_id"])
+	)
+	if _grade_filter != "ALL":
+		bench = bench.filter(func(e: Dictionary) -> bool: return e["grade"] == _grade_filter)
+	bench.sort_custom(
+		func(a: Dictionary, b: Dictionary) -> bool:
+			if _sort_mode == "power":
+				return a["power"] > b["power"]
+			return GameLogic.RANK_ORDER.find(b["grade"]) < GameLogic.RANK_ORDER.find(a["grade"])
+	)
+	for e: Dictionary in bench:
+		bench_grid.add_child(_make_shadow_card(e, false, false))
+	bench_title.text = "BENCH (%d)" % bench.size()
 
 
-## Collapsing/expanding folds the section's row space away rather than just
-## hiding the rows in place -- _refresh_roster() skips building a collapsed
-## section's rows entirely, so the sections below shift up to fill the gap.
-func _on_section_header_pressed(clazz: String) -> void:
-	_collapsed[clazz] = not _collapsed.get(clazz, false)
-	_refresh_roster()
+## Builds one shadow card: shader-recoloured portrait, name and a
+## "grade_name·grade  Lv N  ·  power" meta line coloured by grade, plus
+## P/L/F pips. The whole card is a Button routing to the detail card,
+## same as the old roster rows. `big` toggles the fielded-strip size.
+func _make_shadow_card(e: Dictionary, fielded: bool, big: bool) -> Control:
+	var card := Button.new()
+	card.custom_minimum_size = CARD_BIG if big else CARD_SMALL
+	card.clip_contents = true
+	card.pressed.connect(_on_shadow_row_pressed.bind(e["instance_id"]))
+
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(box)
+
+	var portrait := TextureRect.new()
+	portrait.custom_minimum_size = Vector2(0, (150 if big else 92))
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tex := ArtPaths.monster_portrait(e["monster_id"])
+	if tex != null:
+		portrait.texture = tex
+		portrait.material = ArtPaths.shadow_material()
+	box.add_child(portrait)
+
+	var name_label := Label.new()
+	name_label.text = String(e["display_name"])
+	name_label.add_theme_font_size_override("font_size", 18 if big else 14)
+	box.add_child(name_label)
+
+	var meta := Label.new()
+	meta.text = (
+		"%s·%s  Lv %d  ·  %s"
+		% [e["grade_name"], e["grade"], int(e["level"]), _grouped(int(e["power"]))]
+	)
+	meta.add_theme_font_size_override("font_size", 13 if big else 11)
+	meta.add_theme_color_override("font_color", GRADE_COLOR.get(String(e["grade"]), Color.WHITE))
+	box.add_child(meta)
+
+	var markers := PackedStringArray()
+	if fielded:
+		markers.append("P")
+	if bool(e["locked"]):
+		markers.append("L")
+	if bool(e["favorite"]):
+		markers.append("F")
+	if not markers.is_empty():
+		var pips := Label.new()
+		pips.text = " ".join(markers)
+		pips.add_theme_font_size_override("font_size", 12)
+		box.add_child(pips)
+
+	return card
+
+
+## A dim placeholder filling an unused party slot in the fielded strip
+## (early game / understrength party). Not tappable.
+func _make_empty_slot_card() -> Control:
+	var slot := PanelContainer.new()
+	slot.custom_minimum_size = CARD_BIG
+	slot.modulate = Color(1, 1, 1, 0.28)
+	var l := Label.new()
+	l.text = "empty slot"
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slot.add_child(l)
+	return slot
+
+
+## Thousands-separated integer for card power text -- mirrors
+## shadow_reveal_card.gd._grouped so the two shadow surfaces read alike.
+func _grouped(n: int) -> String:
+	var s := str(n)
+	var out := ""
+	var c := 0
+	for i in range(s.length() - 1, -1, -1):
+		out = s[i] + out
+		c += 1
+		if c % 3 == 0 and i > 0:
+			out = "," + out
+	return out
 
 
 func _on_shadow_row_pressed(shadow_instance_id: String) -> void:
