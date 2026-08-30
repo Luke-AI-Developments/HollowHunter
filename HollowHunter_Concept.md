@@ -125,7 +125,18 @@ army_power     = Σ (shadow_power × equipment_multiplier)
 TOTAL_POWER    = personal_power + army_power
 ```
 
+`army_power` and `TOTAL_POWER` above no longer resolve a fight — §16 feeds
+per-shadow and hunter stats into real combat. `personal_power` is still the
+leaderboard number (§9).
+
 ### Clear check — weighted RNG
+
+> **Superseded by §16 (turn-based party combat).** The `r^k / (r^k + 1)` clear
+> check below is the old auto-resolve mechanic. Gates and raids now play out as
+> real turns (you + up to 3 shadows vs the enemies); stats and gear feed real
+> combat stats instead of one comparison number. The table below is kept only
+> for the rank power-curve intuition it still gives. See §16, and §25 for why.
+
 Success isn't a hard gate; it's a probability based on how your power compares to the gate's:
 ```
 r = TOTAL_POWER ÷ gate_power
@@ -143,9 +154,9 @@ P(clear) = r^k / (r^k + 1)        // k ≈ 3 controls steepness
 | A | 6,000 | 0.2% |
 | S | 15,000 | ~0% |
 
-So a D-rank *can* punch up into a C gate and pull off an upset ~1 in 4 tries, but has effectively no chance against an A gate — and won't encounter many of them anyway. Exactly the feel you wanted. `k` is the single knob for how swingy vs. deterministic fights feel.
+So a D-rank *can* punch up into a C gate and pull off an upset ~1 in 4 tries, but has effectively no chance against an A gate — and won't encounter many of them anyway. That was the feel the old model aimed for; `k` was its single knob for swingy-vs-deterministic.
 
-*(Combat resolves on this power check by default — leaning into "your real training is what wins." You can later layer optional active skills to swing a close fight, but the MVP is auto-resolve.)*
+*(Superseded — fights are now real turn-based party combat (§16). Auto-battle / Skip keep a routine gate one-tap when you don't want to play it out.)*
 
 ---
 
@@ -352,7 +363,7 @@ Aim for the smallest thing that proves the core fantasy: **train → get stronge
 1. Feed workout data → compute daily EXP.
 2. Hunter Level + one or two stats + a visible power number.
 3. A map view in Godot showing your position and **spawning E/D gates** near you.
-4. Tap a gate → auto-resolve clear check with the RNG formula → win/lose screen.
+4. Tap a gate → enter the turn-based fight (§16) — Auto-battle resolves it in one tap
 5. On win: gain a shadow (simple list) + one piece of equipment; power goes up.
 6. All on-device, single-player. **No backend, no rankings, no raids yet.**
 7. **Placeholder art only** — colored shapes + labels or Kenney.nl packs. Every sprite referenced by a data ID → art-path so real art swaps in later without code changes. Real art is a separate final pass.
@@ -366,7 +377,7 @@ Aim for the smallest thing that proves the core fantasy: **train → get stronge
 ## 12. Open questions / decisions to revisit
 
 - **Stat weights (wS, wA, …) and level constant C** — need tuning once real workout data is flowing.
-- **`k` steepness** — how swingy should fights feel? (3 = the numbers in §5.)
+- **`k` steepness** — how swingy should fights feel? (3 = the numbers in §5.) *(knob of the deprecated auto-resolve model — see §16)*
 - **Extraction chance** — always? rank-based? a resource?
 - **Anti-cheat depth** — reading from health stores covers most of it; do you care about spoofed GPS / fake workouts for the leaderboard?
 - **Godot native-plugin bridging (TOP RISK)** — HealthKit/Health Connect/GPS/push have no mature Godot support; prototype the native bridge before anything else. If it proves too painful, the fallback is React Native for the app shell + an embedded engine view for HD-2D combat (hybrid).
@@ -467,6 +478,11 @@ RaidInstance
   difficulty_mult: float
   loot_table_id: String
 ```
+
+> `clear_probability` / `resolve_clear` are DEPRECATED as the fight resolver
+> (§16). `gate_power` and these are still called by nadir / rank-assessment /
+> gate-encounter for power *estimates* and the rank-trial check, not to decide
+> a battle.
 
 ### Derived — pure functions (the testable core, no state inside)
 ```
