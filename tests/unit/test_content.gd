@@ -162,3 +162,14 @@ func test_every_trait_has_valid_mods() -> void:
 				assert_true(stat_keys.has(k), "trait %s combat_pct bad stat %s" % [t["id"], k])
 			has_effect = true
 		assert_true(has_effect, "trait %s mods has neither power_pct nor combat_pct" % t["id"])
+
+
+func test_monster_role_and_atk_type_fields_are_valid_when_present() -> void:
+	for m: Dictionary in Content.load_monsters():
+		if m.has("role"):
+			assert_true(
+				m["role"] in ["bruiser", "skirmisher", "armoured"],
+				"%s bad role %s" % [m["id"], m["role"]]
+			)
+		if m.has("atk_type"):
+			assert_true(m["atk_type"] in ["physical", "magic"], "%s bad atk_type" % m["id"])

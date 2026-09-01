@@ -602,7 +602,15 @@ func _start_gate_battle(
 	_pending_battle_gate_index = gate_index
 	_pending_battle_prefix = prefix
 	_pending_battle_is_break = is_break
-	var family := String(Content.monster_by_id(_monsters, gate["monster_id"]).get("family", ""))
+	var mdef := Content.monster_by_id(_monsters, gate["monster_id"])
+	var family := String(mdef.get("family", ""))
+	var role := String(mdef.get("role", "bruiser"))
+	var atk_type := String(
+		mdef.get(
+			"atk_type",
+			"magic" if String(mdef.get("clazz", "")) in ["MAGE", "SUPPORT"] else "physical"
+		)
+	)
 	var enemies := [
 		Battle.make_enemy_combatant(
 			gate["monster_id"],
@@ -610,7 +618,9 @@ func _start_gate_battle(
 			true,
 			gate["monster_name"],
 			family,
-			gate["rank"] in ["A", "S"]
+			gate["rank"] in ["A", "S"],
+			role,
+			atk_type
 		)
 	]
 	var battle_party := _build_battle_party()
@@ -637,10 +647,19 @@ func _start_nadir_battle() -> void:
 	var enemy_name := "Floor %d Sentinel" % floor_n  # invented v0 placeholder name --
 	## non-boss Nadir floors have no monster in the source to name them after
 	var enemy_family := ""
+	var role := "bruiser"  # non-boss Nadir floors have no monster def -> code defaults
+	var atk_type := "physical"
 	if _pending_nadir_is_boss and _pending_nadir_boss_id != "":
 		var boss_monster := Content.monster_by_id(_monsters, _pending_nadir_boss_id)
 		enemy_name = String(boss_monster.get("name", enemy_name))
 		enemy_family = String(boss_monster.get("family", ""))
+		role = String(boss_monster.get("role", "bruiser"))
+		var boss_clazz := String(boss_monster.get("clazz", ""))
+		atk_type = String(
+			boss_monster.get(
+				"atk_type", "magic" if boss_clazz in ["MAGE", "SUPPORT"] else "physical"
+			)
+		)
 	var enemies := [
 		Battle.make_enemy_combatant(
 			"nadir_floor_%d" % floor_n,
@@ -648,7 +667,9 @@ func _start_nadir_battle() -> void:
 			_pending_nadir_is_boss,
 			enemy_name,
 			enemy_family,
-			_pending_nadir_is_boss
+			_pending_nadir_is_boss,
+			role,
+			atk_type
 		)
 	]
 	var battle_party := _build_battle_party(true)
