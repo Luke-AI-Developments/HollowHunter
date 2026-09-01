@@ -265,9 +265,13 @@ func step() -> Dictionary:
 	if actor.is_empty():
 		return _finish_check()  # nobody left able to act -- shouldn't happen if not is_over
 
+	# `was_*` captured BEFORE _tick_start_of_turn, which decrements the counters.
+	var was_stunned := _has_status(actor, "stun")
+	var was_broken := int(actor.get("broken_turns", 0)) > 0
 	_tick_start_of_turn(actor)
-	if _apply_poison_tick(actor):
-		return _finish_check()  # poison finished them off before they could act
+	# poison finished them off, OR they forfeit the turn (broken/stunned).
+	if _apply_poison_tick(actor) or _skip_incapacitated_turn(actor, was_broken, was_stunned):
+		return _finish_check()
 
 	if actor.get("is_enemy", false):
 		return _resolve_enemy_turn(actor)
@@ -307,6 +311,23 @@ func _apply_poison_tick(actor: Dictionary) -> bool:
 	actor["hp"] = maxi(0, actor["hp"] - poison_dmg)
 	log.append({"type": "poison_tick", "target_id": actor["id"], "damage": poison_dmg})
 	return actor["hp"] <= 0
+
+
+## A broken boss (spec §5.3) or a stun-statused actor (spec §8) forfeits
+## its turn. Decrements the broken counter, logs the skip, and reports
+## whether the actor was skipped. Split out of step() for the same reason
+## as _apply_poison_tick -- keeping step()'s return count under the
+## max-returns lint limit. `was_broken` / `was_stunned` are the pre-tick
+## flags captured in step() before _tick_start_of_turn ran.
+func _skip_incapacitated_turn(actor: Dictionary, was_broken: bool, was_stunned: bool) -> bool:
+	if was_broken:
+		actor["broken_turns"] = maxi(0, int(actor.get("broken_turns", 0)) - 1)
+		log.append({"type": "broken_skip", "actor_id": actor["id"]})
+		return true
+	if was_stunned:
+		log.append({"type": "stunned", "actor_id": actor["id"]})
+		return true
+	return false
 
 
 ## Resolves the player's manually-chosen move -- only valid right after
@@ -427,6 +448,11 @@ func _tick_start_of_turn(actor: Dictionary) -> void:
 		actor["taunt_turns"] -= 1
 		if actor["taunt_turns"] <= 0:
 			actor["is_taunting"] = false
+	var statuses: Dictionary = actor.get("statuses", {})
+	for sname in statuses.keys():
+		statuses[sname] = maxi(0, int(statuses[sname]) - 1)
+		if statuses[sname] == 0:
+			statuses.erase(sname)
 
 
 func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:
@@ -445,7 +471,8 @@ func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:
 	var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
 	var pierce := MAGIC_DEF_PIERCE if String(actor.get("atk_type", "physical")) == "magic" else 0.0
 	var result := CombatMath.resolve_damage(move_power, atk, target_def, 0.0, _rng, pierce)
-	var actual := _apply_shield(target, result["damage"])
+	var scaled := int(round(float(result["damage"]) * _incoming_damage_mult(target)))
+	var actual := _apply_shield(target, scaled)
 	target["hp"] = maxi(0, target["hp"] - actual)
 	(
 		log
@@ -544,7 +571,8 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 		var result := CombatMath.resolve_damage(
 			power * bonus_mult, atk, target_def, float(actor.get("crit_chance", 0.0)), _rng, pierce
 		)
-		var actual := _apply_shield(target, result["damage"])
+		var scaled_damage := int(round(float(result["damage"]) * _incoming_damage_mult(target)))
+		var actual := _apply_shield(target, scaled_damage)
 		target["hp"] = maxi(0, target["hp"] - actual)
 		if target.get("is_boss", false) and target.has("break_max"):
 			var on_telegraph := int(target.get("turns_until_big_hit", BOSS_BIG_HIT_INTERVAL)) <= 1
@@ -691,6 +719,23 @@ func _single_target(pool: Array) -> Dictionary:
 	return _lowest_hp(_alive(pool))
 
 
+func _has_status(c: Dictionary, name: String) -> bool:
+	return int(c.get("statuses", {}).get(name, 0)) > 0
+
+
+## Central multiplier on damage ARRIVING at `target` (spec §5.3 broken,
+## §8 statuses). Composed multiplicatively; invuln wins by zeroing.
+func _incoming_damage_mult(target: Dictionary) -> float:
+	if _has_status(target, "invuln"):
+		return 0.0
+	var m := 1.0
+	if int(target.get("broken_turns", 0)) > 0:
+		m *= BROKEN_DAMAGE_TAKEN_MULT
+	if _has_status(target, "vulnerable"):
+		m *= 1.25  ## spec §8/§12, v0: Vulnerable damage-taken multiplier
+	return m
+
+
 func _apply_shield(target: Dictionary, damage: int) -> int:
 	var shield: int = target.get("shield_hp", 0)
 	if shield <= 0:
@@ -723,6 +768,42 @@ func _add_break_fill(boss: Dictionary, amount: float) -> void:
 			}
 		)
 	)
+	_maybe_break(boss)
+
+
+## Spec §5.3: when a boss's bar is full, stagger it. Idempotent while the
+## boss is already broken (broken_turns > 0 blocks re-entry, and
+## _add_break_fill won't have filled it anyway).
+func _maybe_break(boss: Dictionary) -> void:
+	if int(boss.get("broken_turns", 0)) > 0:
+		return
+	var bmax: float = boss.get("break_max", 0.0)
+	if bmax <= 0.0 or float(boss.get("break_current", 0.0)) < bmax:
+		return
+	var overfill := (float(boss["break_current"]) - bmax) / bmax
+	var stun_turns := (
+		BREAK_STUN_TURNS_LONG if overfill >= BREAK_OVERFILL_LONG_STUN else BREAK_STUN_TURNS_SHORT
+	)
+	boss["broken_turns"] = stun_turns
+	boss["turns_until_big_hit"] = BOSS_BIG_HIT_INTERVAL  # cancel any pending telegraph
+	var statuses: Dictionary = boss["statuses"]
+	statuses["stun"] = maxi(int(statuses.get("stun", 0)), BREAK_STUN_TURNS_SHORT)
+	boss["break_count"] = int(boss["break_count"]) + 1
+	boss["break_max"] = bmax * BREAK_REFILL_MULT
+	boss["break_current"] = 0.0
+	(
+		log
+		. append(
+			{
+				"type": "break",
+				"target_id": boss["id"],
+				"break_count": boss["break_count"],
+				"stun_turns": stun_turns,
+				"new_break_max": int(round(boss["break_max"])),
+			}
+		)
+	)
+	# Monarch Gauge credit for the Break is added in Task 4.
 
 
 func _enemy_target() -> Dictionary:

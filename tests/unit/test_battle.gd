@@ -723,6 +723,12 @@ func _last_damage(b: Battle) -> int:
 	return d
 
 
+func _seeded_rng(s: int) -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new()
+	r.seed = s
+	return r
+
+
 func test_hitting_a_boss_fills_its_break_bar() -> void:
 	var b := _boss_fight(7)
 	b.step()  # player's turn -> waiting_for_player
@@ -796,5 +802,88 @@ func test_hitting_a_boss_on_its_telegraph_turn_multiplies_break_fill() -> void:
 func test_break_fill_never_exceeds_break_max() -> void:
 	var b := _boss_fight(7)
 	var boss := b._combatant_by_id("boss")
-	b._add_break_fill(boss, boss["break_max"] * 10.0)
-	assert_eq(float(boss["break_current"]), float(boss["break_max"]))
+	var capped: float = boss["break_max"]
+	b._add_break_fill(boss, capped * 10.0)
+	# The fill clamps at break_max (the break it then triggers resets to 0),
+	# so read the clamp off the break_fill log event, recorded pre-break.
+	var fill_ev := {}
+	for ev in b.log:
+		if ev.get("type", "") == "break_fill":
+			fill_ev = ev
+	assert_eq(int(fill_ev["current"]), int(round(capped)))
+
+
+func test_filling_the_bar_to_max_breaks_the_boss() -> void:
+	var b := _boss_fight(7)
+	var boss := b._combatant_by_id("boss")
+	var first_max: float = boss["break_max"]
+	b._add_break_fill(boss, first_max)  # exactly to threshold
+	assert_eq(int(boss["broken_turns"]), 1)
+	assert_eq(int(boss["break_count"]), 1)
+	assert_eq(float(boss["break_current"]), 0.0)
+	assert_almost_eq(float(boss["break_max"]), first_max * 1.5, 0.001)
+	assert_eq(int(boss["statuses"].get("stun", 0)), 1)
+	assert_eq(int(boss["turns_until_big_hit"]), Battle.BOSS_BIG_HIT_INTERVAL)
+	var broke := false
+	for ev in b.log:
+		if ev.get("type", "") == "break":
+			broke = true
+			assert_eq(int(ev["break_count"]), 1)
+	assert_true(broke)
+
+
+func test_massive_overfill_gives_a_two_turn_stagger() -> void:
+	var b := _boss_fight(7)
+	var boss := b._combatant_by_id("boss")
+	# _add_break_fill clamps at break_max, erasing any overshoot, so a
+	# forced-fill path (a test, or a Task-5 Ultimate) sets the bar directly.
+	boss["break_current"] = boss["break_max"] * 1.6  # 60% overshoot >= 50%
+	b._maybe_break(boss)
+	assert_eq(int(boss["broken_turns"]), 2)
+
+
+func test_a_broken_boss_takes_one_and_a_half_times_damage() -> void:
+	var b_norm := _boss_fight(11)
+	b_norm.step()
+	b_norm.resolve_player_action("move_warrior_strike", "boss")
+	var norm := _last_damage(b_norm)
+
+	var b_brk := _boss_fight(11)
+	b_brk._combatant_by_id("boss")["broken_turns"] = 2  # force broken, no stun for this test
+	b_brk.step()
+	b_brk.resolve_player_action("move_warrior_strike", "boss")
+	var brk := _last_damage(b_brk)
+	assert_almost_eq(float(brk) / float(norm), 1.5, 0.06)
+
+
+func test_a_broken_boss_skips_its_turn_and_the_counter_ticks_down() -> void:
+	# boss much faster so it would act first if not broken
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 300, "AGI": 5, "VIT": 400, "END": 50, "SEN": 10}
+	)
+	var boss := Battle.make_enemy_combatant("boss", 800.0, true, "Boss")
+	boss["broken_turns"] = 2
+	var b := Battle.new([actor], [boss], moves, true, _seeded_rng(5))
+	b.step()  # boss's slot: should be a broken_skip, not an enemy_attack
+	var skipped := false
+	for ev in b.log:
+		if ev.get("type", "") == "broken_skip" and ev["actor_id"] == "boss":
+			skipped = true
+	assert_true(skipped)
+	assert_eq(int(b._combatant_by_id("boss")["broken_turns"]), 1)
+
+
+func test_a_stunned_actor_loses_its_turn() -> void:
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 300, "AGI": 5, "VIT": 400, "END": 50, "SEN": 10}
+	)
+	var boss := Battle.make_enemy_combatant("boss", 800.0, true, "Boss")
+	boss["statuses"]["stun"] = 1
+	var b := Battle.new([actor], [boss], moves, true, _seeded_rng(5))
+	b.step()
+	var stunned := false
+	for ev in b.log:
+		if ev.get("type", "") == "stunned" and ev["actor_id"] == "boss":
+			stunned = true
+	assert_true(stunned)
+	assert_eq(int(b._combatant_by_id("boss")["statuses"].get("stun", 0)), 0)
