@@ -698,3 +698,103 @@ func test_break_fraction_and_is_broken_readers() -> void:
 	# hand-set the bar half full and confirm the reader
 	b._combatant_by_id("b")["break_current"] = b._combatant_by_id("b")["break_max"] * 0.5
 	assert_almost_eq(b.break_fraction("b"), 0.5, 0.001)
+
+
+func _boss_fight(seed_value: int) -> Battle:
+	# One WARRIOR (STR 300) vs one boss, auto off, fixed seed.
+	# base_power 2000 -> break_max ~540, giving the bar headroom above a
+	# single Strike/Power-Strike fill so the heavy/telegraph assertions
+	# below measure the real fill, not the clamp at break_max. (The brief's
+	# draft used 800, whose break_max ~216 clamps every hit -- see report.)
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 300, "AGI": 120, "VIT": 200, "END": 50, "SEN": 10}
+	)
+	var boss := Battle.make_enemy_combatant("boss", 2000.0, true, "Boss")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	return Battle.new([actor], [boss], moves, false, rng)
+
+
+func _last_damage(b: Battle) -> int:
+	var d := 0
+	for ev in b.log:
+		if ev.get("type", "") == "damage":
+			d = int(ev["damage"])
+	return d
+
+
+func test_hitting_a_boss_fills_its_break_bar() -> void:
+	var b := _boss_fight(7)
+	b.step()  # player's turn -> waiting_for_player
+	b.resolve_player_action("move_warrior_strike", "boss")
+	var boss := b._combatant_by_id("boss")
+	assert_gt(float(boss["break_current"]), 0.0)
+	# a plain Strike's fill should be ~ (its damage) * 0.5
+	var dmg := 0
+	for ev in b.log:
+		if ev.get("type", "") == "damage":
+			dmg = int(ev["damage"])
+	assert_almost_eq(float(boss["break_current"]), float(dmg) * 0.5, 1.0)
+
+
+func test_heavy_move_adds_a_flat_break_bonus_on_top() -> void:
+	var b_plain := _boss_fight(7)
+	b_plain.step()
+	b_plain.resolve_player_action("move_warrior_strike", "boss")
+	var plain_fill := float(b_plain._combatant_by_id("boss")["break_current"])
+	var plain_dmg := _last_damage(b_plain)
+
+	var b_heavy := _boss_fight(7)
+	b_heavy.step()
+	b_heavy.resolve_player_action("move_warrior_power_strike", "boss")  # tag "heavy", power 1.5
+	var boss := b_heavy._combatant_by_id("boss")
+	var heavy_dmg := _last_damage(b_heavy)
+	# fill = heavy_dmg*0.5 + break_max*0.08 ; strictly more than damage*0.5 alone
+	assert_gt(float(boss["break_current"]), float(heavy_dmg) * 0.5 + 0.01)
+	assert_almost_eq(
+		float(boss["break_current"]), float(heavy_dmg) * 0.5 + float(boss["break_max"]) * 0.08, 1.0
+	)
+
+
+func test_landing_weaken_on_a_boss_fills_break_by_a_fraction_of_max() -> void:
+	var actor := Battle.make_ally_combatant(
+		"player", "ASSASSIN", 15, {"STR": 200, "AGI": 300, "VIT": 150, "END": 50, "SEN": 50}
+	)
+	var boss := Battle.make_enemy_combatant("boss", 800.0, true, "Boss")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var b := Battle.new([actor], [boss], moves, false, rng)
+	b.step()
+	b.resolve_player_action("move_assassin_weaken", "boss")  # debuff, move_type "debuff"
+	assert_almost_eq(
+		float(b._combatant_by_id("boss")["break_current"]),
+		float(b._combatant_by_id("boss")["break_max"]) * 0.12,
+		0.5
+	)
+
+
+func test_hitting_a_boss_on_its_telegraph_turn_multiplies_break_fill() -> void:
+	# Force the boss onto a telegraph turn: turns_until_big_hit <= 1.
+	var b_norm := _boss_fight(7)
+	b_norm.step()
+	b_norm.resolve_player_action("move_warrior_strike", "boss")
+	var norm_fill := float(b_norm._combatant_by_id("boss")["break_current"])
+	var norm_dmg := _last_damage(b_norm)
+
+	var b_tel := _boss_fight(7)
+	b_tel._combatant_by_id("boss")["turns_until_big_hit"] = 1
+	b_tel.step()
+	b_tel.resolve_player_action("move_warrior_strike", "boss")
+	var tel_dmg := _last_damage(b_tel)
+	# telegraph fill = tel_dmg * 0.5 * 2.5  (same seed -> tel_dmg == norm_dmg)
+	assert_almost_eq(
+		float(b_tel._combatant_by_id("boss")["break_current"]), float(tel_dmg) * 0.5 * 2.5, 1.0
+	)
+	assert_gt(float(b_tel._combatant_by_id("boss")["break_current"]), norm_fill)
+
+
+func test_break_fill_never_exceeds_break_max() -> void:
+	var b := _boss_fight(7)
+	var boss := b._combatant_by_id("boss")
+	b._add_break_fill(boss, boss["break_max"] * 10.0)
+	assert_eq(float(boss["break_current"]), float(boss["break_max"]))

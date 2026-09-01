@@ -546,6 +546,17 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 		)
 		var actual := _apply_shield(target, result["damage"])
 		target["hp"] = maxi(0, target["hp"] - actual)
+		if target.get("is_boss", false) and target.has("break_max"):
+			var on_telegraph := int(target.get("turns_until_big_hit", BOSS_BIG_HIT_INTERVAL)) <= 1
+			var dmg_fill := float(actual) * BREAK_FILL_PER_DAMAGE
+			if on_telegraph:
+				dmg_fill *= BREAK_FILL_TELEGRAPH_MULT
+			var flat_fill := 0.0
+			if tag == "heavy":
+				flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
+			if target_type == "all_enemies" and not is_physical:
+				flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
+			_add_break_fill(target, dmg_fill + flat_fill)
 		if target["hp"] == 0 and actor_flags.get("bloodhunger", false) and actor["hp"] > 0:
 			var heal := int(round(float(actor["max_hp"]) * BLOODHUNGER_HEAL_FRAC))
 			var hp_before: int = actor["hp"]
@@ -568,6 +579,8 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 		if tag == "dot":
 			target["poison_turns"] = POISON_DURATION_TURNS
 			target["poison_damage"] = int(round(atk * POISON_DAMAGE_SCALE))
+		if tag == "dot" and target.get("is_boss", false) and target.has("break_max"):
+			_add_break_fill(target, float(target["break_max"]) * BREAK_FILL_DEBUFF_FRAC)
 	return events
 
 
@@ -630,6 +643,10 @@ func _apply_debuff(actor: Dictionary, move: Dictionary, target_id: String) -> Ar
 		return []
 	target["def_multiplier"] = 1.0 - float(move.get("power", 0.0))
 	target["def_mod_turns"] = BUFF_DEBUFF_DURATION_TURNS
+	if target.get("is_boss", false) and target.has("break_max"):
+		_add_break_fill(target, float(target["break_max"]) * BREAK_FILL_DEBUFF_FRAC)
+	# atk-down is not in the v0 moveset; when Plan 3/4 adds one, mirror the
+	# break-fill hook above.
 	return [{"type": "debuff", "actor_id": actor["id"], "target_id": target["id"]}]
 
 
@@ -681,6 +698,31 @@ func _apply_shield(target: Dictionary, damage: int) -> int:
 	var absorbed := mini(shield, damage)
 	target["shield_hp"] = shield - absorbed
 	return damage - absorbed
+
+
+## Adds `amount` (may be negative-safe: it is clamped) to a boss's break
+## bar (spec §5.2). No-op for a non-boss, a boss with no bar, or a boss
+## that is already broken (it refills from 0 only after the stagger ends).
+func _add_break_fill(boss: Dictionary, amount: float) -> void:
+	if not boss.get("is_boss", false) or not boss.has("break_max"):
+		return
+	if int(boss.get("broken_turns", 0)) > 0:
+		return
+	var bmax: float = boss["break_max"]
+	var before: float = boss["break_current"]
+	boss["break_current"] = clampf(before + amount, 0.0, bmax)
+	(
+		log
+		. append(
+			{
+				"type": "break_fill",
+				"target_id": boss["id"],
+				"amount": int(round(boss["break_current"] - before)),
+				"current": int(round(boss["break_current"])),
+				"max": int(round(bmax)),
+			}
+		)
+	)
 
 
 func _enemy_target() -> Dictionary:
