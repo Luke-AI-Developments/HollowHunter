@@ -463,6 +463,12 @@ func test_battle_is_deterministic_with_the_same_seed() -> void:
 	assert_eq(battle_a.enemies[0]["hp"], battle_b.enemies[0]["hp"])
 
 
+func _ally(id: String, clazz: String) -> Dictionary:
+	return Battle.make_ally_combatant(
+		id, clazz, 10, {"STR": 200, "AGI": 80, "VIT": 200, "END": 50, "SEN": 200}
+	)
+
+
 func _one_hit_damage(
 	actor_trait_ids: Array,
 	enemy_is_boss: bool,
@@ -654,3 +660,41 @@ func _first_damage_of_move(
 		if ev.get("type", "") == "damage":
 			return int(ev["damage"])
 	return -1
+
+
+func test_boss_combatant_gets_break_bar_fields() -> void:
+	var c := Battle.make_enemy_combatant("boss", 1000.0, true)
+	# break_max = enemy_HP * 0.45 ; enemy_HP = base_power * ENEMY_HP_SCALE (0.6) = 600
+	assert_almost_eq(float(c["break_max"]), 600.0 * 0.45, 0.001)
+	assert_eq(c["break_current"], 0.0)
+	assert_eq(c["break_count"], 0)
+	assert_eq(c["broken_turns"], 0)
+	assert_eq(c["statuses"], {})
+
+
+func test_non_boss_enemy_has_no_break_fields() -> void:
+	var c := Battle.make_enemy_combatant("grunt", 1000.0, false)
+	assert_false(c.has("break_max"))
+	assert_false(c.has("break_current"))
+	assert_eq(c["statuses"], {})
+
+
+func test_ally_combatant_has_statuses_and_no_break_fields() -> void:
+	var c := Battle.make_ally_combatant(
+		"player", "WARRIOR", 10, {"STR": 100, "AGI": 50, "VIT": 100, "END": 30, "SEN": 10}
+	)
+	assert_eq(c["statuses"], {})
+	assert_false(c.has("break_max"))
+
+
+func test_break_fraction_and_is_broken_readers() -> void:
+	var boss := Battle.make_enemy_combatant("b", 1000.0, true)
+	var grunt := Battle.make_enemy_combatant("g", 1000.0, false)
+	var b := Battle.new([_ally("player", "WARRIOR")], [boss, grunt], moves, true)
+	assert_eq(b.break_fraction("b"), 0.0)  # empty bar
+	assert_eq(b.break_fraction("g"), 0.0)  # not a boss
+	assert_eq(b.break_fraction("missing"), 0.0)
+	assert_false(b.is_broken("b"))
+	# hand-set the bar half full and confirm the reader
+	b._combatant_by_id("b")["break_current"] = b._combatant_by_id("b")["break_max"] * 0.5
+	assert_almost_eq(b.break_fraction("b"), 0.5, 0.001)

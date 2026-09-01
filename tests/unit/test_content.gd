@@ -173,3 +173,9 @@ func test_monster_role_and_atk_type_fields_are_valid_when_present() -> void:
 			)
 		if m.has("atk_type"):
 			assert_true(m["atk_type"] in ["physical", "magic"], "%s bad atk_type" % m["id"])
+
+
+func test_heavy_tag_present_on_power_strike_and_guard_strike() -> void:
+	var mv := Content.load_moves()
+	assert_eq(Content.move_by_id(mv, "move_warrior_power_strike")["tag"], "heavy")
+	assert_eq(Content.move_by_id(mv, "move_guardian_guard_strike")["tag"], "heavy")

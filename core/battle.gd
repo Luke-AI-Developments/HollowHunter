@@ -45,6 +45,24 @@ const BLESSING_ATK_BUFF_MAGNITUDE := 0.15  ## invented v0: Blessing's "attack bu
 const BOSS_BIG_HIT_INTERVAL := 3  ## invented v0: "every few turns" (§16)
 const BOSS_BIG_HIT_MULTIPLIER := 2.0  ## the doc's own number: "~2x a normal attack"
 const MAGIC_DEF_PIERCE := 0.60  ## spec §2.3, invented v0: DEF fraction a magic hit ignores
+
+## --- Break bar (spec §5 / §12, all v0) -------------------------------------
+const BREAK_MAX_HP_FRACTION := 0.45  ## spec §5.1, v0: first break_max = enemy_HP x this
+const BREAK_REFILL_MULT := 1.5  ## spec §5.1/§5.3, v0: break_max x= this after each Break
+const BREAK_FILL_PER_DAMAGE := 0.5  ## spec §5.2, v0: break_current += damage x this
+const BREAK_FILL_DEBUFF_FRAC := 0.12  ## spec §5.2, v0: debuff landed ->
+## break_current += break_max x this
+const BREAK_FILL_TELEGRAPH_MULT := 2.5  ## spec §5.2, v0: hit on the boss's
+## telegraph turn -> damage contribution x this
+const BREAK_FILL_HEAVY_FRAC := 0.08  ## spec §5.2, v0: heavy / all-enemies-magic
+## hit -> break_current += break_max x this
+const BREAK_OVERFILL_LONG_STUN := 0.5  ## spec §5.3, v0: overshoot break_max by
+## >= this fraction -> long stagger
+const BREAK_STUN_TURNS_SHORT := 1  ## spec §5.3, v0
+const BREAK_STUN_TURNS_LONG := 2  ## spec §5.3, v0
+const BROKEN_DAMAGE_TAKEN_MULT := 1.5  ## spec §5.3, v0: a broken boss takes
+## x this damage from all sources
+
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
 ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
@@ -153,6 +171,7 @@ static func make_ally_combatant(
 		"poison_turns": 0,
 		"poison_damage": 0,
 		"shield_hp": 0,
+		"statuses": {},
 		"trait_flags": trait_flags,
 	}
 
@@ -173,7 +192,9 @@ static func make_ally_combatant(
 ## vs-family bonus; "" when the caller doesn't supply one. `elite` is
 ## true only for rank A/S gates and Nadir boss floors; executioner's
 ## damage bonus keys off it, not `is_boss` (which is true for every gate,
-## to drive the §18 CLAIM telegraph).
+## to drive the §18 CLAIM telegraph). A boss (`is_boss`) also carries
+## `break_max / break_current / break_count / broken_turns` (spec §5); every
+## combatant carries `statuses` (`{name: turns_left}`, spec §8 primitive).
 static func make_enemy_combatant(
 	id: String,
 	base_power: float,
@@ -185,7 +206,7 @@ static func make_enemy_combatant(
 	atk_type: String = "physical"
 ) -> Dictionary:
 	var combat := CombatMath.enemy_stats(base_power, "boss" if is_boss else role)
-	return {
+	var c := {
 		"id": id,
 		"name": display_name if display_name != "" else id,
 		"class": "",
@@ -214,6 +235,7 @@ static func make_enemy_combatant(
 		"elite": elite,
 		"role": "boss" if is_boss else role,
 		"atk_type": atk_type,
+		"statuses": {},
 		"trait_flags":
 		{
 			"bloodhunger": false,
@@ -223,6 +245,12 @@ static func make_enemy_combatant(
 			"executioner": false,
 		},
 	}
+	if is_boss:
+		c["break_max"] = float(combat["HP"]) * BREAK_MAX_HP_FRACTION
+		c["break_current"] = 0.0
+		c["break_count"] = 0
+		c["broken_turns"] = 0
+	return c
 
 
 ## Advances one combatant's turn. Returns {"battle_over": bool, "won":
@@ -325,6 +353,27 @@ func is_boss_next_hit_big(enemy_id: String) -> bool:
 	if e.is_empty() or not e.get("is_boss", false) or e["hp"] <= 0:
 		return false
 	return int(e.get("turns_until_big_hit", BOSS_BIG_HIT_INTERVAL)) <= 0
+
+
+## Fraction (0..1) of a boss's break bar that is filled. 0.0 for a
+## non-boss, an unknown id, a dead combatant, or a boss whose bar is
+## empty -- the battle screen (§16b) and Plan 3's follow-up bonuses read
+## this without having to special-case "no bar".
+func break_fraction(enemy_id: String) -> float:
+	var e := _combatant_by_id(enemy_id)
+	if e.is_empty() or not e.get("is_boss", false) or e["hp"] <= 0:
+		return 0.0
+	var bmax: float = e.get("break_max", 0.0)
+	if bmax <= 0.0:
+		return 0.0
+	return clampf(float(e.get("break_current", 0.0)) / bmax, 0.0, 1.0)
+
+
+## Whether a living boss is currently in the broken/stagger window (spec
+## §5.3) -- takes x1.5 damage and is skipping its turns.
+func is_broken(enemy_id: String) -> bool:
+	var e := _combatant_by_id(enemy_id)
+	return not e.is_empty() and e["hp"] > 0 and int(e.get("broken_turns", 0)) > 0
 
 
 func _build_turn_queue() -> void:
