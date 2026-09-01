@@ -548,11 +548,19 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 	)
 	var party_trait_ids: Array = []
 	for member: Dictionary in chosen:
+		var army_idx := state.army.find_custom(
+			func(s: Dictionary) -> bool: return s.get("instance_id", "") == member["instance_id"]
+		)
+		var shadow_equipped: Dictionary = (
+			state.army[army_idx].get("equipped", {}) if army_idx >= 0 else {}
+		)
+		var shadow_gear := Equip.gear_bonus(shadow_equipped, state.inventory, _equipment)
 		var shadow_stats := GameLogic.shadow_combat_stats(
 			int(member["base_power"]),
 			int(member["level"]),
 			String(member["clazz"]),
-			member.get("trait_combat_pct", {})
+			member.get("trait_combat_pct", {}),
+			shadow_gear["stat_mods"]
 		)
 		var member_trait_ids: Array = []
 		for t in member.get("traits", []):

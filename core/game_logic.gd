@@ -204,8 +204,15 @@ static func shadow_power(
 # overhaul already replaced with an explicit mechanic (Army Synergy,
 # CombatMath.army_synergy_bonus) rather than baking hunter-progression
 # into an individual shadow's own base stats.
+# gear_stat_mods is the fielded shadow's equipped-item stat_mods, added flat
+# after grade/trait scaling (gear is a flat bonus, not multiplied by grade --
+# matches how the hunter folds gear flat before derivation) (combat v1 §10.2).
 static func shadow_combat_stats(
-	base_power: int, shadow_level: int, clazz: String, trait_combat_pct: Dictionary = {}
+	base_power: int,
+	shadow_level: int,
+	clazz: String,
+	trait_combat_pct: Dictionary = {},
+	gear_stat_mods: Dictionary = {}
 ) -> Dictionary:
 	var raw := stats_from(shadow_level, clazz)
 	var baseline := personal_power(raw, shadow_level)
@@ -219,6 +226,8 @@ static func shadow_combat_stats(
 			float(raw[stat]) * multiplier * maxf(0.0, 1.0 + float(trait_combat_pct.get(stat, 0.0)))
 		)
 		scaled[stat] = int(round(v))
+	for stat in gear_stat_mods:
+		scaled[stat] = int(scaled.get(stat, 0)) + int(gear_stat_mods[stat])
 	return scaled
 
 

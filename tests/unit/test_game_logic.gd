@@ -253,6 +253,31 @@ func test_shadow_combat_stats_empty_dict_is_a_no_op() -> void:
 	)
 
 
+func test_shadow_combat_stats_adds_gear_stat_mods_flat() -> void:
+	var base := GameLogic.shadow_combat_stats(1000, 5, "WARRIOR")
+	var geared := GameLogic.shadow_combat_stats(1000, 5, "WARRIOR", {}, {"STR": 10, "VIT": 4})
+	assert_eq(geared["STR"], base["STR"] + 10)
+	assert_eq(geared["VIT"], base["VIT"] + 4)
+	assert_eq(geared["AGI"], base["AGI"])
+
+
+func test_shadow_combat_stats_gear_is_flat_not_grade_scaled() -> void:
+	# +10 STR is +10 whether the shadow is base_power 200 or 5000.
+	var low := GameLogic.shadow_combat_stats(200, 5, "WARRIOR", {}, {"STR": 10})
+	var low_base := GameLogic.shadow_combat_stats(200, 5, "WARRIOR")
+	var high := GameLogic.shadow_combat_stats(5000, 5, "WARRIOR", {}, {"STR": 10})
+	var high_base := GameLogic.shadow_combat_stats(5000, 5, "WARRIOR")
+	assert_eq(low["STR"] - low_base["STR"], 10)
+	assert_eq(high["STR"] - high_base["STR"], 10)
+
+
+func test_shadow_combat_stats_no_gear_arg_is_unchanged() -> void:
+	assert_eq(
+		GameLogic.shadow_combat_stats(1000, 5, "MAGE", {"SEN": 0.1}),
+		GameLogic.shadow_combat_stats(1000, 5, "MAGE", {"SEN": 0.1}, {})
+	)
+
+
 func test_army_power_reads_per_shadow_trait_power_pct() -> void:
 	var plain := [{"base_power": 1000, "level": 5}]
 	var boosted := [{"base_power": 1000, "level": 5, "trait_power_pct": 0.10}]
