@@ -696,13 +696,11 @@ func stats() -> Dictionary:
 	return GameLogic.stats_from(level, subclass)
 
 
-## personal_power including equipped gear AND active armor-set bonuses
-## (Phase 2 patch 1 step 3 + patch 3). Merges gear + set stat_mods into base
-## stats (personal_power sums the whole stats dict, so these have to be
-## folded in BEFORE calling it, not passed separately like shadow_power's
-## scalar gear_stat_bonus), passes gear's power_bonus straight through, then
-## applies any active set's power%% on top (ArmorSets.apply_set_power_pct).
-func personal_power(equipment: Dictionary) -> int:
+## Raw STR/AGI/VIT/END/SEN with equipped-gear + active-set stat_mods folded
+## in -- the stat block a battle combatant is built from (§16 / combat v1
+## §10.1). NOT the power number: power_bonus and set power%% are power-only
+## concepts and stay in personal_power().
+func combat_stats(equipment: Dictionary) -> Dictionary:
 	var bonus := Equip.gear_bonus(equipped, inventory, equipment)
 	var set_bonus := ArmorSets.total_set_bonus(equipped, inventory, equipment)
 	var combined := stats().duplicate()
@@ -710,7 +708,18 @@ func personal_power(equipment: Dictionary) -> int:
 		combined[stat] = combined.get(stat, 0) + bonus["stat_mods"][stat]
 	for stat in set_bonus["stat_mods"]:
 		combined[stat] = combined.get(stat, 0) + set_bonus["stat_mods"][stat]
-	var base := GameLogic.personal_power(combined, level, bonus["power_bonus"])
+	return combined
+
+
+## personal_power including equipped gear AND active armor-set bonuses
+## (Phase 2 patch 1 step 3 + patch 3). The stat fold (gear + set stat_mods
+## into base stats) is shared with combat_stats(); on top of that number this
+## passes gear's power_bonus straight through, then applies any active set's
+## power%% (ArmorSets.apply_set_power_pct).
+func personal_power(equipment: Dictionary) -> int:
+	var bonus := Equip.gear_bonus(equipped, inventory, equipment)
+	var set_bonus := ArmorSets.total_set_bonus(equipped, inventory, equipment)
+	var base := GameLogic.personal_power(combat_stats(equipment), level, bonus["power_bonus"])
 	return GameLogic.apply_set_power_pct(base, set_bonus["power_pct"])
 
 

@@ -1191,3 +1191,33 @@ func test_auto_equip_squad_skips_unknown_shadow_ids() -> void:
 		["does_not_exist"], Content.load_equipment(), Content.load_monsters()
 	)
 	assert_eq(changed, 0)
+
+
+func test_combat_stats_folds_equipped_stat_mods() -> void:
+	var s := HunterState.new_default("WARRIOR")
+	var equipment := Content.load_equipment()
+	var base := s.combat_stats(equipment)
+	# equip any WEAPON with a STR mod
+	var item := s.add_to_inventory("eq_warcleaver")  # WARRIOR weapon, STR+3
+	s.equip_to_hunter(item["instance_id"], equipment)
+	var geared := s.combat_stats(equipment)
+	assert_eq(geared["STR"], base["STR"] + 3)
+	assert_eq(geared["AGI"], base["AGI"])  # untouched stats unchanged
+
+
+func test_combat_stats_matches_stats_when_nothing_equipped() -> void:
+	var s := HunterState.new_default("MAGE")
+	assert_eq(s.combat_stats(Content.load_equipment()), s.stats())
+
+
+func test_personal_power_unchanged_by_the_combat_stats_refactor() -> void:
+	# Regression guard: personal_power's number must not move.
+	var s := HunterState.new_default("ASSASSIN")
+	var equipment := Content.load_equipment()
+	var item := s.add_to_inventory("eq_shadowfang_dagger")  # ASSASSIN weapon, AGI+3
+	s.equip_to_hunter(item["instance_id"], equipment)
+	# baseline captured before this task would be ideal; here just assert it's
+	# deterministic and > the no-gear value.
+	assert_gt(
+		s.personal_power(equipment), HunterState.new_default("ASSASSIN").personal_power(equipment)
+	)

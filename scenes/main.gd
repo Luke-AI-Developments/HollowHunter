@@ -534,7 +534,12 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 	var synergy_bonus := _army_synergy_bonus(chosen) if apply_synergy else 0.0
 	var party := [
 		Battle.make_ally_combatant(
-			"player", state.subclass, state.level, state.stats(), "You", synergy_bonus
+			"player",
+			state.subclass,
+			state.level,
+			state.combat_stats(_equipment),
+			"You",
+			synergy_bonus
 		)
 	]
 	var portraits := {}
