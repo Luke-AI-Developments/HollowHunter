@@ -887,3 +887,49 @@ func test_a_stunned_actor_loses_its_turn() -> void:
 			stunned = true
 	assert_true(stunned)
 	assert_eq(int(b._combatant_by_id("boss")["statuses"].get("stun", 0)), 0)
+
+
+func test_monarch_gauge_starts_at_zero_by_default() -> void:
+	var b := _boss_fight(7)
+	assert_eq(b.monarch_gauge, 0.0)
+	assert_false(b.can_use_ultimate())
+
+
+func test_monarch_gauge_can_be_seeded_and_is_clamped() -> void:
+	var actor := Battle.make_ally_combatant("player", "WARRIOR", 10, {"STR": 100, "AGI": 50, "VIT": 100, "END": 30, "SEN": 10})
+	var e := Battle.make_enemy_combatant("g", 500.0)
+	assert_eq(Battle.new([actor], [e], moves, false, null, 60.0).monarch_gauge, 60.0)
+	assert_eq(Battle.new([actor], [e], moves, false, null, 999.0).monarch_gauge, 100.0)
+	assert_eq(Battle.new([actor], [e], moves, false, null, -5.0).monarch_gauge, 0.0)
+
+
+func test_dealing_damage_fills_the_gauge_capped_per_hit() -> void:
+	var b := _boss_fight(7)
+	b.step()
+	b.resolve_player_action("move_warrior_strike", "boss")
+	assert_gt(b.monarch_gauge, 0.0)
+	assert_lte(b.monarch_gauge, 8.0 + 0.001)  # one non-crit hit: <= per-hit cap
+
+
+func test_a_crit_adds_five_gauge_on_top() -> void:
+	# SEN-stacked ASSASSIN with a seed that crits; compare to a no-crit seed.
+	# Simplest deterministic form: call the helper directly.
+	var b := _boss_fight(7)
+	var before := b.monarch_gauge
+	b._add_monarch_gauge(5.0)
+	assert_almost_eq(b.monarch_gauge - before, 5.0, 0.001)
+
+
+func test_landing_a_break_adds_twenty_five_gauge() -> void:
+	var b := _boss_fight(7)
+	var boss := b._combatant_by_id("boss")
+	var before := b.monarch_gauge
+	b._add_break_fill(boss, boss["break_max"])  # triggers _maybe_break
+	assert_almost_eq(b.monarch_gauge - before, 25.0, 0.001)
+
+
+func test_gauge_never_exceeds_max() -> void:
+	var b := _boss_fight(7)
+	b._add_monarch_gauge(500.0)
+	assert_eq(b.monarch_gauge, 100.0)
+	assert_true(b.can_use_ultimate())

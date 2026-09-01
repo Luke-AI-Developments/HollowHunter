@@ -63,6 +63,14 @@ const BREAK_STUN_TURNS_LONG := 2  ## spec §5.3, v0
 const BROKEN_DAMAGE_TAKEN_MULT := 1.5  ## spec §5.3, v0: a broken boss takes
 ## x this damage from all sources
 
+## --- Monarch Gauge (spec §6.1 / §12, all v0) ------------------------------
+const MONARCH_GAUGE_MAX := 100.0  ## spec §6.1
+const MONARCH_GAUGE_PER_HIT_SCALE := 20.0  ## spec §6.1, v0:
+## += clamp(dmg / target_max_hp x this, 0, cap)
+const MONARCH_GAUGE_PER_HIT_CAP := 8.0  ## spec §6.1, v0
+const MONARCH_GAUGE_ON_CRIT := 5.0  ## spec §6.1, v0
+const MONARCH_GAUGE_ON_BREAK := 25.0  ## spec §6.1/§5.3, v0
+
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
 ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
@@ -87,6 +95,7 @@ var auto_battle: bool = false
 var is_over: bool = false
 var won: bool = false
 var player_id: String = ""
+var monarch_gauge: float = 0.0  ## spec §6: one shared party gauge, 0..MONARCH_GAUGE_MAX
 
 var _moves: Array = []
 var _rng: RandomNumberGenerator
@@ -101,13 +110,15 @@ func _init(
 	enemy_combatants: Array,
 	moves: Array,
 	auto: bool = false,
-	rng: RandomNumberGenerator = null
+	rng: RandomNumberGenerator = null,
+	initial_monarch_gauge: float = 0.0
 ) -> void:
 	party = party_combatants
 	enemies = enemy_combatants
 	_moves = moves
 	auto_battle = auto
 	_rng = rng
+	monarch_gauge = clampf(initial_monarch_gauge, 0.0, MONARCH_GAUGE_MAX)
 	if not party.is_empty():
 		player_id = party[0]["id"]
 	_build_turn_queue()
@@ -585,6 +596,16 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 			if target_type == "all_enemies" and not is_physical:
 				flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
 			_add_break_fill(target, dmg_fill + flat_fill)
+		var tmax: int = maxi(1, int(target.get("max_hp", 1)))
+		_add_monarch_gauge(
+			clampf(
+				float(actual) / float(tmax) * MONARCH_GAUGE_PER_HIT_SCALE,
+				0.0,
+				MONARCH_GAUGE_PER_HIT_CAP
+			)
+		)
+		if result["crit"]:
+			_add_monarch_gauge(MONARCH_GAUGE_ON_CRIT)
 		if target["hp"] == 0 and actor_flags.get("bloodhunger", false) and actor["hp"] > 0:
 			var heal := int(round(float(actor["max_hp"]) * BLOODHUNGER_HEAL_FRAC))
 			var hp_before: int = actor["hp"]
@@ -803,7 +824,31 @@ func _maybe_break(boss: Dictionary) -> void:
 			}
 		)
 	)
-	# Monarch Gauge credit for the Break is added in Task 4.
+	_add_monarch_gauge(MONARCH_GAUGE_ON_BREAK)
+
+
+## Spec §6.1. Offence-weighted party gauge fill. Emits a `gauge` event
+## only on a real change so the log/HUD can react.
+func _add_monarch_gauge(amount: float) -> void:
+	if is_zero_approx(amount):
+		return
+	var before := monarch_gauge
+	monarch_gauge = clampf(monarch_gauge + amount, 0.0, MONARCH_GAUGE_MAX)
+	if not is_equal_approx(before, monarch_gauge):
+		(
+			log
+			. append(
+				{
+					"type": "gauge",
+					"amount": int(round(monarch_gauge - before)),
+					"current": int(round(monarch_gauge)),
+				}
+			)
+		)
+
+
+func can_use_ultimate() -> bool:
+	return monarch_gauge >= MONARCH_GAUGE_MAX
 
 
 func _enemy_target() -> Dictionary:
