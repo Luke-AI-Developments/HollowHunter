@@ -548,19 +548,15 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 	)
 	var party_trait_ids: Array = []
 	for member: Dictionary in chosen:
-		var army_idx := state.army.find_custom(
-			func(s: Dictionary) -> bool: return s.get("instance_id", "") == member["instance_id"]
-		)
-		var shadow_equipped: Dictionary = (
-			state.army[army_idx].get("equipped", {}) if army_idx >= 0 else {}
-		)
-		var shadow_gear := Equip.gear_bonus(shadow_equipped, state.inventory, _equipment)
+		## enrich_army already merged this shadow's equipped-gear and active
+		## armour-set stat_mods per stat (spec §10.2); fold that into combat
+		## stats the same way HunterState.combat_stats does for the hunter.
 		var shadow_stats := GameLogic.shadow_combat_stats(
 			int(member["base_power"]),
 			int(member["level"]),
 			String(member["clazz"]),
 			member.get("trait_combat_pct", {}),
-			shadow_gear["stat_mods"]
+			member.get("combat_gear_stat_mods", {})
 		)
 		var member_trait_ids: Array = []
 		for t in member.get("traits", []):
@@ -618,12 +614,7 @@ func _start_gate_battle(
 	var mdef := Content.monster_by_id(_monsters, gate["monster_id"])
 	var family := String(mdef.get("family", ""))
 	var role := String(mdef.get("role", "bruiser"))
-	var atk_type := String(
-		mdef.get(
-			"atk_type",
-			"magic" if String(mdef.get("clazz", "")) in ["MAGE", "SUPPORT"] else "physical"
-		)
-	)
+	var atk_type := Content.monster_atk_type(mdef)
 	var enemies := [
 		Battle.make_enemy_combatant(
 			gate["monster_id"],
@@ -667,12 +658,7 @@ func _start_nadir_battle() -> void:
 		enemy_name = String(boss_monster.get("name", enemy_name))
 		enemy_family = String(boss_monster.get("family", ""))
 		role = String(boss_monster.get("role", "bruiser"))
-		var boss_clazz := String(boss_monster.get("clazz", ""))
-		atk_type = String(
-			boss_monster.get(
-				"atk_type", "magic" if boss_clazz in ["MAGE", "SUPPORT"] else "physical"
-			)
-		)
+		atk_type = Content.monster_atk_type(boss_monster)
 	var enemies := [
 		Battle.make_enemy_combatant(
 			"nadir_floor_%d" % floor_n,

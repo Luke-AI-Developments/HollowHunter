@@ -31,7 +31,7 @@
     {"id": "mon_sporelord", "name": "Sporelord", "rank": "C", "family": "Hollow Brood", "clazz": "MAGE", "base_power": 1100, "extract_chance": 0.13, "lore": "A mushroom-crowned brood creature."},
     {"id": "mon_broodlancer", "name": "Broodlancer", "rank": "C", "family": "Hollow Brood", "clazz": "ASSASSIN", "base_power": 1200, "extract_chance": 0.13, "lore": "A mantis impaler."},
     {"id": "mon_direwarden", "name": "Direwarden", "rank": "C", "family": "Ashen Wardens", "clazz": "WARRIOR", "base_power": 1300, "role": "armoured", "extract_chance": 0.12, "lore": "A heavy undead knight wielding a mace."},
-    {"id": "mon_snarlpack", "name": "Snarlpack Alpha", "rank": "C", "family": "Gravekin", "clazz": "SUPPORT", "base_power": 1350, "extract_chance": 0.12, "lore": "A beastfolk warleader."},
+    {"id": "mon_snarlpack", "name": "Snarlpack Alpha", "rank": "C", "family": "Gravekin", "clazz": "SUPPORT", "base_power": 1350, "atk_type": "physical", "extract_chance": 0.12, "lore": "A beastfolk warleader."},
     {"id": "mon_frostbite_sylph", "name": "Frostbite Sylph", "rank": "C", "family": "Rime Sylphs", "clazz": "MAGE", "base_power": 1000, "extract_chance": 0.14, "lore": "A biting frost fae."},
     {"id": "mon_emberling", "name": "Emberling", "rank": "C", "family": "Emberdrakes", "clazz": "ASSASSIN", "base_power": 1250, "extract_chance": 0.12, "lore": "A wyrmling."},
     {"id": "mon_grinlet", "name": "Grinlet", "rank": "C", "family": "Abyssal Fiends", "clazz": "MAGE", "base_power": 1150, "extract_chance": 0.13, "lore": "A cackling imp that teleports."},
@@ -39,7 +39,7 @@
 
     {"id": "mon_frostquill", "name": "Frostquill", "rank": "B", "family": "Rime Sylphs", "clazz": "ASSASSIN", "base_power": 2200, "extract_chance": 0.10, "lore": "A slender floating fae with icicle limbs and crystalline wings."},
     {"id": "mon_hivewarden", "name": "Hivewarden", "rank": "B", "family": "Hollow Brood", "clazz": "WARRIOR", "base_power": 2400, "extract_chance": 0.09, "lore": "A soldier-caste brood with twin scythe-arms and a plated thorax."},
-    {"id": "mon_warhowl", "name": "Warhowl", "rank": "B", "family": "Gravekin", "clazz": "SUPPORT", "base_power": 2600, "extract_chance": 0.08, "lore": "A colossal armored dire-bear war-chief."},
+    {"id": "mon_warhowl", "name": "Warhowl", "rank": "B", "family": "Gravekin", "clazz": "SUPPORT", "base_power": 2600, "atk_type": "physical", "extract_chance": 0.08, "lore": "A colossal armored dire-bear war-chief."},
     {"id": "mon_sepulcher_knight", "name": "Sepulcher Knight", "rank": "B", "family": "Ashen Wardens", "clazz": "GUARDIAN", "base_power": 2300, "role": "armoured", "extract_chance": 0.09, "lore": "An elite Ashen Warden with a tower greatshield."},
     {"id": "mon_cindermaw_drake", "name": "Cindermaw Drake", "rank": "B", "family": "Emberdrakes", "clazz": "MAGE", "base_power": 2700, "extract_chance": 0.08, "lore": "A mature drake with a heavy jaw and breath attack."},
     {"id": "mon_hollowhorn", "name": "Hollowhorn", "rank": "B", "family": "Abyssal Fiends", "clazz": "GUARDIAN", "base_power": 2500, "extract_chance": 0.08, "lore": "A horned demon brute with cracked stone skin."},
@@ -53,7 +53,7 @@
     {"id": "mon_kaeric", "name": "Kaeric, the First Warden", "rank": "A", "family": "Ashen Wardens", "clazz": "WARRIOR", "base_power": 3500, "role": "armoured", "extract_chance": 0.05, "lore": "A legendary elite Ashen Warden commander with a crowned helm and twin blades."},
     {"id": "mon_voidcaller", "name": "Voidcaller", "rank": "A", "family": "Abyssal Fiends", "clazz": "MAGE", "base_power": 4200, "extract_chance": 0.05, "lore": "A robed demon sorcerer, floating and ringed by sigils."},
     {"id": "mon_rimewarden_sovereign", "name": "Rimewarden Sovereign", "rank": "A", "family": "Rime Sylphs", "clazz": "MAGE", "base_power": 4100, "extract_chance": 0.05, "lore": "A frost-fae royalty."},
-    {"id": "mon_ashen_lord_commander", "name": "Ashen Lord Commander", "rank": "A", "family": "Ashen Wardens", "clazz": "SUPPORT", "base_power": 3900, "role": "armoured", "extract_chance": 0.05, "lore": "An undead general."},
+    {"id": "mon_ashen_lord_commander", "name": "Ashen Lord Commander", "rank": "A", "family": "Ashen Wardens", "clazz": "SUPPORT", "base_power": 3900, "role": "armoured", "atk_type": "physical", "extract_chance": 0.05, "lore": "An undead general."},
 
     {"id": "mon_xirvok", "name": "Xir'Vok, Brood Sovereign", "rank": "S", "family": "Hollow Brood", "clazz": "SUPPORT", "base_power": 9000, "extract_chance": 0.03, "boss": true, "lore": "A regal insectoid hive-monarch with crowned chitin and orbiting drones."},
     {"id": "mon_vharun", "name": "Vharun, the Cinder Wyrm", "rank": "S", "family": "Emberdrakes", "clazz": "MAGE", "base_power": 12000, "extract_chance": 0.02, "boss": true, "lore": "An apex dragon with vast wings and molten veins."},

@@ -28,6 +28,18 @@ static func monster_by_id(monsters: Array, id: String) -> Dictionary:
 	return {}
 
 
+## The attack type ("physical"/"magic") a monster's combatant should use
+## (spec §2.3 -- decides party-DEF pierce). Honours an explicit `atk_type`
+## on the monster def; otherwise MAGE/SUPPORT classes default to "magic"
+## and everything else to "physical". Shared by _start_gate_battle and
+## _start_nadir_battle so the default rule lives in one place.
+static func monster_atk_type(mdef: Dictionary) -> String:
+	var explicit := String(mdef.get("atk_type", ""))
+	if explicit != "":
+		return explicit
+	return "magic" if String(mdef.get("clazz", "")) in ["MAGE", "SUPPORT"] else "physical"
+
+
 static func monsters_by_rank(monsters: Array, rank: String) -> Array:
 	return monsters.filter(func(m: Dictionary) -> bool: return m.get("rank") == rank)
 

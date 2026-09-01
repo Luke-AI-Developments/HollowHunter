@@ -492,6 +492,9 @@ func _one_hit_damage(
 	)
 	enemy["hp"] = 100000
 	enemy["max_hp"] = 100000
+	# Pin DEF to 0 so these trait-ratio assertions measure only the trait
+	# multiplier, decoupled from ENEMY_DEF_COEFF (a sub-project-C tunable).
+	enemy["def"] = 0.0
 	var battle := Battle.new([actor], [enemy], moves, true, rng)
 	battle.step()
 	for ev in battle.log:
@@ -617,6 +620,7 @@ func test_boss_combatant_uses_boss_def_coeff_not_the_passed_grunt_role() -> void
 	var c := Battle.make_enemy_combatant("boss", 1000.0, true, "Boss", "", false, "armoured")
 	assert_almost_eq(c["def"], 1000.0 * 0.06, 0.001)  # boss coeff wins over the "armoured" arg
 	assert_eq(c["hp"], Battle.make_enemy_combatant("x", 1000.0)["hp"])  # boss keeps bruiser HP
+	assert_eq(c["role"], "boss")  # stored role matches the boss-derived stats, not the arg
 
 
 func test_magic_move_pierces_enemy_def_vs_an_armoured_target() -> void:

@@ -161,7 +161,8 @@ static func make_ally_combatant(
 ## (§16's enemy_stats). `role` is the grunt profile (spec §3.2:
 ## bruiser/skirmisher/armoured) and scales HP/SPEED/DEF; a boss ignores
 ## the passed role and takes the "boss" DEF coefficient with plain
-## (bruiser) HP/SPEED. DEF is real in v1 -- enemies no longer take full
+## (bruiser) HP/SPEED, and its stored `role` field reads "boss" to match.
+## DEF is real in v1 -- enemies no longer take full
 ## damage. `atk_type` ("physical"/"magic") decides whether this enemy's
 ## attacks pierce 60% of party DEF (spec §2.3). No crit
 ## (CombatMath.enemy_stats' own docstring already covers that).
@@ -211,7 +212,7 @@ static func make_enemy_combatant(
 		"turns_until_big_hit": BOSS_BIG_HIT_INTERVAL,
 		"family": family,
 		"elite": elite,
-		"role": role,
+		"role": "boss" if is_boss else role,
 		"atk_type": atk_type,
 		"trait_flags":
 		{

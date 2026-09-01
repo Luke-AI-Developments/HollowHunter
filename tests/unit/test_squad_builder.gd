@@ -68,6 +68,42 @@ func test_enrich_army_armor_set_bonus_raises_shadow_power() -> void:
 	assert_true(geared > baseline)
 
 
+func test_enrich_army_combat_gear_stat_mods_merges_gear_and_set() -> void:
+	# A shadow wearing 2 pieces of set_ashen_vanguard_plate (2pc bonus: VIT+6).
+	# combat_gear_stat_mods must equal the raw per-item stat_mods PLUS the
+	# active set stat_mods, so the battle party folds the set bonus into shadow
+	# combat stats the same way the hunter's HunterState.combat_stats does (I5).
+	var equipment := Content.load_equipment()
+	var inventory := [
+		{"instance_id": "i0", "equipment_def_id": "eq_ashen_vanguard_helm", "enhancement_level": 0},
+		{
+			"instance_id": "i1",
+			"equipment_def_id": "eq_ashen_vanguard_cuirass",
+			"enhancement_level": 0
+		},
+	]
+	var equipped := {"HEAD": "i0", "BODY": "i1"}
+	var shadow := _shadow("mon_ashen_warden")
+	shadow["equipped"] = equipped
+	var mods: Dictionary = (
+		SquadBuilder
+		. enrich_army([shadow], monsters, 10, equipment, inventory)[0]["combat_gear_stat_mods"]
+	)
+	var gear_only: Dictionary = Equip.gear_bonus(equipped, inventory, equipment)["stat_mods"]
+	var set_only: Dictionary = (
+		ArmorSets.total_set_bonus(equipped, inventory, equipment)["stat_mods"]
+	)
+	assert_true(int(set_only.get("VIT", 0)) == 6, "2pc set bonus is VIT+6")
+	assert_eq(int(mods.get("VIT", 0)), int(gear_only.get("VIT", 0)) + int(set_only.get("VIT", 0)))
+
+
+func test_enrich_army_combat_gear_stat_mods_is_empty_with_no_gear() -> void:
+	var enriched: Dictionary = (
+		SquadBuilder.enrich_army([_shadow("mon_ashen_warden")], monsters, 10)[0]
+	)
+	assert_eq(enriched["combat_gear_stat_mods"], {})
+
+
 func test_enrich_army_includes_grade_name() -> void:
 	var shadow := _shadow("mon_ashen_warden")
 	shadow["grade"] = "B"

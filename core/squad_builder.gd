@@ -36,6 +36,15 @@ static func enrich_army(
 			gear_stat_sum += v
 		for v in set_bonus["stat_mods"].values():
 			gear_stat_sum += v
+		## Per-stat merge of gear + active set stat_mods, for combat: the
+		## battle party folds this into shadow_combat_stats the same way the
+		## hunter's HunterState.combat_stats folds its own gear + set mods
+		## (spec §10.2 -- both sides get gear AND set stat_mods).
+		var combat_gear_stat_mods: Dictionary = gear["stat_mods"].duplicate()
+		for stat: String in set_bonus["stat_mods"]:
+			combat_gear_stat_mods[stat] = (
+				int(combat_gear_stat_mods.get(stat, 0)) + int(set_bonus["stat_mods"][stat])
+			)
 		var power := GameLogic.shadow_power(
 			monster.get("base_power", 0),
 			shadow.get("level", 1),
@@ -66,6 +75,7 @@ static func enrich_army(
 					"traits": Traits.resolve(pool, shadow.get("traits", [])),
 					"trait_power_pct": trait_power_pct,
 					"trait_combat_pct": tmods["combat_pct"],
+					"combat_gear_stat_mods": combat_gear_stat_mods,
 					"locked": shadow.get("locked", false),
 					"favorite": shadow.get("favorite", false),
 				}
