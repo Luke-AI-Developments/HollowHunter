@@ -10,6 +10,22 @@ const CUIRASS := "eq_ashen_vanguard_cuirass"
 const GAUNTLETS := "eq_ashen_vanguard_gauntlets"
 const SABATONS := "eq_ashen_vanguard_sabatons"
 
+# Combat Model v1 §10.3: the structured combat_4pc effect vocabulary.
+const _EFFECT_IDS := [
+	"stat_pct",
+	"break_contribution",
+	"focus_damage",
+	"vs_armoured",
+	"gauge_start",
+	"vulnerable_potency",
+	"healing",
+	"shield_on_turn",
+	"first_strike_crit",
+	"overdrive_on_low",
+	"cooldown_reduction",
+]
+const _STAT_IDS := ["hp", "patk", "matk", "def", "crit", "speed"]
+
 var equipment: Dictionary
 
 
@@ -137,3 +153,43 @@ func test_owned_set_counts_ignores_non_set_items() -> void:
 		{"instance_id": "i0", "equipment_def_id": "eq_warcleaver", "enhancement_level": 0}
 	]
 	assert_eq(ArmorSets.owned_set_counts(inventory, equipment_data), {})
+
+
+# --- Combat Model v1 §10.3: structured combat_4pc effects ---
+
+
+func test_every_set_has_a_valid_combat_4pc() -> void:
+	for s: Dictionary in equipment["armor_sets"]:
+		assert_true(s.has("combat_4pc"), "%s missing combat_4pc" % s.get("id", "?"))
+		var e: Dictionary = s["combat_4pc"]
+		assert_true(e["effect"] in _EFFECT_IDS, "%s bad effect %s" % [s["id"], e["effect"]])
+		if e["effect"] == "stat_pct":
+			assert_true(e["stat"] in _STAT_IDS, "%s bad stat %s" % [s["id"], e["stat"]])
+			assert_true(e["value"] is float or e["value"] is int, "%s value not numeric" % s["id"])
+
+
+func test_combat_effects_returns_the_4pc_at_four_pieces() -> void:
+	var inventory := _inventory_for(["i0", "i1", "i2", "i3"], [HELM, CUIRASS, GAUNTLETS, SABATONS])
+	var equipped := {"HEAD": "i0", "BODY": "i1", "HANDS": "i2", "FEET": "i3"}
+	var effects := ArmorSets.combat_effects(equipped, inventory, equipment)
+	assert_eq(effects.size(), 1)
+	assert_eq(effects[0]["effect"], "stat_pct")
+	assert_eq(effects[0]["stat"], "def")
+
+
+func test_combat_effects_empty_below_four_pieces() -> void:
+	var inventory := _inventory_for(["i0", "i1", "i2"], [HELM, CUIRASS, GAUNTLETS])
+	var equipped := {"HEAD": "i0", "BODY": "i1", "HANDS": "i2"}
+	assert_eq(ArmorSets.combat_effects(equipped, inventory, equipment), [])
+
+
+func test_combat_effects_empty_with_no_sets() -> void:
+	assert_eq(ArmorSets.combat_effects({}, [], Content.load_equipment()), [])
+
+
+func test_total_set_bonus_still_parses_the_text_fields() -> void:
+	var inventory := _inventory_for(["i0", "i1", "i2", "i3"], [HELM, CUIRASS, GAUNTLETS, SABATONS])
+	var equipped := {"HEAD": "i0", "BODY": "i1", "HANDS": "i2", "FEET": "i3"}
+	var bonus := ArmorSets.total_set_bonus(equipped, inventory, equipment)
+	assert_eq(bonus["stat_mods"], {"VIT": 6})
+	assert_almost_eq(bonus["power_pct"], 0.06, 0.0001)

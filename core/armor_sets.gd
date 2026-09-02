@@ -131,6 +131,23 @@ static func total_set_bonus(
 	return {"stat_mods": stat_mods, "power_pct": power_pct}
 
 
+## Spec §10.3: the STRUCTURED combat effects from every active armour set --
+## `combat_4pc` at >= PIECES_FOR_4PC pieces, `combat_2pc` at >= PIECES_FOR_2PC.
+## Each entry is a copy of the set's `{effect, ...}` object. Order follows the
+## `armor_sets` array (deterministic). Distinct from `total_set_bonus`, which
+## parses the free-form `bonus_2pc`/`bonus_4pc` TEXT for stat_mods / % power.
+static func combat_effects(equipped: Dictionary, inventory: Array, equipment: Dictionary) -> Array:
+	var counts := equipped_set_counts(equipped, inventory, equipment)
+	var out := []
+	for set_def: Dictionary in equipment.get("armor_sets", []):
+		var count: int = counts.get(set_def.get("id", ""), 0)
+		if count >= PIECES_FOR_2PC and set_def.has("combat_2pc"):
+			out.append((set_def["combat_2pc"] as Dictionary).duplicate())
+		if count >= PIECES_FOR_4PC and set_def.has("combat_4pc"):
+			out.append((set_def["combat_4pc"] as Dictionary).duplicate())
+	return out
+
+
 static func _item_by_instance(inventory: Array, instance_id: String) -> Dictionary:
 	for item: Dictionary in inventory:
 		if item.get("instance_id", "") == instance_id:
