@@ -77,6 +77,10 @@ const SKIRMISHER_EXECUTE_MULT := 1.30  ## spec §7.1, v0
 const BREAK_FILL_FOLLOWUP_DEBUFF_FRAC := 0.05  ## spec §7.1, v0:
 ## hitting an already-def-down boss adds this fraction of break_max
 
+## --- §7.2 focus-fire chain (spec §7.2 / §12, all v0) ---------------------
+const CHAIN_COUNT_CAP := 4  ## spec §7.2, v0
+const CHAIN_DAMAGE_STEP := 0.10  ## spec §7.2, v0: +this per chain_count, cap CHAIN_COUNT_CAP
+
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
 ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
@@ -102,6 +106,10 @@ var is_over: bool = false
 var won: bool = false
 var player_id: String = ""
 var monarch_gauge: float = 0.0  ## spec §6: one shared party gauge, 0..MONARCH_GAUGE_MAX
+var chain_target_id: String = ""  ## spec §7.2: the enemy the focus-fire chain is on
+var chain_count: int = 0  ## spec §7.2: consecutive cross-class hits on
+## chain_target_id, 0..CHAIN_COUNT_CAP
+var _last_chainer_class: String = ""  ## internal: class of the last party member to chain a hit
 
 var _moves: Array = []
 var _rng: RandomNumberGenerator
@@ -643,6 +651,10 @@ func _apply_move(actor: Dictionary, move_id: String, target_id: String) -> Dicti
 
 	for e: Dictionary in events:
 		log.append(e)
+	if not actor.get("is_enemy", false):
+		var move_type := String(move.get("move_type", ""))
+		if move_type not in ["physical", "magic"]:
+			_reset_chain_keep_target()
 	return _finish_check()
 
 
@@ -657,6 +669,12 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 	targets = targets.filter(func(t: Dictionary) -> bool: return not t.is_empty())
 	if targets.is_empty():
 		return []
+
+	var chain_first_target := "" if targets.is_empty() else String(targets[0]["id"])
+	var chain_mult := 1.0
+	if not actor.get("is_enemy", false):
+		chain_mult = _chain_multiplier_for(actor, chain_first_target)
+	var chain_first_target_hit := false
 
 	var is_physical := String(move.get("move_type", "")) == "physical"
 	var atk := _outgoing_atk(actor, is_physical)
@@ -686,9 +704,16 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 		var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
 		var pierce := MAGIC_DEF_PIERCE if String(move.get("move_type", "")) == "magic" else 0.0
 		var result := CombatMath.resolve_damage(
-			power * bonus_mult, atk, target_def, float(actor.get("crit_chance", 0.0)), _rng, pierce
+			power * bonus_mult * chain_mult,
+			atk,
+			target_def,
+			float(actor.get("crit_chance", 0.0)),
+			_rng,
+			pierce
 		)
 		var actual := _land_hit(actor, target, result, tag, target_type, is_physical)
+		if String(target["id"]) == chain_first_target and actual > 0:
+			chain_first_target_hit = true
 		if (
 			target.get("is_boss", false)
 			and target.has("break_max")
@@ -707,6 +732,11 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 			target["poison_damage"] = int(round(atk * POISON_DAMAGE_SCALE))
 			if target.get("is_boss", false) and target.has("break_max"):
 				_add_break_fill(target, float(target["break_max"]) * BREAK_FILL_DEBUFF_FRAC)
+	if not actor.get("is_enemy", false) and chain_first_target != "":
+		if chain_first_target_hit:
+			_advance_chain(String(actor.get("class", "")), chain_first_target)
+		else:
+			_reset_chain_keep_target()
 	_resolve_applied_status(move, targets)
 	return events
 
@@ -933,6 +963,32 @@ func _apply_shield(target: Dictionary, damage: int) -> int:
 	var absorbed := mini(shield, damage)
 	target["shield_hp"] = shield - absorbed
 	return damage - absorbed
+
+
+## Spec §7.2: the damage multiplier for a party hit whose first target is
+## `first_target_id`, from the CURRENT chain_count. 1.0 for a fresh chain
+## (count 0). _advance_chain() does the state transition afterwards.
+func _chain_multiplier_for(_actor: Dictionary, first_target_id: String) -> float:
+	if first_target_id != chain_target_id:
+		return 1.0
+	return 1.0 + CHAIN_DAMAGE_STEP * float(mini(chain_count, CHAIN_COUNT_CAP))
+
+
+## Spec §7.2 state transition after a party member damages an enemy.
+func _advance_chain(actor_class: String, damaged_target_id: String) -> void:
+	if damaged_target_id == chain_target_id and actor_class != _last_chainer_class:
+		chain_count = mini(chain_count + 1, CHAIN_COUNT_CAP)
+	else:
+		chain_target_id = damaged_target_id
+		chain_count = 0
+	_last_chainer_class = actor_class
+
+
+## Spec §7.2: a party turn that dealt no damage to chain_target_id keeps the
+## target but drops the count and the last-chainer lock.
+func _reset_chain_keep_target() -> void:
+	chain_count = 0
+	_last_chainer_class = ""
 
 
 ## Adds `amount` (may be negative-safe: it is clamped) to a boss's break

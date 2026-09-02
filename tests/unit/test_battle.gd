@@ -1141,3 +1141,104 @@ func test_hitting_a_weakened_boss_adds_followup_break_fill() -> void:
 	var fill := float(b._combatant_by_id("boss")["break_current"])
 	assert_gt(fill, float(_last_damage(b)) * 0.5 + 0.01)
 	assert_almost_eq(fill, float(_last_damage(b)) * 0.5 + float(bc["break_max"]) * 0.05, 1.5)
+
+
+func _two_class_party() -> Array:
+	# WARRIOR "player" + one ASSASSIN shadow, both fast, high STR/AGI.
+	return [
+		Battle.make_ally_combatant(
+			"player", "WARRIOR", 15, {"STR": 300, "AGI": 200, "VIT": 250, "END": 60, "SEN": 10}
+		),
+		Battle.make_ally_combatant(
+			"s_assassin", "ASSASSIN", 15, {"STR": 260, "AGI": 260, "VIT": 200, "END": 50, "SEN": 40}
+		),
+	]
+
+
+func test_cross_class_hits_on_the_same_target_build_the_chain() -> void:
+	# Unit-level: _advance_chain is exercised directly (the seeded turn-order
+	# drive in the brief's draft was replaced -- see task-3-report.md).
+	var b := Battle.new(
+		_two_class_party(),
+		[Battle.make_enemy_combatant("boss", 40000.0, true, "Boss")],
+		moves,
+		true,
+		_seeded_rng(4)
+	)
+	b._advance_chain("WARRIOR", "boss")  # first hit opens the chain
+	assert_eq(b.chain_count, 0)
+	assert_eq(b.chain_target_id, "boss")
+	b._advance_chain("ASSASSIN", "boss")  # 2nd cross-class hit on the same target
+	assert_eq(b.chain_count, 1)
+
+
+func test_chain_multiplier_scales_damage_and_caps_at_four() -> void:
+	# Unit-level: poke chain_count and confirm the multiplier the engine would use.
+	var b := Battle.new(
+		_two_class_party(),
+		[Battle.make_enemy_combatant("boss", 40000.0, true)],
+		moves,
+		true,
+		_seeded_rng(4)
+	)
+	b.chain_target_id = "boss"
+	b.chain_count = 0
+	assert_almost_eq(b._chain_multiplier_for(b._combatant_by_id("player"), "boss"), 1.0, 0.001)
+	b.chain_count = 3
+	assert_almost_eq(b._chain_multiplier_for(b._combatant_by_id("player"), "boss"), 1.30, 0.001)
+	b.chain_count = 9  # cap
+	assert_almost_eq(b._chain_multiplier_for(b._combatant_by_id("player"), "boss"), 1.40, 0.001)
+
+
+func test_same_class_repeat_resets_chain_count_keeps_target() -> void:
+	var b := Battle.new(
+		_two_class_party(),
+		[Battle.make_enemy_combatant("boss", 40000.0, true)],
+		moves,
+		true,
+		_seeded_rng(4)
+	)
+	b._advance_chain("WARRIOR", "boss")  # open
+	b._advance_chain("ASSASSIN", "boss")  # cross-class -> count 1
+	assert_eq(b.chain_count, 1)
+	b._advance_chain("ASSASSIN", "boss")  # same class -> reset count, keep target
+	assert_eq(b.chain_count, 0)
+	assert_eq(b.chain_target_id, "boss")
+
+
+func test_switching_target_starts_a_new_chain() -> void:
+	var b := (
+		Battle
+		. new(
+			_two_class_party(),
+			[
+				Battle.make_enemy_combatant("a", 40000.0, true),
+				Battle.make_enemy_combatant("bb", 40000.0, true),
+			],
+			moves,
+			true,
+			_seeded_rng(4)
+		)
+	)
+	b._advance_chain("WARRIOR", "a")
+	b._advance_chain("ASSASSIN", "a")
+	assert_eq(b.chain_count, 1)
+	b._advance_chain("WARRIOR", "bb")
+	assert_eq(b.chain_target_id, "bb")
+	assert_eq(b.chain_count, 0)
+
+
+func test_a_non_damage_party_turn_resets_chain_count() -> void:
+	var b := Battle.new(
+		_two_class_party(),
+		[Battle.make_enemy_combatant("boss", 40000.0, true)],
+		moves,
+		true,
+		_seeded_rng(4)
+	)
+	b._advance_chain("WARRIOR", "boss")
+	b._advance_chain("ASSASSIN", "boss")
+	assert_eq(b.chain_count, 1)
+	b._reset_chain_keep_target()
+	assert_eq(b.chain_count, 0)
+	assert_eq(b.chain_target_id, "boss")
