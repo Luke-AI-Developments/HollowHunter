@@ -100,6 +100,10 @@ static func on_turn(battle: Battle, boss: Dictionary) -> bool:
 			return _berserker_turn(battle, boss)
 		"colossus":
 			return _colossus_turn(battle, boss)
+		"warden":
+			return _warden_turn(battle, boss)
+		"hexer":
+			return _hexer_turn(battle, boss)
 		_:
 			return false
 
@@ -111,6 +115,15 @@ static func on_phase(battle: Battle, boss: Dictionary) -> void:
 			# §4.1 on-phase: the Fury cap bump is automatic (rising_fury_mult
 			# reads `phase`); the free Immolate fires here.
 			_boss_signature_hit(battle, boss, BOSS_KITS["berserker"]["signature_power"])
+		"warden":
+			# §4.2 on-phase: Bastion fires immediately, ignoring the once-per-phase
+			# gate; mark the phase used so the ability check does not re-fire it.
+			_bastion(battle, boss)
+			boss["_bastion_phase_used"] = int(boss.get("phase", 1))
+		"hexer":
+			# §4.4 on-phase: Doom's deeper atk-down (x0.65) and tighter cadence are
+			# read live from `phase` at Doom time -- nothing to fire here.
+			pass
 		_:
 			# colossus §4.5 on-phase: Avalanche cadence -> every 3t is already
 			# handled -- _boss_telegraph_interval reads `phase`.
@@ -197,6 +210,102 @@ static func _colossus_turn(battle: Battle, boss: Dictionary) -> bool:
 	if not target.is_empty():
 		battle.boss_strike(boss, target, 1.0)
 	return true
+
+
+## §4.2 Warden turn. Ability FIRST: when its own HP is under bastion_hp_gate and
+## Bastion has not fired this phase, cast Bastion (that IS the turn). Otherwise
+## telegraph (every telegraph_interval turns): Shield Bash = signature_power x a
+## hit on the lowest-HP party member, plus a 1t stun on it. Every other turn is a
+## plain basic attack. Always owns the turn -> returns true.
+static func _warden_turn(battle: Battle, boss: Dictionary) -> bool:
+	var kit_turn := int(boss.get("_kit_turn", 0)) + 1
+	boss["_kit_turn"] = kit_turn
+	var phase := int(boss.get("phase", 1))
+	if (
+		battle._hp_fraction(boss) < float(BOSS_KITS["warden"]["bastion_hp_gate"])
+		and int(boss.get("_bastion_phase_used", 0)) != phase
+	):
+		_bastion(battle, boss)
+		boss["_bastion_phase_used"] = phase
+		return true
+	var tele := int(boss.get("turns_until_big_hit", BOSS_KITS["warden"]["telegraph_interval"]))
+	if tele <= 0:
+		var t := battle._enemy_target()
+		if not t.is_empty():
+			battle.boss_strike(boss, t, float(BOSS_KITS["warden"]["signature_power"]))
+			if int(t.get("hp", 0)) > 0:
+				battle.apply_status(t, "stun", 1)
+		boss["turns_until_big_hit"] = battle._boss_telegraph_interval(boss)
+		return true
+	boss["turns_until_big_hit"] = tele - 1
+	var target := battle._enemy_target()
+	if not target.is_empty():
+		battle.boss_strike(boss, target, 1.0)
+	return true
+
+
+## §4.2 Bastion: self def-buff x bastion_def_mult for bastion_turns AND a full
+## self-cleanse (wipe `statuses`, clear any atk-down). Used by the once-per-phase
+## ability check and, unconditionally, by the on-phase hook.
+static func _bastion(battle: Battle, boss: Dictionary) -> void:
+	var kit: Dictionary = BOSS_KITS["warden"]
+	var def_mult := maxf(float(boss.get("def_multiplier", 1.0)), float(kit["bastion_def_mult"]))
+	boss["def_multiplier"] = def_mult
+	boss["def_mod_turns"] = int(kit["bastion_turns"])
+	boss["statuses"] = {}
+	boss["atk_multiplier"] = maxf(float(boss.get("atk_multiplier", 1.0)), 1.0)
+	boss["atk_buff_turns"] = 0
+	battle.log.append({"type": "bastion", "actor_id": boss["id"]})
+
+
+## §4.4 Hexer turn. Telegraph (every telegraph_interval turns): Doom (party-wide,
+## see _doom). Otherwise, on every siphon_interval-th kit-turn: Siphon = drain
+## siphon_frac of one party member's current HP and self-heal the same. Every
+## other turn is a basic attack that, on even kit-turns (Withering Aura), also
+## lands an atk-down on the target. Always owns the turn -> returns true.
+static func _hexer_turn(battle: Battle, boss: Dictionary) -> bool:
+	var kit_turn := int(boss.get("_kit_turn", 0)) + 1
+	boss["_kit_turn"] = kit_turn
+	var kit: Dictionary = BOSS_KITS["hexer"]
+	var tele := int(boss.get("turns_until_big_hit", kit["telegraph_interval"]))
+	if tele <= 0:
+		_doom(battle, boss)
+		boss["turns_until_big_hit"] = battle._boss_telegraph_interval(boss)
+		return true
+	boss["turns_until_big_hit"] = tele - 1
+	if kit_turn % int(kit["siphon_interval"]) == 0:
+		var t := battle._enemy_target()
+		if not t.is_empty():
+			var drain := int(round(float(t["hp"]) * float(kit["siphon_frac"])))
+			t["hp"] = maxi(0, int(t["hp"]) - drain)
+			boss["hp"] = mini(int(boss["max_hp"]), int(boss["hp"]) + drain)
+			battle.log.append(
+				{"type": "siphon", "actor_id": boss["id"], "target_id": t["id"], "amount": drain}
+			)
+		return true
+	var target := battle._enemy_target()
+	if not target.is_empty():
+		battle.boss_strike(boss, target, 1.0)
+		if kit_turn % 2 == 0 and int(target.get("hp", 0)) > 0:
+			target["atk_multiplier"] = float(kit["atkdown_mult"])
+			target["atk_buff_turns"] = int(kit["atkdown_turns"])
+	return true
+
+
+## §4.4 Doom: hit every living party member at doom_power, then land an atk-down
+## on each survivor (atkdown_mult, or the deeper atkdown_mult_phase2 once the boss
+## is in phase 2), for atkdown_turns.
+static func _doom(battle: Battle, boss: Dictionary) -> void:
+	var kit: Dictionary = BOSS_KITS["hexer"]
+	var mult := float(kit["atkdown_mult"])
+	if int(boss.get("phase", 1)) == 2:
+		mult = float(kit["atkdown_mult_phase2"])
+	for c in battle.living_party():
+		battle.boss_strike(boss, c, float(kit["doom_power"]))
+	for c in battle.living_party():
+		c["atk_multiplier"] = mult
+		c["atk_buff_turns"] = int(kit["atkdown_turns"])
+	battle.log.append({"type": "doom", "actor_id": boss["id"], "atkdown": mult})
 
 
 ## Called from Battle._land_hit before a lethal blow is written. Returns true

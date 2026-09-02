@@ -305,6 +305,9 @@ static func make_enemy_combatant(
 			var col: Dictionary = BossKits.BOSS_KITS["colossus"]
 			c["speed"] = int(round(float(c["speed"]) * float(col["speed_mult"])))
 			c["break_max"] = float(c["break_max"]) * float(col["break_max_mult"])
+		if kit == "warden":
+			# Bulwark (spec 4.2): DEF x1.4 baked here; physical break-resist is in _land_hit.
+			c["def"] = float(c["def"]) * float(BossKits.BOSS_KITS["warden"]["def_mult"])
 	return c
 
 
@@ -937,7 +940,10 @@ func _land_hit(
 			flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
 		if target_type == "all_enemies" and not is_physical:
 			flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
-		_add_break_fill(target, dmg_fill + flat_fill)
+		var bulwark := 1.0
+		if is_physical and String(target.get("kit", "")) == "warden":
+			bulwark = float(BossKits.BOSS_KITS["warden"]["break_phys_mult"])  ## §4.2 Bulwark
+		_add_break_fill(target, (dmg_fill + flat_fill) * bulwark)
 	var tmax: int = maxi(1, int(target.get("max_hp", 1)))
 	_add_monarch_gauge(
 		clampf(

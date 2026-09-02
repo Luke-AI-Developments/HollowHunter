@@ -217,3 +217,206 @@ func test_colossus_kit_bakes_slower_speed_and_a_bigger_break_bar() -> void:
 	assert_almost_eq(
 		float(col["break_max"]), float(plain["break_max"]) * float(col_kit["break_max_mult"]), 0.5
 	)
+
+
+func _warden(id: String) -> Dictionary:
+	return Battle.make_enemy_combatant(
+		id, 1200.0, true, "Boss", "Ashen Wardens", true, "bruiser", "physical", "warden", true
+	)
+
+
+func _hexer(id: String) -> Dictionary:
+	return Battle.make_enemy_combatant(
+		id, 1200.0, true, "Boss", "Abyssal Fiends", true, "bruiser", "physical", "hexer", true
+	)
+
+
+func _count_events(b: Battle, kind: String) -> int:
+	var n := 0
+	for ev in b.log:
+		if ev.get("type", "") == kind:
+			n += 1
+	return n
+
+
+func test_warden_kit_bakes_def_x1_4() -> void:
+	var warden := _warden("w")
+	var plain := Battle.make_enemy_combatant("p", 1200.0, true, "P")
+	assert_almost_eq(
+		float(warden["def"]),
+		float(plain["def"]) * float(BossKits.BOSS_KITS["warden"]["def_mult"]),
+		0.01
+	)
+
+
+func test_bulwark_softens_physical_break_fill_but_not_magic() -> void:
+	var b := Battle.new(
+		[_ally("p", "WARRIOR")],
+		[_warden("w"), Battle.make_enemy_combatant("q", 1200.0, true, "Q")],
+		moves,
+		true,
+		_seeded_rng(2)
+	)
+	var w := b._combatant_by_id("w")
+	var q := b._combatant_by_id("q")
+	var actor := b._combatant_by_id("p")
+	var hit := {"damage": 400, "crit": false}
+	b._land_hit(actor, w, hit, "", "", true)
+	b._land_hit(actor, q, hit, "", "", true)
+	assert_almost_eq(
+		float(w["break_current"]),
+		float(q["break_current"]) * float(BossKits.BOSS_KITS["warden"]["break_phys_mult"]),
+		0.01
+	)
+	w["break_current"] = 0.0
+	q["break_current"] = 0.0
+	b._land_hit(actor, w, hit, "", "", false)
+	b._land_hit(actor, q, hit, "", "", false)
+	assert_almost_eq(float(w["break_current"]), float(q["break_current"]), 0.01)
+
+
+func test_shield_bash_stuns_the_lowest_hp_party_member_on_a_telegraph_turn() -> void:
+	var b := Battle.new(
+		[_ally("p1", "WARRIOR"), _ally("p2", "WARRIOR")],
+		[_warden("w")],
+		moves,
+		true,
+		_seeded_rng(3)
+	)
+	var w := b._combatant_by_id("w")
+	var lo := b._combatant_by_id("p2")
+	lo["hp"] = int(lo["max_hp"] * 0.5)
+	var lo_before: int = lo["hp"]
+	var hi_before: int = b._combatant_by_id("p1")["hp"]
+	w["turns_until_big_hit"] = 0
+	assert_true(BossKits.on_turn(b, w))
+	assert_lt(int(lo["hp"]), lo_before)
+	assert_eq(int(b._combatant_by_id("p1")["hp"]), hi_before)
+	assert_true(b.has_status(lo, "stun"))
+
+
+func test_bastion_fires_under_60_percent_and_self_cleanses() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_warden("w")], moves, true, _seeded_rng(4))
+	var w := b._combatant_by_id("w")
+	w["hp"] = int(w["max_hp"] * 0.5)
+	w["statuses"] = {"stun": 2, "vulnerable": 3}
+	w["atk_multiplier"] = 0.8
+	w["atk_buff_turns"] = 2
+	assert_true(BossKits.on_turn(b, w))
+	assert_true((w["statuses"] as Dictionary).is_empty())
+	assert_almost_eq(
+		float(w["def_multiplier"]), float(BossKits.BOSS_KITS["warden"]["bastion_def_mult"]), 0.001
+	)
+	assert_eq(int(w["def_mod_turns"]), int(BossKits.BOSS_KITS["warden"]["bastion_turns"]))
+	assert_almost_eq(float(w["atk_multiplier"]), 1.0, 0.001)
+	assert_eq(_count_events(b, "bastion"), 1)
+
+
+func test_bastion_fires_only_once_per_phase() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_warden("w")], moves, true, _seeded_rng(5))
+	var w := b._combatant_by_id("w")
+	w["hp"] = int(w["max_hp"] * 0.5)
+	BossKits.on_turn(b, w)
+	assert_eq(_count_events(b, "bastion"), 1)
+	w["hp"] = int(w["max_hp"] * 0.5)
+	BossKits.on_turn(b, w)
+	assert_eq(_count_events(b, "bastion"), 1, "a second sub-60% turn must not re-fire Bastion")
+
+
+func test_warden_on_phase_fires_bastion_immediately() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_warden("w")], moves, true, _seeded_rng(6))
+	var w := b._combatant_by_id("w")
+	w["hp"] = int(w["max_hp"] * 0.9)  # above the 60% gate -- on_phase ignores it
+	w["phase"] = 2
+	w["statuses"] = {"stun": 1}
+	BossKits.on_phase(b, w)
+	assert_true((w["statuses"] as Dictionary).is_empty())
+	assert_almost_eq(
+		float(w["def_multiplier"]), float(BossKits.BOSS_KITS["warden"]["bastion_def_mult"]), 0.001
+	)
+	assert_eq(int(w.get("_bastion_phase_used", 0)), 2)
+	w["hp"] = int(w["max_hp"] * 0.4)
+	BossKits.on_turn(b, w)
+	assert_eq(_count_events(b, "bastion"), 1, "on-phase Bastion consumes the phase's ability slot")
+
+
+func test_doom_hits_every_living_party_member_and_atk_downs_all() -> void:
+	var b := Battle.new(
+		[_ally("p1", "WARRIOR"), _ally("p2", "WARRIOR"), _ally("p3", "WARRIOR")],
+		[_hexer("h")],
+		moves,
+		true,
+		_seeded_rng(7)
+	)
+	var h := b._combatant_by_id("h")
+	var before := {}
+	for pid in ["p1", "p2", "p3"]:
+		before[pid] = int(b._combatant_by_id(pid)["hp"])
+	h["turns_until_big_hit"] = 0
+	assert_true(BossKits.on_turn(b, h))
+	for pid in ["p1", "p2", "p3"]:
+		var c := b._combatant_by_id(pid)
+		assert_lt(int(c["hp"]), int(before[pid]), "%s took Doom damage" % pid)
+		assert_almost_eq(
+			float(c["atk_multiplier"]), float(BossKits.BOSS_KITS["hexer"]["atkdown_mult"]), 0.001
+		)
+		assert_eq(int(c["atk_buff_turns"]), int(BossKits.BOSS_KITS["hexer"]["atkdown_turns"]))
+	assert_eq(_count_events(b, "doom"), 1)
+
+
+func test_doom_atk_down_is_deeper_in_phase_2() -> void:
+	var b := Battle.new(
+		[_ally("p1", "WARRIOR"), _ally("p2", "WARRIOR")], [_hexer("h")], moves, true, _seeded_rng(8)
+	)
+	var h := b._combatant_by_id("h")
+	h["phase"] = 2
+	h["turns_until_big_hit"] = 0
+	BossKits.on_turn(b, h)
+	for pid in ["p1", "p2"]:
+		assert_almost_eq(
+			float(b._combatant_by_id(pid)["atk_multiplier"]),
+			float(BossKits.BOSS_KITS["hexer"]["atkdown_mult_phase2"]),
+			0.001
+		)
+
+
+func test_siphon_drains_8_percent_of_a_party_member_and_heals_the_boss() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_hexer("h")], moves, true, _seeded_rng(9))
+	var h := b._combatant_by_id("h")
+	var p := b._combatant_by_id("p")
+	h["hp"] = int(h["max_hp"] * 0.5)
+	var boss_before: int = h["hp"]
+	var p_before: int = p["hp"]
+	var frac := float(BossKits.BOSS_KITS["hexer"]["siphon_frac"])
+	var expected_drain := int(round(float(p_before) * frac))
+	h["_kit_turn"] = 2  # next kit-turn 3 -> Siphon
+	h["turns_until_big_hit"] = 5  # keep it off the telegraph
+	assert_true(BossKits.on_turn(b, h))
+	assert_eq(int(p["hp"]), p_before - expected_drain)
+	assert_eq(int(h["hp"]), boss_before + expected_drain)
+	var siphoned := false
+	for ev in b.log:
+		if ev.get("type", "") == "siphon" and int(ev.get("amount", 0)) == expected_drain:
+			siphoned = true
+	assert_true(siphoned)
+
+
+func test_withering_aura_atk_downs_the_target_on_an_even_non_telegraph_turn() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_hexer("h")], moves, true, _seeded_rng(10))
+	var h := b._combatant_by_id("h")
+	var p := b._combatant_by_id("p")
+	h["_kit_turn"] = 1  # next kit-turn 2: even, not a telegraph, 2 % 3 != 0
+	h["turns_until_big_hit"] = 5
+	var p_before: int = p["hp"]
+	assert_true(BossKits.on_turn(b, h))
+	assert_lt(int(p["hp"]), p_before)
+	assert_almost_eq(
+		float(p["atk_multiplier"]), float(BossKits.BOSS_KITS["hexer"]["atkdown_mult"]), 0.001
+	)
+	assert_eq(int(p["atk_buff_turns"]), int(BossKits.BOSS_KITS["hexer"]["atkdown_turns"]))
+	p["atk_multiplier"] = 1.0
+	p["atk_buff_turns"] = 0
+	h["_kit_turn"] = 4  # next kit-turn 5: odd, 5 % 3 != 0 -> plain basic, no fresh atk-down
+	h["turns_until_big_hit"] = 5
+	assert_true(BossKits.on_turn(b, h))
+	assert_almost_eq(float(p["atk_multiplier"]), 1.0, 0.001)
