@@ -271,6 +271,7 @@ static func make_enemy_combatant(
 		"poison_damage": 0,
 		"shield_hp": 0,
 		"turns_until_big_hit": BOSS_BIG_HIT_INTERVAL,
+		"base_power": base_power,
 		"family": family,
 		"elite": elite,
 		"role": "boss" if is_boss else role,
@@ -668,6 +669,38 @@ func boss_strike(boss: Dictionary, target: Dictionary, power: float, apply_burn 
 	if target.get("is_boss", false) and target.get("is_multiphase", false):
 		_check_phase_transition(target)
 	return actual
+
+
+## Spec §4.3 Broodmother Spawn: append one fresh skirmisher grunt to the
+## enemy row, derived from `boss.base_power` x the kit's `spawn_power_frac`.
+## Its id joins `turn_queue` directly (NOT via _build_turn_queue -- that would
+## re-grant turns mid-round). Returns the new combatant, or {} when the +2-add
+## cap is hit or the row already holds 4 living enemies. Adds are counted by
+## an `_add_` id fragment; `_add_count` on the boss keeps ids unique.
+func spawn_add(boss: Dictionary) -> Dictionary:
+	var kit: Dictionary = BossKits.BOSS_KITS["broodmother"]
+	var alive_adds := 0
+	for e: Dictionary in enemies:
+		if String(e.get("id", "")).find("_add_") != -1 and int(e.get("hp", 0)) > 0:
+			alive_adds += 1
+	if alive_adds >= int(kit["spawn_cap"]) or living_enemies().size() >= 4:
+		return {}
+	var n := int(boss.get("_add_count", 0)) + 1
+	boss["_add_count"] = n
+	var add := Battle.make_enemy_combatant(
+		"%s_add_%d" % [String(boss["id"]), n],
+		float(boss.get("base_power", 0.0)) * float(kit["spawn_power_frac"]),
+		false,
+		"Brood Spawn",
+		String(boss.get("family", "")),
+		false,
+		"skirmisher",
+		"physical"
+	)
+	enemies.append(add)
+	turn_queue.append(add["id"])
+	log.append({"type": "spawn", "actor_id": String(boss["id"]), "add_id": add["id"]})
+	return add
 
 
 func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:

@@ -420,3 +420,132 @@ func test_withering_aura_atk_downs_the_target_on_an_even_non_telegraph_turn() ->
 	h["turns_until_big_hit"] = 5
 	assert_true(BossKits.on_turn(b, h))
 	assert_almost_eq(float(p["atk_multiplier"]), 1.0, 0.001)
+
+
+func _broodmother(id: String) -> Dictionary:
+	return Battle.make_enemy_combatant(
+		id, 1200.0, true, "Boss", "Hollow Brood", true, "bruiser", "physical", "broodmother", true
+	)
+
+
+func test_make_enemy_combatant_stashes_base_power() -> void:
+	assert_almost_eq(float(Battle.make_enemy_combatant("x", 1234.0)["base_power"]), 1234.0, 0.01)
+
+
+func test_devour_telegraph_hits_lowest_hp_and_lifesteals_for_the_boss() -> void:
+	var b := Battle.new(
+		[_ally("p1", "WARRIOR"), _ally("p2", "WARRIOR")],
+		[_broodmother("boss")],
+		moves,
+		true,
+		_seeded_rng(3)
+	)
+	var bc := b._combatant_by_id("boss")
+	var lo := b._combatant_by_id("p2")
+	lo["hp"] = int(lo["max_hp"] * 0.6)  # lowest-HP, but survives a 2.0x Devour
+	bc["hp"] = int(bc["max_hp"] * 0.5)  # room to lifesteal without capping at max
+	var boss_before: int = bc["hp"]
+	var lo_before: int = lo["hp"]
+	var hi_before: int = b._combatant_by_id("p1")["hp"]
+	bc["turns_until_big_hit"] = 0
+	assert_true(BossKits.on_turn(b, bc))
+	assert_lt(int(lo["hp"]), lo_before)  # Devour hit the lowest-HP member
+	assert_eq(int(b._combatant_by_id("p1")["hp"]), hi_before)  # not the healthy one
+	var dmg := lo_before - int(lo["hp"])
+	var frac := float(BossKits.BOSS_KITS["broodmother"]["devour_heal_frac"])
+	var expected_heal := int(round(float(dmg) * frac))
+	assert_eq(int(bc["hp"]), boss_before + expected_heal)
+	var logged := false
+	for ev in b.log:
+		if ev.get("type", "") == "devour_heal" and ev["actor_id"] == "boss":
+			logged = true
+			assert_eq(int(ev["amount"]), expected_heal)
+	assert_true(logged)
+
+
+func test_spawn_adds_a_brood_skirmisher_and_queues_it() -> void:
+	var b := Battle.new(
+		[_ally("p", "WARRIOR")], [_broodmother("boss")], moves, true, _seeded_rng(5)
+	)
+	var bc := b._combatant_by_id("boss")
+	var add := b.spawn_add(bc)
+	assert_false(add.is_empty())
+	assert_eq(String(add["name"]), "Brood Spawn")
+	assert_eq(String(add["role"]), "skirmisher")
+	assert_false(bool(add["is_boss"]))
+	assert_true(b.enemies.has(add))
+	assert_true(b.turn_queue.has(add["id"]))
+	assert_almost_eq(
+		float(add["base_power"]),
+		float(bc["base_power"]) * float(BossKits.BOSS_KITS["broodmother"]["spawn_power_frac"]),
+		0.01
+	)
+
+
+func test_spawn_is_capped_at_two_living_adds() -> void:
+	var b := Battle.new(
+		[_ally("p", "WARRIOR")], [_broodmother("boss")], moves, true, _seeded_rng(6)
+	)
+	var bc := b._combatant_by_id("boss")
+	assert_false(b.spawn_add(bc).is_empty())
+	assert_false(b.spawn_add(bc).is_empty())
+	assert_true(b.spawn_add(bc).is_empty(), "a 3rd add past the +2 cap is skipped")
+	assert_eq(b.living_enemies().size(), 3)  # boss + 2 adds
+
+
+func test_spawn_is_skipped_when_the_enemy_row_is_full() -> void:
+	var row := [
+		_broodmother("boss"),
+		Battle.make_enemy_combatant("g1", 400.0),
+		Battle.make_enemy_combatant("g2", 400.0),
+		Battle.make_enemy_combatant("g3", 400.0),
+	]
+	var b := Battle.new([_ally("p", "WARRIOR")], row, moves, true, _seeded_rng(7))
+	var bc := b._combatant_by_id("boss")
+	assert_eq(b.living_enemies().size(), 4)
+	assert_true(b.spawn_add(bc).is_empty())
+	assert_eq(b.enemies.size(), 4)
+
+
+func test_on_phase_fires_an_immediate_double_spawn() -> void:
+	var b := Battle.new(
+		[_ally("p", "WARRIOR")], [_broodmother("boss")], moves, true, _seeded_rng(8)
+	)
+	var bc := b._combatant_by_id("boss")
+	BossKits.on_phase(b, bc)
+	var adds := b.enemies.filter(
+		func(e: Dictionary) -> bool: return String(e["id"]).find("_add_") != -1
+	)
+	assert_eq(adds.size(), 2)
+
+
+func test_a_spawned_add_actually_gets_a_turn_when_the_battle_is_stepped() -> void:
+	# A beefy boss so the party cannot end the fight before the add's first turn;
+	# the Broodmother's own kit-turn 1 is a Spawn (not an attack), so nobody is hurt.
+	var boss := Battle.make_enemy_combatant(
+		"boss",
+		9000.0,
+		true,
+		"Boss",
+		"Hollow Brood",
+		false,
+		"bruiser",
+		"physical",
+		"broodmother",
+		false
+	)
+	var b := Battle.new(
+		[_ally("p1", "WARRIOR"), _ally("p2", "WARRIOR")], [boss], moves, true, _seeded_rng(9)
+	)
+	var add := b.spawn_add(b._combatant_by_id("boss"))
+	assert_false(add.is_empty())
+	assert_true(b.turn_queue.has(add["id"]))  # appended directly, not via _build_turn_queue
+	var acted := false
+	for _i in range(8):
+		if b.is_over:
+			break
+		b.step()
+		for ev in b.log:
+			if ev.get("type", "") == "enemy_attack" and ev.get("actor_id", "") == add["id"]:
+				acted = true
+	assert_true(acted, "the freshly-appended add is popped off turn_queue and takes its turn")

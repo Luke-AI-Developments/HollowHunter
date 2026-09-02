@@ -104,6 +104,8 @@ static func on_turn(battle: Battle, boss: Dictionary) -> bool:
 			return _warden_turn(battle, boss)
 		"hexer":
 			return _hexer_turn(battle, boss)
+		"broodmother":
+			return _broodmother_turn(battle, boss)
 		_:
 			return false
 
@@ -124,6 +126,11 @@ static func on_phase(battle: Battle, boss: Dictionary) -> void:
 			# §4.4 on-phase: Doom's deeper atk-down (x0.65) and tighter cadence are
 			# read live from `phase` at Doom time -- nothing to fire here.
 			pass
+		"broodmother":
+			# §4.3 on-phase: an immediate Spawn x2. The 2nd is a no-op if the +2
+			# cap or the 4-enemy row limit is already hit -- spawn_add guards both.
+			battle.spawn_add(boss)
+			battle.spawn_add(boss)
 		_:
 			# colossus §4.5 on-phase: Avalanche cadence -> every 3t is already
 			# handled -- _boss_telegraph_interval reads `phase`.
@@ -306,6 +313,36 @@ static func _doom(battle: Battle, boss: Dictionary) -> void:
 		c["atk_multiplier"] = mult
 		c["atk_buff_turns"] = int(kit["atkdown_turns"])
 	battle.log.append({"type": "doom", "actor_id": boss["id"], "atkdown": mult})
+
+
+## §4.3 Broodmother turn. Telegraph (every telegraph_interval turns): Devour =
+## signature_power x a hit on the lowest-HP party member; the boss then heals
+## devour_heal_frac of the HP actually removed. Off-telegraph, on every
+## spawn_interval-th kit-turn STAGGERED from the telegraph (kit_turn % 3 == 1):
+## Spawn one skirmisher add (capped by spawn_add). Every other turn is a plain
+## basic attack. Always owns the turn -> returns true.
+static func _broodmother_turn(battle: Battle, boss: Dictionary) -> bool:
+	var kit_turn := int(boss.get("_kit_turn", 0)) + 1
+	boss["_kit_turn"] = kit_turn
+	var kit: Dictionary = BOSS_KITS["broodmother"]
+	var tele := int(boss.get("turns_until_big_hit", kit["telegraph_interval"]))
+	if tele <= 0:
+		var t := battle._enemy_target()
+		if not t.is_empty():
+			var actual := battle.boss_strike(boss, t, float(kit["signature_power"]))
+			var healed := int(round(float(actual) * float(kit["devour_heal_frac"])))
+			boss["hp"] = mini(int(boss["max_hp"]), int(boss["hp"]) + healed)
+			battle.log.append({"type": "devour_heal", "actor_id": boss["id"], "amount": healed})
+		boss["turns_until_big_hit"] = battle._boss_telegraph_interval(boss)
+		return true
+	boss["turns_until_big_hit"] = tele - 1
+	if kit_turn % int(kit["spawn_interval"]) == 1:
+		battle.spawn_add(boss)
+		return true
+	var target := battle._enemy_target()
+	if not target.is_empty():
+		battle.boss_strike(boss, target, 1.0)
+	return true
 
 
 ## Called from Battle._land_hit before a lethal blow is written. Returns true
