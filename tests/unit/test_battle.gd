@@ -1027,7 +1027,9 @@ func test_ultimate_name_reflects_the_player_subclass() -> void:
 
 
 func test_regen_status_heals_at_the_start_of_the_units_turn() -> void:
-	var ally := Battle.make_ally_combatant("player", "SUPPORT", 15, {"STR": 100, "AGI": 300, "VIT": 300, "END": 100, "SEN": 200})
+	var ally := Battle.make_ally_combatant(
+		"player", "SUPPORT", 15, {"STR": 100, "AGI": 300, "VIT": 300, "END": 100, "SEN": 200}
+	)
 	var enemy := Battle.make_enemy_combatant("e", 400.0)
 	var b := Battle.new([ally], [enemy], moves, true, _seeded_rng(1))
 	var a := b._combatant_by_id("player")
@@ -1045,8 +1047,12 @@ func test_regen_status_heals_at_the_start_of_the_units_turn() -> void:
 
 
 func test_regen_does_not_overheal() -> void:
-	var ally := Battle.make_ally_combatant("player", "SUPPORT", 15, {"STR": 100, "AGI": 300, "VIT": 300, "END": 100, "SEN": 200})
-	var b := Battle.new([ally], [Battle.make_enemy_combatant("e", 400.0)], moves, true, _seeded_rng(1))
+	var ally := Battle.make_ally_combatant(
+		"player", "SUPPORT", 15, {"STR": 100, "AGI": 300, "VIT": 300, "END": 100, "SEN": 200}
+	)
+	var b := Battle.new(
+		[ally], [Battle.make_enemy_combatant("e", 400.0)], moves, true, _seeded_rng(1)
+	)
 	var a := b._combatant_by_id("player")
 	b.apply_status(a, "regen", 3, 0.10)
 	b._tick_start_of_turn(a)
@@ -1054,7 +1060,9 @@ func test_regen_does_not_overheal() -> void:
 
 
 func test_exploit_weakness_applies_vulnerable() -> void:
-	var actor := Battle.make_ally_combatant("player", "ASSASSIN", 15, {"STR": 300, "AGI": 300, "VIT": 150, "END": 50, "SEN": 50})
+	var actor := Battle.make_ally_combatant(
+		"player", "ASSASSIN", 15, {"STR": 300, "AGI": 300, "VIT": 150, "END": 50, "SEN": 50}
+	)
 	var enemy := Battle.make_enemy_combatant("e", 1200.0, true, "Boss")
 	var b := Battle.new([actor], [enemy], moves, false, _seeded_rng(2))
 	b.step()
@@ -1063,7 +1071,9 @@ func test_exploit_weakness_applies_vulnerable() -> void:
 
 
 func test_nova_burst_stuns_grunts_but_not_a_boss() -> void:
-	var actor := Battle.make_ally_combatant("player", "MAGE", 18, {"STR": 100, "AGI": 300, "VIT": 200, "END": 50, "SEN": 300})
+	var actor := Battle.make_ally_combatant(
+		"player", "MAGE", 18, {"STR": 100, "AGI": 300, "VIT": 200, "END": 50, "SEN": 300}
+	)
 	var grunt := Battle.make_enemy_combatant("g", 300.0, false)
 	var boss := Battle.make_enemy_combatant("boss", 2000.0, true, "Boss")
 	var b := Battle.new([actor], [grunt, boss], moves, false, _seeded_rng(3))
