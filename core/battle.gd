@@ -448,10 +448,15 @@ func downed_party() -> Array:
 
 
 ## Spec §8 primitive: set a status to at least `turns` on `target`.
-func apply_status(target: Dictionary, name: String, turns: int) -> void:
+## `amount_frac` is used only for `regen` -- the per-tick heal as a fraction
+## of the target's max HP (spec §8.2), stashed on the combatant for
+## _tick_start_of_turn to read.
+func apply_status(target: Dictionary, name: String, turns: int, amount_frac: float = 0.0) -> void:
 	var statuses: Dictionary = target.get("statuses", {})
 	statuses[name] = maxi(int(statuses.get(name, 0)), turns)
 	target["statuses"] = statuses
+	if name == "regen":
+		target["regen_amount_frac"] = amount_frac
 	log.append(
 		{"type": "status", "target_id": target["id"], "status": name, "turns": int(statuses[name])}
 	)
@@ -541,6 +546,16 @@ func _tick_start_of_turn(actor: Dictionary) -> void:
 		statuses[sname] = maxi(0, int(statuses[sname]) - 1)
 		if statuses[sname] == 0:
 			statuses.erase(sname)
+	# Regen heal AFTER the decrement loop -- a status ticking to 0 this turn does
+	# not also heal, matching how `stun` is read post-decrement elsewhere (spec §8.2, v0).
+	if _has_status(actor, "regen"):
+		var heal := int(round(float(actor["max_hp"]) * float(actor.get("regen_amount_frac", 0.0))))
+		if heal > 0 and actor["hp"] > 0:
+			var before: int = actor["hp"]
+			actor["hp"] = mini(int(actor["max_hp"]), actor["hp"] + heal)
+			log.append(
+				{"type": "regen_tick", "target_id": actor["id"], "amount": actor["hp"] - before}
+			)
 
 
 func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:
@@ -675,7 +690,30 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 			target["poison_damage"] = int(round(atk * POISON_DAMAGE_SCALE))
 			if target.get("is_boss", false) and target.has("break_max"):
 				_add_break_fill(target, float(target["break_max"]) * BREAK_FILL_DEBUFF_FRAC)
+	_resolve_applied_status(move, targets)
 	return events
+
+
+## Spec §8.2: a move may carry an optional `applies_status` object
+## ({name, turns, grunts_only?, amount_frac?}) -- resolved AFTER the move's
+## primary effect, on each target it landed on. The rider applies on-hit
+## regardless of whether that hit was lethal (a status on a downed
+## combatant is inert -- `_alive` filters it out, and the regen tick is
+## `hp > 0`-gated), so no post-hit HP check here.
+func _resolve_applied_status(move: Dictionary, targets: Array) -> void:
+	var spec_status: Dictionary = move.get("applies_status", {})
+	if spec_status.is_empty():
+		return
+	var name := String(spec_status.get("name", ""))
+	var turns := int(spec_status.get("turns", 0))
+	if name == "" or turns <= 0:
+		return
+	var grunts_only := bool(spec_status.get("grunts_only", false))
+	var amount_frac := float(spec_status.get("amount_frac", 0.0))
+	for t: Dictionary in targets:
+		if grunts_only and bool(t.get("is_boss", false)):
+			continue
+		apply_status(t, name, turns, amount_frac)
 
 
 ## Outgoing physical/magic attack power for `actor`: base PATK/MATK x its
@@ -794,6 +832,7 @@ func _apply_buff(actor: Dictionary, move: Dictionary, target_id: String) -> Arra
 		events.append(
 			{"type": "buff", "actor_id": actor["id"], "target_id": target["id"], "tag": tag}
 		)
+	_resolve_applied_status(move, targets)
 	return events
 
 

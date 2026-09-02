@@ -1024,3 +1024,50 @@ func test_auto_battle_fires_the_ultimate_on_the_first_full_player_turn() -> void
 func test_ultimate_name_reflects_the_player_subclass() -> void:
 	var b := _boss_fight(7)  # player is WARRIOR
 	assert_eq(b.ultimate_name(), "Monarch's Wrath")
+
+
+func test_regen_status_heals_at_the_start_of_the_units_turn() -> void:
+	var ally := Battle.make_ally_combatant("player", "SUPPORT", 15, {"STR": 100, "AGI": 300, "VIT": 300, "END": 100, "SEN": 200})
+	var enemy := Battle.make_enemy_combatant("e", 400.0)
+	var b := Battle.new([ally], [enemy], moves, true, _seeded_rng(1))
+	var a := b._combatant_by_id("player")
+	a["hp"] = 100
+	b.apply_status(a, "regen", 3, 0.10)  # 10% of max_hp per tick
+	var max_hp: int = a["max_hp"]
+	b._tick_start_of_turn(a)
+	assert_almost_eq(float(a["hp"]), 100.0 + float(max_hp) * 0.10, 1.0)
+	assert_eq(int(a["statuses"].get("regen", 0)), 2)  # ticked down
+	var regen_logged := false
+	for ev in b.log:
+		if ev.get("type", "") == "regen_tick" and ev["target_id"] == "player":
+			regen_logged = true
+	assert_true(regen_logged)
+
+
+func test_regen_does_not_overheal() -> void:
+	var ally := Battle.make_ally_combatant("player", "SUPPORT", 15, {"STR": 100, "AGI": 300, "VIT": 300, "END": 100, "SEN": 200})
+	var b := Battle.new([ally], [Battle.make_enemy_combatant("e", 400.0)], moves, true, _seeded_rng(1))
+	var a := b._combatant_by_id("player")
+	b.apply_status(a, "regen", 3, 0.10)
+	b._tick_start_of_turn(a)
+	assert_eq(int(a["hp"]), int(a["max_hp"]))
+
+
+func test_exploit_weakness_applies_vulnerable() -> void:
+	var actor := Battle.make_ally_combatant("player", "ASSASSIN", 15, {"STR": 300, "AGI": 300, "VIT": 150, "END": 50, "SEN": 50})
+	var enemy := Battle.make_enemy_combatant("e", 1200.0, true, "Boss")
+	var b := Battle.new([actor], [enemy], moves, false, _seeded_rng(2))
+	b.step()
+	b.resolve_player_action("move_assassin_exploit_weakness", "e")
+	assert_eq(int(b._combatant_by_id("e")["statuses"].get("vulnerable", 0)), 2)
+
+
+func test_nova_burst_stuns_grunts_but_not_a_boss() -> void:
+	var actor := Battle.make_ally_combatant("player", "MAGE", 18, {"STR": 100, "AGI": 300, "VIT": 200, "END": 50, "SEN": 300})
+	var grunt := Battle.make_enemy_combatant("g", 300.0, false)
+	var boss := Battle.make_enemy_combatant("boss", 2000.0, true, "Boss")
+	var b := Battle.new([actor], [grunt, boss], moves, false, _seeded_rng(3))
+	b.step()
+	b.resolve_player_action("move_mage_nova_burst", "")  # all_enemies
+	assert_eq(int(b._combatant_by_id("g")["statuses"].get("stun", 0)), 1)
+	assert_eq(int(b._combatant_by_id("boss")["statuses"].get("stun", 0)), 0)  # grunts_only

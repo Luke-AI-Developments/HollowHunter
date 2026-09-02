@@ -179,3 +179,16 @@ func test_heavy_tag_present_on_power_strike_and_guard_strike() -> void:
 	var mv := Content.load_moves()
 	assert_eq(Content.move_by_id(mv, "move_warrior_power_strike")["tag"], "heavy")
 	assert_eq(Content.move_by_id(mv, "move_guardian_guard_strike")["tag"], "heavy")
+
+
+func test_applies_status_moves_have_valid_shape() -> void:
+	var mv := Content.load_moves()
+	for m: Dictionary in mv:
+		if not m.has("applies_status"):
+			continue
+		var a: Dictionary = m["applies_status"]
+		assert_true(a["name"] in ["vulnerable", "stun", "regen"], "%s bad applies_status name" % m["id"])
+		assert_true(int(a.get("turns", 0)) >= 1, "%s applies_status turns" % m["id"])
+	assert_eq(Content.move_by_id(mv, "move_assassin_exploit_weakness")["applies_status"]["name"], "vulnerable")
+	assert_eq(Content.move_by_id(mv, "move_support_ward")["applies_status"]["name"], "regen")
+	assert_eq(Content.move_by_id(mv, "move_mage_nova_burst")["applies_status"]["name"], "stun")
