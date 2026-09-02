@@ -24,7 +24,8 @@ const AEGIS_STRIKE_POWER := 2.5  ## spec §6.3, v0
 
 const CUTS_HITS := 6  ## spec §6.3, v0
 const CUTS_POWER := 0.7  ## spec §6.3, v0
-const CUTS_VULN_TURNS := 2  ## spec §6.3, v0: each hit applies a stack; status capped here
+const CUTS_VULN_TURNS := 2  ## spec §6.3, v0: each cut refreshes Vulnerable;
+## apply_status caps it at this many turns
 
 const NOVA_POWER := 3.2  ## spec §6.3, v0
 const NOVA_STUN_TURNS := 1  ## spec §6.3, v0
@@ -63,7 +64,7 @@ static func _wrath(battle: Battle) -> void:
 
 static func _aegis(battle: Battle) -> void:
 	battle.log.append({"type": "ultimate", "name": NAMES["GUARDIAN"]})
-	for c: Dictionary in battle.party:
+	for c: Dictionary in battle.living_party():
 		battle.apply_status(c, "invuln", AEGIS_INVULN_TURNS)
 		c["def_multiplier"] = AEGIS_DEF_MULT
 		c["def_mod_turns"] = AEGIS_DEF_TURNS
@@ -112,5 +113,8 @@ static func _grace(battle: Battle) -> void:
 		else:
 			c["hp"] = int(c["max_hp"])
 		battle.apply_status(c, "overdrive", GRACE_OVERDRIVE_TURNS)
-	# revived members were dropped from the turn queue when they fell; rebuild
-	battle._build_turn_queue()
+	# A member who fell before their slot is still queued (_next_actor only skips
+	# hp <= 0), so a revive re-arms their pending turn automatically; one who fell
+	# after acting rejoins on the next round's natural queue rebuild. Do NOT call
+	# battle._build_turn_queue() here -- mid-round it re-grants a turn to everyone
+	# who already acted this round, enemies included.

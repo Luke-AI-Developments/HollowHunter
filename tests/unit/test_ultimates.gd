@@ -119,6 +119,26 @@ func test_mage_nova_does_not_stun_an_unbroken_boss() -> void:
 	assert_eq(int(b._combatant_by_id("boss")["broken_turns"]), 0)
 
 
+func test_grace_does_not_re_queue_a_combatant_that_already_acted() -> void:
+	# Slow SUPPORT hunter (AGI 5) so a fast enemy (SPEED 120) acts before it
+	# this round; C1 -- Grace must NOT rebuild the turn queue mid-round, which
+	# would hand the already-acted enemy a second turn.
+	var hunter := Battle.make_ally_combatant(
+		"player", "SUPPORT", 20, {"STR": 200, "AGI": 5, "VIT": 400, "END": 200, "SEN": 200}
+	)
+	var party := [hunter, _shadow("s1", "WARRIOR")]
+	var enemies := [Battle.make_enemy_combatant("fast", 6000.0, false)]
+	var b := Battle.new(party, enemies, moves, true, _rng(9))
+	b.step()  # the fast enemy acts and is popped off turn_queue
+	assert_false(b.turn_queue.has("fast"), "fast enemy should have acted and left the queue")
+	b._combatant_by_id("s1")["hp"] = 0  # KO the shadow before Grace
+	Ultimates.resolve(b, "SUPPORT")
+	assert_false(b.turn_queue.has("fast"), "Grace must not re-queue a combatant that already acted")
+	var revived: Dictionary = b._combatant_by_id("s1")
+	assert_gt(int(revived["hp"]), 0)  # revived
+	assert_almost_eq(float(revived["hp"]) / float(revived["max_hp"]), 0.6, 0.05)
+
+
 func test_support_sovereigns_grace_revives_heals_and_overdrives() -> void:
 	var party := [_hunter("SUPPORT"), _shadow("dead", "WARRIOR"), _shadow("hurt", "MAGE")]
 	var enemies := [Battle.make_enemy_combatant("e", 500.0, false)]

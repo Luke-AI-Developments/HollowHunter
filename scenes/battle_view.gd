@@ -183,7 +183,9 @@ func _refresh_log_label() -> void:
 	var lines := []
 	var start := maxi(0, _battle.log.size() - LOG_LINES_SHOWN)
 	for i in range(start, _battle.log.size()):
-		lines.append(_describe_event(_battle.log[i]))
+		var line := _describe_event(_battle.log[i])
+		if line != "":
+			lines.append(line)
 	log_label.text = "\n".join(lines)
 
 
@@ -200,6 +202,8 @@ func _refresh_log_label() -> void:
 ## already moved past them.
 func _refresh_action_bar() -> void:
 	ultimate_button.visible = false
+	# Gauge readout updates even while resolving / target-picking / under Auto.
+	gauge_label.text = "Monarch Gauge: %d / 100" % int(round(_battle.monarch_gauge))
 	if not _pending_move.is_empty():
 		return
 
@@ -227,7 +231,6 @@ func _refresh_action_bar() -> void:
 		b.disabled = cd > 0
 		b.text = "%s%s" % [move["name"], (" (CD %d)" % cd) if cd > 0 else ""]
 
-	gauge_label.text = "Monarch Gauge: %d / 100" % int(round(_battle.monarch_gauge))
 	var can_ult := _awaiting_player_input and _battle.can_use_ultimate()
 	ultimate_button.visible = can_ult
 	if can_ult:
@@ -279,6 +282,16 @@ func _describe_event(e: Dictionary) -> String:
 			text = "%s takes %d poison damage" % [target_name, e["damage"]]
 		"pass":
 			text = "%s has nothing to do" % actor_name
+		"break":
+			text = "%s is BROKEN! (x%d)" % [target_name, int(e.get("break_count", 1))]
+		"broken_skip":
+			text = "%s is staggered and cannot act" % actor_name
+		"stunned":
+			text = "%s is stunned!" % actor_name
+		"ultimate":
+			text = "★ %s ★" % String(e.get("name", "Ultimate"))
+		"revive":
+			text = "%s is revived!" % target_name
 	return text
 
 
@@ -289,6 +302,7 @@ func _on_action_button_pressed(index: int) -> void:
 	if String(move.get("target_type", "")) == "single_enemy":
 		_pending_move = move
 		_refresh_enemy_slots()
+		ultimate_button.visible = false
 		waiting_label.visible = true
 		waiting_label.text = "Choose a target for %s" % move["name"]
 		for b in action_buttons:
@@ -384,6 +398,8 @@ func _show_results() -> void:
 		slot.visible = false
 	turn_order_label.visible = false
 	log_label.visible = false
+	gauge_label.visible = false
+	ultimate_button.visible = false
 	result_label.visible = true
 	result_label.text = "VICTORY!" if _battle.won else "DEFEAT"
 	close_button.visible = true

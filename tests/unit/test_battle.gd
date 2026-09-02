@@ -842,6 +842,48 @@ func test_massive_overfill_gives_a_two_turn_stagger() -> void:
 	assert_eq(int(boss["broken_turns"]), 2)
 
 
+func test_a_real_overshoot_through_add_break_fill_gives_a_two_turn_stagger() -> void:
+	# I1: the >=50% overfill -> 2-turn stagger must be reachable via the normal
+	# fill path, not only a direct _maybe_break() poke.
+	var b := _boss_fight(7)
+	var boss := b._combatant_by_id("boss")
+	b._add_break_fill(boss, boss["break_max"] * 1.6)  # 60% overshoot in one fill
+	assert_eq(int(boss["broken_turns"]), 2)
+	assert_eq(int(boss["break_count"]), 1)
+	assert_eq(float(boss["break_current"]), 0.0)
+
+
+func _wrath_fight(seed_value: int, on_telegraph: bool) -> Battle:
+	# Fast WARRIOR hunter (AGI 500 > boss SPEED 400) so step() pauses on the
+	# player; big-HP boss so the Wrath hit neither Breaks nor clamps the bar.
+	var hunter := Battle.make_ally_combatant(
+		"player", "WARRIOR", 20, {"STR": 300, "AGI": 500, "VIT": 250, "END": 60, "SEN": 10}
+	)
+	var boss := Battle.make_enemy_combatant("boss", 20000.0, true, "Boss")
+	var b := Battle.new([hunter], [boss], moves, false, _seeded_rng(seed_value), 100.0)
+	if on_telegraph:
+		b._combatant_by_id("boss")["turns_until_big_hit"] = 1
+	b.step()  # waiting_for_player
+	b.resolve_player_ultimate()
+	return b
+
+
+func test_wrath_ultimate_does_not_double_dip_the_telegraph_break_rate() -> void:
+	# M1: _land_hit's telegraph x2.5 and the ultimate's x2.5 must not compound
+	# to x4.0 on a telegraph turn. Same seed -> identical damage.
+	var b_off := _wrath_fight(7, false)
+	var off_dmg := _last_damage(b_off)
+	var off_fill := float(b_off._combatant_by_id("boss")["break_current"])
+	var b_tel := _wrath_fight(7, true)
+	var tel_fill := float(b_tel._combatant_by_id("boss")["break_current"])
+	assert_gt(off_fill, 0.0)
+	# off-telegraph: damage * 0.5 * 2.5 (the ultimate's single break rate)
+	assert_almost_eq(off_fill, float(off_dmg) * 0.5 * 2.5, 2.0)
+	# on-telegraph: still * 2.5, NOT * 4.0
+	assert_almost_eq(tel_fill, off_fill, off_fill * 0.02)
+	assert_lt(tel_fill, off_fill * 1.5)
+
+
 func test_a_broken_boss_takes_one_and_a_half_times_damage() -> void:
 	var b_norm := _boss_fight(11)
 	b_norm.step()

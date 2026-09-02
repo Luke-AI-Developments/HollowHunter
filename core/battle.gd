@@ -320,6 +320,11 @@ func _apply_poison_tick(actor: Dictionary) -> bool:
 		return false
 	var poison_dmg: int = actor.get("poison_damage", 0)
 	actor["hp"] = maxi(0, actor["hp"] - poison_dmg)
+	# v0: DoT ticks are deliberately NOT routed into break-bar / Monarch-Gauge
+	# fill (spec §5.2 "any damage" / §6.1). Poison carries no applier reference,
+	# so gauge attribution would be arbitrary; the debuff's ONE-TIME break-fill
+	# already fired when Poison Edge landed (see _apply_attack). Revisit with the
+	# full status roster in Plan 3.
 	log.append({"type": "poison_tick", "target_id": actor["id"], "damage": poison_dmg})
 	return actor["hp"] <= 0
 
@@ -465,20 +470,17 @@ func deal_ultimate_damage(
 		return 0
 	var hunter: Dictionary = party[0]
 	var is_physical := atk_type != "magic"
-	var atk: float = (
-		(float(hunter["patk"]) if is_physical else float(hunter["matk"]))
-		* float(hunter.get("atk_multiplier", 1.0))
-	)
+	var atk := _outgoing_atk(hunter, is_physical)
 	var target_def: float = float(target["def"]) * float(target.get("def_multiplier", 1.0))
 	var pierce := maxf(def_pierce, MAGIC_DEF_PIERCE if atk_type == "magic" else 0.0)
 	var crit_chance := 1.0 if auto_crit else float(hunter.get("crit_chance", 0.0))
 	var result := CombatMath.resolve_damage(power, atk, target_def, crit_chance, _rng, pierce)
-	# Route through _land_hit for shield/hp/gauge/log; then apply the ultimate's
-	# own break-fill rate on top of the standard per-damage fill _land_hit did.
-	var actual := _land_hit(hunter, target, result, "", "", is_physical, {"ultimate": true})
-	if break_fill_mult != 1.0 and target.get("is_boss", false) and target.has("break_max"):
-		_add_break_fill(target, float(actual) * BREAK_FILL_PER_DAMAGE * (break_fill_mult - 1.0))
-	return actual
+	# Route through _land_hit for shield/hp/gauge/log; break_fill_mult is the
+	# ultimate's TOTAL per-damage break rate (spec §6.3), applied inside _land_hit
+	# so it does NOT compound with the telegraph auto-bump on a telegraph turn.
+	return _land_hit(
+		hunter, target, result, "", "", is_physical, {"ultimate": true}, break_fill_mult
+	)
 
 
 func _build_turn_queue() -> void:
@@ -636,10 +638,7 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 		return []
 
 	var is_physical := String(move.get("move_type", "")) == "physical"
-	var base_atk: float = actor["patk"] if is_physical else actor["matk"]
-	var atk := base_atk * float(actor.get("atk_multiplier", 1.0))
-	if _has_status(actor, "overdrive"):
-		atk *= 1.25  ## spec §6.3, v0: Sovereign's Grace overdrive
+	var atk := _outgoing_atk(actor, is_physical)
 	var power := float(move.get("power", 1.0))
 	var tag := String(move.get("tag", ""))
 	var events := []
@@ -679,11 +678,26 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 	return events
 
 
+## Outgoing physical/magic attack power for `actor`: base PATK/MATK x its
+## atk_multiplier, then x1.25 while Sovereign's Grace overdrive is active.
+## Shared by `_apply_attack` and `deal_ultimate_damage` (spec §6.3) so the
+## overdrive bonus applies to Ultimate hits too, not just normal moves.
+func _outgoing_atk(actor: Dictionary, is_physical: bool) -> float:
+	var base_atk: float = actor["patk"] if is_physical else actor["matk"]
+	var atk := base_atk * float(actor.get("atk_multiplier", 1.0))
+	if _has_status(actor, "overdrive"):
+		atk *= 1.25  ## spec §6.3, v0: Sovereign's Grace overdrive
+	return atk
+
+
 ## Applies one already-resolved hit (`result` from CombatMath.resolve_damage)
 ## to `target`: incoming-damage multiplier, shield, hp, boss break-fill,
 ## Monarch Gauge fill, and the `damage` log event. Returns the actual HP
 ## removed. Shared by `_apply_attack` and `Ultimates` (via
 ## `deal_ultimate_damage`) so the hit-application rules live in one place.
+## `break_fill_mult` >= 0.0 (Ultimate callers only) is the TOTAL per-damage
+## break rate -- it floors at the telegraph rate on a telegraph turn but does
+## NOT compound with it (spec §6.3); < 0.0 keeps the telegraph auto-bump path.
 func _land_hit(
 	actor: Dictionary,
 	target: Dictionary,
@@ -691,7 +705,8 @@ func _land_hit(
 	tag: String,
 	target_type: String,
 	is_physical: bool,
-	extra_event_fields: Dictionary = {}
+	extra_event_fields: Dictionary = {},
+	break_fill_mult: float = -1.0
 ) -> int:
 	var scaled_damage := int(round(float(result["damage"]) * _incoming_damage_mult(target)))
 	var actual := _apply_shield(target, scaled_damage)
@@ -699,8 +714,10 @@ func _land_hit(
 	if target.get("is_boss", false) and target.has("break_max"):
 		var on_telegraph := int(target.get("turns_until_big_hit", BOSS_BIG_HIT_INTERVAL)) <= 1
 		var dmg_fill := float(actual) * BREAK_FILL_PER_DAMAGE
-		if on_telegraph:
-			dmg_fill *= BREAK_FILL_TELEGRAPH_MULT
+		if break_fill_mult >= 0.0:
+			dmg_fill *= maxf(break_fill_mult, BREAK_FILL_TELEGRAPH_MULT if on_telegraph else 1.0)
+		elif on_telegraph:
+			dmg_fill *= BREAK_FILL_TELEGRAPH_MULT  ## spec §5.2, v0
 		var flat_fill := 0.0
 		if tag == "heavy":
 			flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
@@ -872,7 +889,8 @@ func _add_break_fill(boss: Dictionary, amount: float) -> void:
 		return
 	var bmax: float = boss["break_max"]
 	var before: float = boss["break_current"]
-	boss["break_current"] = clampf(before + amount, 0.0, bmax)
+	var raw := before + amount  ## pre-clamp total, so an overshoot is measurable (spec §5.3)
+	boss["break_current"] = clampf(raw, 0.0, bmax)
 	(
 		log
 		. append(
@@ -885,19 +903,23 @@ func _add_break_fill(boss: Dictionary, amount: float) -> void:
 			}
 		)
 	)
-	_maybe_break(boss)
+	_maybe_break(boss, raw)
 
 
 ## Spec §5.3: when a boss's bar is full, stagger it. Idempotent while the
 ## boss is already broken (broken_turns > 0 blocks re-entry, and
-## _add_break_fill won't have filled it anyway).
-func _maybe_break(boss: Dictionary) -> void:
+## _add_break_fill won't have filled it anyway). `raw_fill` is the pre-clamp
+## bar total from _add_break_fill -- the overshoot the clamp on break_current
+## would otherwise erase (spec §5.3's ">=50% overfill -> 2-turn stagger");
+## defaults to reading break_current for the direct-poke callers (tests).
+func _maybe_break(boss: Dictionary, raw_fill: float = -1.0) -> void:
 	if int(boss.get("broken_turns", 0)) > 0:
 		return
 	var bmax: float = boss.get("break_max", 0.0)
 	if bmax <= 0.0 or float(boss.get("break_current", 0.0)) < bmax:
 		return
-	var overfill := (float(boss["break_current"]) - bmax) / bmax
+	var reached: float = raw_fill if raw_fill >= 0.0 else float(boss.get("break_current", 0.0))
+	var overfill := (reached - bmax) / bmax
 	var stun_turns := (
 		BREAK_STUN_TURNS_LONG if overfill >= BREAK_OVERFILL_LONG_STUN else BREAK_STUN_TURNS_SHORT
 	)
