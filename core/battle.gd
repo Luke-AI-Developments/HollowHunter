@@ -295,6 +295,16 @@ static func make_enemy_combatant(
 		c["break_current"] = 0.0
 		c["break_count"] = 0
 		c["broken_turns"] = 0
+		if kit != "":
+			# Start the telegraph clock on the kit's own cadence (Colossus = 4, not 3).
+			c["turns_until_big_hit"] = int(
+				BossKits.BOSS_KITS.get(kit, {}).get("telegraph_interval", BOSS_BIG_HIT_INTERVAL)
+			)
+		if kit == "colossus":
+			# §4.5 Ponderous: acts late, and a break bar +30% larger.
+			var col: Dictionary = BossKits.BOSS_KITS["colossus"]
+			c["speed"] = int(round(float(c["speed"]) * float(col["speed_mult"])))
+			c["break_max"] = float(c["break_max"]) * float(col["break_max_mult"])
 	return c
 
 
@@ -616,6 +626,45 @@ func _tick_start_of_turn(actor: Dictionary) -> void:
 			log.append(
 				{"type": "regen_tick", "target_id": actor["id"], "amount": actor["hp"] - before}
 			)
+
+
+## Spec §4: one hit from a kitted `boss` onto a party member, the shared
+## damage path BossKits' signature/ability arms drive. Mirrors
+## `_resolve_enemy_turn`'s calc with Rising Fury (`BossKits.rising_fury_mult`)
+## folded into `atk`: incoming-damage multiplier, shield, hp, and an
+## `enemy_attack` log event whose `big_hit` flag is set when `power` reaches
+## telegraph scale. `apply_burn` stamps the §4.1 burn poison on the target.
+## Returns the HP actually removed.
+func boss_strike(boss: Dictionary, target: Dictionary, power: float, apply_burn := false) -> int:
+	if int(target.get("hp", 0)) <= 0:
+		return 0
+	var fury := BossKits.rising_fury_mult(boss, round_number)
+	var atk: float = boss["patk"] * float(boss.get("atk_multiplier", 1.0)) * fury
+	var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
+	var pierce := MAGIC_DEF_PIERCE if String(boss.get("atk_type", "physical")) == "magic" else 0.0
+	var result := CombatMath.resolve_damage(power, atk, target_def, 0.0, _rng, pierce)
+	var scaled := int(round(float(result["damage"]) * _incoming_damage_mult(target)))
+	var actual := _apply_shield(target, scaled)
+	target["hp"] = maxi(0, target["hp"] - actual)
+	if apply_burn:
+		var bk: Dictionary = BossKits.BOSS_KITS["berserker"]
+		target["poison_damage"] = int(round(atk * float(bk["burn_frac"])))
+		target["poison_turns"] = int(bk["burn_turns"])
+	(
+		log
+		. append(
+			{
+				"type": "enemy_attack",
+				"actor_id": boss["id"],
+				"target_id": target["id"],
+				"damage": actual,
+				"big_hit": power >= BOSS_BIG_HIT_MULTIPLIER,
+			}
+		)
+	)
+	if target.get("is_boss", false) and target.get("is_multiphase", false):
+		_check_phase_transition(target)
+	return actual
 
 
 func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:
@@ -1215,7 +1264,7 @@ func _check_phase_transition(boss: Dictionary) -> void:
 		return
 	boss["phase"] = 2
 	log.append({"type": "phase", "actor_id": boss["id"], "phase": 2})
-	# BossKits.on_phase(self, boss)  # wired in Task 3
+	BossKits.on_phase(self, boss)
 
 
 ## Spec §6.1. Offence-weighted party gauge fill. Emits a `gauge` event

@@ -90,19 +90,113 @@ const BOSS_KITS := {
 
 ## Called at the top of Battle._resolve_enemy_turn for a kitted boss. Returns
 ## true if the kit fully resolved this turn (Battle then does nothing further),
-## false to fall through to the default basic attack. Per-kit arms land in
-## Tasks 3-6; until then every kit falls through.
-static func on_turn(_battle: Battle, boss: Dictionary) -> bool:
+## false to fall through to the default basic attack. An implemented arm OWNS
+## the whole turn -- it manages `turns_until_big_hit`, does its own basic
+## attack when it is neither a telegraph nor an ability turn, and always
+## returns true. `return false` is only for a not-yet-implemented kit.
+static func on_turn(battle: Battle, boss: Dictionary) -> bool:
 	match String(boss.get("kit", "")):
+		"berserker":
+			return _berserker_turn(battle, boss)
+		"colossus":
+			return _colossus_turn(battle, boss)
 		_:
 			return false
 
 
 ## One-time per-boss effect when it crosses into phase 2 (spec §3.5).
-static func on_phase(_battle: Battle, boss: Dictionary) -> void:
+static func on_phase(battle: Battle, boss: Dictionary) -> void:
 	match String(boss.get("kit", "")):
+		"berserker":
+			# §4.1 on-phase: the Fury cap bump is automatic (rising_fury_mult
+			# reads `phase`); the free Immolate fires here.
+			_boss_signature_hit(battle, boss, BOSS_KITS["berserker"]["signature_power"])
 		_:
+			# colossus §4.5 on-phase: Avalanche cadence -> every 3t is already
+			# handled -- _boss_telegraph_interval reads `phase`.
 			pass
+
+
+## §4.1 Berserker passive -- Rising Fury: patk/matk x(1 + fury_per_round per
+## round elapsed), capped at fury_cap (fury_cap_phase2 in phase 2). 1.0 for
+## any non-berserker boss, so the shared `boss_strike` calc can fold it in
+## unconditionally.
+static func rising_fury_mult(boss: Dictionary, round_number: int) -> float:
+	if String(boss.get("kit", "")) != "berserker":
+		return 1.0
+	var kit: Dictionary = BOSS_KITS["berserker"]
+	var cap: float = kit["fury_cap_phase2"] if int(boss.get("phase", 1)) == 2 else kit["fury_cap"]
+	var ramp := 1.0 + float(kit["fury_per_round"]) * float(maxi(0, round_number - 1))
+	return minf(ramp, cap)
+
+
+## Shared telegraphed-signature resolver: `boss` hits `battle._enemy_target()`
+## at `power`, via `battle.boss_strike`. If `splash_power > 0` and the boss is
+## not shielded from splashing (`not splash_unbroken_only`, or it is not in a
+## broken window), every OTHER living party member is also struck at
+## `splash_power`. Used by Immolate (no splash) and Avalanche (splash unless
+## Broken).
+static func _boss_signature_hit(
+	battle: Battle,
+	boss: Dictionary,
+	power: float,
+	splash_power := 0.0,
+	splash_unbroken_only := false
+) -> void:
+	var target := battle._enemy_target()
+	if target.is_empty():
+		return
+	battle.boss_strike(boss, target, power)
+	if splash_power <= 0.0:
+		return
+	if splash_unbroken_only and int(boss.get("broken_turns", 0)) != 0:
+		return
+	for c in battle.living_party():
+		if String(c["id"]) != String(target["id"]):
+			battle.boss_strike(boss, c, splash_power)
+
+
+## §4.1 Berserker turn. Telegraph (every telegraph_interval turns): Immolate =
+## signature_power x a normal hit on the lowest-HP party member. Off-telegraph
+## even kit-turns: a basic attack that also applies the burn poison. Other
+## turns: a plain basic attack. Always owns the turn -> returns true.
+static func _berserker_turn(battle: Battle, boss: Dictionary) -> bool:
+	var kit_turn := int(boss.get("_kit_turn", 0)) + 1
+	boss["_kit_turn"] = kit_turn
+	var tele := int(boss.get("turns_until_big_hit", BOSS_KITS["berserker"]["telegraph_interval"]))
+	if tele <= 0:
+		_boss_signature_hit(battle, boss, BOSS_KITS["berserker"]["signature_power"])
+		boss["turns_until_big_hit"] = battle._boss_telegraph_interval(boss)
+		return true
+	boss["turns_until_big_hit"] = tele - 1
+	var target := battle._enemy_target()
+	if not target.is_empty():
+		battle.boss_strike(boss, target, 1.0, kit_turn % 2 == 0)
+	return true
+
+
+## §4.5 Colossus turn. Telegraph (every telegraph_interval turns -> 3 in
+## phase 2): Avalanche = signature_power x a hit on the lowest-HP party
+## member, plus a 1.0x splash on the rest UNLESS the boss is Broken. No
+## ability -- every other turn is a plain basic attack. Always owns the
+## turn -> returns true.
+static func _colossus_turn(battle: Battle, boss: Dictionary) -> bool:
+	var tele := int(boss.get("turns_until_big_hit", BOSS_KITS["colossus"]["telegraph_interval"]))
+	if tele <= 0:
+		_boss_signature_hit(
+			battle,
+			boss,
+			BOSS_KITS["colossus"]["signature_power"],
+			BOSS_KITS["colossus"]["avalanche_splash_power"],
+			true
+		)
+		boss["turns_until_big_hit"] = battle._boss_telegraph_interval(boss)
+		return true
+	boss["turns_until_big_hit"] = tele - 1
+	var target := battle._enemy_target()
+	if not target.is_empty():
+		battle.boss_strike(boss, target, 1.0)
+	return true
 
 
 ## Called from Battle._land_hit before a lethal blow is written. Returns true
