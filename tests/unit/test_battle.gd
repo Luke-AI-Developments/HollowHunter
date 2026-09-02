@@ -1081,3 +1081,63 @@ func test_nova_burst_stuns_grunts_but_not_a_boss() -> void:
 	b.resolve_player_action("move_mage_nova_burst", "")  # all_enemies
 	assert_eq(int(b._combatant_by_id("g")["statuses"].get("stun", 0)), 1)
 	assert_eq(int(b._combatant_by_id("boss")["statuses"].get("stun", 0)), 0)  # grunts_only
+
+
+func test_low_hp_skirmisher_takes_extra_damage() -> void:
+	# Same seed, same hit; a <30% HP skirmisher takes ~1.3x a healthy one.
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 300, "AGI": 120, "VIT": 200, "END": 50, "SEN": 10}
+	)
+	var healthy := Battle.make_enemy_combatant("h", 2000.0, false, "H", "", false, "skirmisher")
+	var b_h := Battle.new([actor], [healthy], moves, false, _seeded_rng(5))
+	b_h.step()
+	b_h.resolve_player_action("move_warrior_strike", "h")
+	var dmg_healthy := _last_damage(b_h)
+
+	var actor2 := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 300, "AGI": 120, "VIT": 200, "END": 50, "SEN": 10}
+	)
+	var low := Battle.make_enemy_combatant("l", 2000.0, false, "L", "", false, "skirmisher")
+	var b_l := Battle.new([actor2], [low], moves, false, _seeded_rng(5))
+	b_l._combatant_by_id("l")["hp"] = int(b_l._combatant_by_id("l")["max_hp"] * 0.2)
+	b_l._combatant_by_id("l")["def"] = healthy["def"]  # keep DEF identical
+	b_l.step()
+	b_l.resolve_player_action("move_warrior_strike", "l")
+	var dmg_low := _last_damage(b_l)
+	assert_almost_eq(float(dmg_low) / float(dmg_healthy), 1.30, 0.06)
+
+
+func test_low_hp_bruiser_gets_no_execute_bonus() -> void:
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 300, "AGI": 120, "VIT": 200, "END": 50, "SEN": 10}
+	)
+	var healthy := Battle.make_enemy_combatant("h", 2000.0, false, "H", "", false, "bruiser")
+	var b_h := Battle.new([actor], [healthy], moves, false, _seeded_rng(5))
+	b_h.step()
+	b_h.resolve_player_action("move_warrior_strike", "h")
+	var dmg_healthy := _last_damage(b_h)
+	var actor2 := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 300, "AGI": 120, "VIT": 200, "END": 50, "SEN": 10}
+	)
+	var low := Battle.make_enemy_combatant("l", 2000.0, false, "L", "", false, "bruiser")
+	var b_l := Battle.new([actor2], [low], moves, false, _seeded_rng(5))
+	b_l._combatant_by_id("l")["hp"] = int(b_l._combatant_by_id("l")["max_hp"] * 0.2)
+	b_l.step()
+	b_l.resolve_player_action("move_warrior_strike", "l")
+	assert_almost_eq(float(_last_damage(b_l)) / float(dmg_healthy), 1.0, 0.05)
+
+
+func test_hitting_a_weakened_boss_adds_followup_break_fill() -> void:
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 300, "AGI": 120, "VIT": 200, "END": 50, "SEN": 10}
+	)
+	var boss := Battle.make_enemy_combatant("boss", 3000.0, true, "Boss")
+	var b := Battle.new([actor], [boss], moves, false, _seeded_rng(7))
+	var bc := b._combatant_by_id("boss")
+	bc["def_multiplier"] = 0.7  # weakened
+	b.step()
+	b.resolve_player_action("move_warrior_strike", "boss")
+	# fill = damage*0.5 + break_max*0.05 -- strictly above damage*0.5
+	var fill := float(b._combatant_by_id("boss")["break_current"])
+	assert_gt(fill, float(_last_damage(b)) * 0.5 + 0.01)
+	assert_almost_eq(fill, float(_last_damage(b)) * 0.5 + float(bc["break_max"]) * 0.05, 1.5)

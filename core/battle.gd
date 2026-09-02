@@ -71,6 +71,12 @@ const MONARCH_GAUGE_PER_HIT_CAP := 8.0  ## spec §6.1, v0
 const MONARCH_GAUGE_ON_CRIT := 5.0  ## spec §6.1, v0
 const MONARCH_GAUGE_ON_BREAK := 25.0  ## spec §6.1/§5.3, v0
 
+## --- §7.1 follow-up bonuses (spec §7.1 / §12, all v0) ---------------------
+const SKIRMISHER_EXECUTE_HP_FRAC := 0.30  ## spec §7.1, v0
+const SKIRMISHER_EXECUTE_MULT := 1.30  ## spec §7.1, v0
+const BREAK_FILL_FOLLOWUP_DEBUFF_FRAC := 0.05  ## spec §7.1, v0:
+## hitting an already-def-down boss adds this fraction of break_max
+
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
 ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
@@ -672,12 +678,23 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 			and String(target.get("family", "")) == FROSTBLOODED_FAMILY
 		):
 			bonus_mult *= TRAIT_DAMAGE_BONUS
+		if (
+			String(target.get("role", "")) == "skirmisher"
+			and _hp_fraction(target) < SKIRMISHER_EXECUTE_HP_FRAC
+		):
+			bonus_mult *= SKIRMISHER_EXECUTE_MULT  ## spec §7.1, v0
 		var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
 		var pierce := MAGIC_DEF_PIERCE if String(move.get("move_type", "")) == "magic" else 0.0
 		var result := CombatMath.resolve_damage(
 			power * bonus_mult, atk, target_def, float(actor.get("crit_chance", 0.0)), _rng, pierce
 		)
 		var actual := _land_hit(actor, target, result, tag, target_type, is_physical)
+		if (
+			target.get("is_boss", false)
+			and target.has("break_max")
+			and float(target.get("def_multiplier", 1.0)) < 1.0
+		):
+			_add_break_fill(target, float(target["break_max"]) * BREAK_FILL_FOLLOWUP_DEBUFF_FRAC)
 		if target["hp"] == 0 and actor_flags.get("bloodhunger", false) and actor["hp"] > 0:
 			var heal := int(round(float(actor["max_hp"]) * BLOODHUNGER_HEAL_FRAC))
 			var hp_before: int = actor["hp"]
