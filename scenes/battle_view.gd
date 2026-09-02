@@ -58,6 +58,8 @@ var _party_portraits: Dictionary = {}  ## combatant id -> Texture2D, set by star
 @onready var result_label: Label = $ResultLabel
 @onready var close_button: Button = $CloseButton
 @onready var advance_timer: Timer = $AdvanceTimer
+@onready var ultimate_button: Button = $UltimateButton
+@onready var gauge_label: Label = $GaugeLabel
 
 
 func _ready() -> void:
@@ -69,6 +71,7 @@ func _ready() -> void:
 	skip_button.pressed.connect(_on_skip_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 	advance_timer.timeout.connect(_advance)
+	ultimate_button.pressed.connect(_on_ultimate_pressed)
 
 
 ## Starts a fresh fight. `party`/`enemies` are Battle combatant dicts
@@ -79,11 +82,16 @@ func _ready() -> void:
 ## each shadow's real monster_id before Battle.make_ally_combatant() drops
 ## it down to just an instance_id.
 func start_battle(
-	party: Array, enemies: Array, moves: Array, auto: bool = false, party_portraits: Dictionary = {}
+	party: Array,
+	enemies: Array,
+	moves: Array,
+	auto: bool = false,
+	party_portraits: Dictionary = {},
+	initial_gauge: float = 0.0
 ) -> void:
 	_moves = moves
 	_party_portraits = party_portraits
-	_battle = Battle.new(party, enemies, moves, auto, null)
+	_battle = Battle.new(party, enemies, moves, auto, null, initial_gauge)
 	_pending_move = {}
 	result_label.visible = false
 	close_button.visible = false
@@ -136,7 +144,11 @@ func _refresh_enemy_slots() -> void:
 			slot.disabled = true
 			continue
 		var telegraph := "\n⚠ BIG HIT NEXT" if _battle.is_boss_next_hit_big(e["id"]) else ""
-		slot.text = "%s\nHP: %s%s" % [e["name"], _hp_bar(e), telegraph]
+		var brk := ""
+		if e.get("is_boss", false) and e.has("break_max"):
+			var bf := int(round(_battle.break_fraction(e["id"]) * 100.0))
+			brk = "\nBREAK %d%%%s" % [bf, " [BROKEN]" if _battle.is_broken(e["id"]) else ""]
+		slot.text = "%s\nHP: %s%s%s" % [e["name"], _hp_bar(e), telegraph, brk]
 		slot.disabled = not targeting
 
 
@@ -187,6 +199,7 @@ func _refresh_log_label() -> void:
 ## who's acting, since by the time a refresh runs the turn queue has
 ## already moved past them.
 func _refresh_action_bar() -> void:
+	ultimate_button.visible = false
 	if not _pending_move.is_empty():
 		return
 
@@ -213,6 +226,12 @@ func _refresh_action_bar() -> void:
 		b.visible = true
 		b.disabled = cd > 0
 		b.text = "%s%s" % [move["name"], (" (CD %d)" % cd) if cd > 0 else ""]
+
+	gauge_label.text = "Monarch Gauge: %d / 100" % int(round(_battle.monarch_gauge))
+	var can_ult := _awaiting_player_input and _battle.can_use_ultimate()
+	ultimate_button.visible = can_ult
+	if can_ult:
+		ultimate_button.text = "★ %s ★" % _battle.ultimate_name()
 
 
 func _hp_bar(c: Dictionary) -> String:
@@ -277,6 +296,23 @@ func _on_action_button_pressed(index: int) -> void:
 		return
 	_pending_move = {}
 	_resolve_and_continue(move["id"], "")
+
+
+## Fires the party leader's class Ultimate (§6.2). Mirrors
+## _resolve_and_continue's post-action flow exactly -- the Ultimate IS the
+## turn, so it resolves immediately then paces the following turns the
+## same as any other resolved player action.
+func _on_ultimate_pressed() -> void:
+	if _battle == null or not _awaiting_player_input or not _battle.can_use_ultimate():
+		return
+	_pending_move = {}
+	_battle.resolve_player_ultimate()
+	_awaiting_player_input = false
+	_refresh_all()
+	if _battle.is_over:
+		_show_results()
+		return
+	advance_timer.start()
 
 
 func _on_enemy_slot_pressed(index: int) -> void:
@@ -356,3 +392,10 @@ func _show_results() -> void:
 func _on_close_pressed() -> void:
 	visible = false
 	battle_finished.emit(_battle.won)
+
+
+## The live Monarch Gauge value -- main.gd reads this when a Nadir floor
+## fight finishes so the next floor's Battle can be seeded with it
+## (spec §6.1: the gauge persists across a gate/Nadir run's sub-battles).
+func battle_monarch_gauge() -> float:
+	return _battle.monarch_gauge if _battle != null else 0.0

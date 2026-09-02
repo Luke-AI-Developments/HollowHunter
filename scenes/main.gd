@@ -54,6 +54,9 @@ var _pending_battle_party_trait_ids: Array = []  ## §6b pt3: fielded party's
 ## trait ids, carried into the reward handlers for the Essence-bonus traits
 var _nadir_run_active: bool = false  ## §20: a Nadir run costs 1 Gate Ticket on the first
 ## descend; retries/advances within the run are free. Reset when the Nadir panel closes.
+var _nadir_monarch_gauge: float = 0.0  ## combat v1 §6.1: the Monarch Gauge persists across
+## a Nadir run's floor fights -- carried out of a won floor, seeded into the next, zeroed on
+## a loss or when the run ends.
 
 @onready var preset_picker: Node2D = $PresetPicker
 @onready var preset_grid: GridContainer = $PresetPicker/Grid
@@ -674,7 +677,12 @@ func _start_nadir_battle() -> void:
 	var battle_party := _build_battle_party(true)
 	_pending_battle_party_trait_ids = battle_party["party_trait_ids"]
 	battle_view.start_battle(
-		battle_party["party"], enemies, _moves, false, battle_party["portraits"]
+		battle_party["party"],
+		enemies,
+		_moves,
+		false,
+		battle_party["portraits"],
+		_nadir_monarch_gauge
 	)
 
 
@@ -1183,6 +1191,7 @@ func _on_nadir_button_pressed() -> void:
 func _on_nadir_close_pressed() -> void:
 	nadir_panel.visible = false
 	_nadir_run_active = false
+	_nadir_monarch_gauge = 0.0
 
 
 ## No longer shows a RAID_POWER-vs-target comparison -- real combat
@@ -1235,6 +1244,7 @@ func _on_nadir_take_on_pressed() -> void:
 			return
 		state.spend_gate_ticket()
 		_nadir_run_active = true
+		_nadir_monarch_gauge = 0.0
 		SaveService.save(state)
 		_refresh_label()
 		_refresh_nadir_panel()
@@ -1252,6 +1262,7 @@ func _apply_nadir_battle_result(won: bool) -> void:
 	var is_boss := _pending_nadir_is_boss
 	var boss_id := _pending_nadir_boss_id
 	var party_trait_ids := _pending_battle_party_trait_ids
+	_nadir_monarch_gauge = battle_view.battle_monarch_gauge() if won else 0.0
 	_pending_nadir_floor = -1
 	_pending_nadir_is_boss = false
 	_pending_nadir_boss_id = ""
