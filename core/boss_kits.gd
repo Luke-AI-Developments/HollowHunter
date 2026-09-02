@@ -106,6 +106,8 @@ static func on_turn(battle: Battle, boss: Dictionary) -> bool:
 			return _hexer_turn(battle, boss)
 		"broodmother":
 			return _broodmother_turn(battle, boss)
+		"revenant":
+			return _revenant_turn(battle, boss)
 		_:
 			return false
 
@@ -131,6 +133,10 @@ static func on_phase(battle: Battle, boss: Dictionary) -> void:
 			# cap or the 4-enemy row limit is already hit -- spawn_add guards both.
 			battle.spawn_add(boss)
 			battle.spawn_add(boss)
+		"revenant":
+			# §4.6 on-phase: +1 break-bar segment to fill before it can be Broken --
+			# a tighter Death-Window race in phase 2.
+			boss["break_max"] = float(boss["break_max"]) + float(boss.get("break_segment", 0.0))
 		_:
 			# colossus §4.5 on-phase: Avalanche cadence -> every 3t is already
 			# handled -- _boss_telegraph_interval reads `phase`.
@@ -345,10 +351,63 @@ static func _broodmother_turn(battle: Battle, boss: Dictionary) -> bool:
 	return true
 
 
+## §4.6 Revenant turn. Death-window bookkeeping runs FIRST (an expired,
+## un-Broken window revives the boss to `revive_frac` of max HP, then the boss
+## still acts). Telegraph (every telegraph_interval turns): Grave Chill =
+## signature_power x a hit on the lowest-HP party member, plus atk-down
+## x grave_chill_atkdown for atkdown_turns. Off-telegraph, every
+## leech_interval-th kit-turn: Leech = a basic attack that heals the boss for
+## leech_heal_frac of the HP removed. Every other turn is a plain basic
+## attack. Always owns the turn -> returns true.
+static func _revenant_turn(battle: Battle, boss: Dictionary) -> bool:
+	var kit: Dictionary = BOSS_KITS["revenant"]
+	var kt := int(boss.get("_kit_turn", 0)) + 1
+	boss["_kit_turn"] = kt
+	if bool(boss.get("death_window", false)):
+		boss["death_window_turns"] = int(boss.get("death_window_turns", 0)) - 1
+		if int(boss["death_window_turns"]) <= 0:
+			boss["hp"] = int(round(float(boss["max_hp"]) * float(kit["revive_frac"])))
+			boss["death_window"] = false
+			battle.log.append(
+				{"type": "undying_revive", "actor_id": boss["id"], "hp": int(boss["hp"])}
+			)
+	var tele := int(boss.get("turns_until_big_hit", kit["telegraph_interval"]))
+	if tele <= 0:
+		var t := battle._enemy_target()
+		if not t.is_empty():
+			battle.boss_strike(boss, t, float(kit["signature_power"]))
+			if int(t.get("hp", 0)) > 0:
+				t["atk_multiplier"] = float(kit["grave_chill_atkdown"])
+				t["atk_buff_turns"] = int(kit["atkdown_turns"])
+		boss["turns_until_big_hit"] = battle._boss_telegraph_interval(boss)
+		return true
+	boss["turns_until_big_hit"] = tele - 1
+	if kt % int(kit["leech_interval"]) == 0:
+		var t2 := battle._enemy_target()
+		if not t2.is_empty():
+			var a := battle.boss_strike(boss, t2, 1.0)
+			var healed := int(round(float(a) * float(kit["leech_heal_frac"])))
+			boss["hp"] = mini(int(boss["max_hp"]), int(boss["hp"]) + healed)
+			battle.log.append({"type": "leech_heal", "actor_id": boss["id"], "amount": healed})
+		return true
+	var target := battle._enemy_target()
+	if not target.is_empty():
+		battle.boss_strike(boss, target, 1.0)
+	return true
+
+
 ## Called from Battle._land_hit before a lethal blow is written. Returns true
-## if the kit intercepts it (Revenant Undying, Task 6) -- Battle then leaves
-## the boss at 1 HP instead of 0.
-static func on_would_die(_battle: Battle, boss: Dictionary) -> bool:
+## if the kit intercepts it (Revenant Undying, §4.6) -- Battle then leaves the
+## boss at 1 HP instead of 0 and the Death Window opens for death_window_turns.
+static func on_would_die(battle: Battle, boss: Dictionary) -> bool:
 	match String(boss.get("kit", "")):
+		"revenant":
+			if bool(boss.get("undying_spent", false)):
+				return false
+			boss["undying_spent"] = true
+			boss["death_window"] = true
+			boss["death_window_turns"] = int(BOSS_KITS["revenant"]["death_window_turns"])
+			battle.log.append({"type": "undying", "actor_id": boss["id"]})
+			return true
 		_:
 			return false

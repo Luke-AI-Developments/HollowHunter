@@ -519,6 +519,148 @@ func test_on_phase_fires_an_immediate_double_spawn() -> void:
 	assert_eq(adds.size(), 2)
 
 
+func _revenant(id: String) -> Dictionary:
+	return Battle.make_enemy_combatant(
+		id, 900.0, true, "Boss", "Gravekin", true, "bruiser", "physical", "revenant", true
+	)
+
+
+func test_revenant_stashes_a_break_segment_equal_to_break_max_at_build() -> void:
+	var rev := _revenant("r")
+	assert_almost_eq(float(rev["break_segment"]), float(rev["break_max"]), 0.01)
+	var plain := Battle.make_enemy_combatant("p", 900.0, true, "P")
+	assert_false(plain.has("break_segment"))
+
+
+func test_on_would_die_opens_the_death_window_exactly_once() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(1))
+	var rev := b._combatant_by_id("r")
+	assert_true(BossKits.on_would_die(b, rev))
+	assert_true(bool(rev["undying_spent"]))
+	assert_true(bool(rev["death_window"]))
+	assert_eq(
+		int(rev["death_window_turns"]), int(BossKits.BOSS_KITS["revenant"]["death_window_turns"])
+	)
+	rev["death_window"] = false  # pretend the window has since closed
+	assert_false(BossKits.on_would_die(b, rev), "the spent passive never re-triggers")
+	assert_false(bool(rev["death_window"]))
+
+
+func test_first_lethal_hit_leaves_the_revenant_at_1_hp_and_opens_the_window() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(2))
+	var rev := b._combatant_by_id("r")
+	var actor := b._combatant_by_id("p")
+	rev["hp"] = 30
+	b._land_hit(actor, rev, {"damage": 50, "crit": false}, "", "", true)
+	assert_eq(int(rev["hp"]), 1)
+	assert_true(bool(rev["death_window"]))
+	assert_eq(b.living_enemies().size(), 1, "the Revenant is still in the fight")
+	assert_eq(_count_events(b, "undying"), 1)
+
+
+func test_undying_triggers_only_once_a_second_lethal_hit_kills() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(3))
+	var rev := b._combatant_by_id("r")
+	var actor := b._combatant_by_id("p")
+	rev["hp"] = 30
+	b._land_hit(actor, rev, {"damage": 50, "crit": false}, "", "", true)
+	assert_eq(int(rev["hp"]), 1)
+	rev["hp"] = 30  # patched up, window still open, passive already spent
+	b._land_hit(actor, rev, {"damage": 50, "crit": false}, "", "", true)
+	assert_eq(int(rev["hp"]), 0, "Undying is spent -- the boss dies normally")
+
+
+func test_breaking_the_revenant_inside_its_death_window_kills_it() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(4))
+	var rev := b._combatant_by_id("r")
+	rev["hp"] = 1
+	rev["death_window"] = true
+	rev["death_window_turns"] = 2
+	rev["break_current"] = float(rev["break_max"])
+	b._maybe_break(rev)
+	assert_eq(int(rev["hp"]), 0)
+	assert_false(bool(rev["death_window"]))
+	assert_eq(_count_events(b, "undying_shatter"), 1)
+
+
+func test_breaking_the_revenant_outside_a_death_window_does_not_kill_it() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(5))
+	var rev := b._combatant_by_id("r")
+	var hp_before: int = rev["hp"]
+	rev["break_current"] = float(rev["break_max"])
+	b._maybe_break(rev)
+	assert_eq(int(rev["hp"]), hp_before, "a normal Break leaves HP untouched")
+	assert_gt(int(rev["broken_turns"]), 0)
+	assert_eq(_count_events(b, "undying_shatter"), 0)
+
+
+func test_death_window_expiring_unbroken_revives_the_revenant_to_35_percent() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(6))
+	var rev := b._combatant_by_id("r")
+	rev["hp"] = 1
+	rev["death_window"] = true
+	rev["death_window_turns"] = int(BossKits.BOSS_KITS["revenant"]["death_window_turns"])
+	rev["_kit_turn"] = 0
+	rev["turns_until_big_hit"] = 5  # keep both turns off the telegraph / leech
+	BossKits.on_turn(b, rev)  # window_turns 2 -> 1, no revive yet
+	assert_true(bool(rev["death_window"]))
+	BossKits.on_turn(b, rev)  # window_turns 1 -> 0 -> revive
+	assert_false(bool(rev["death_window"]))
+	var expected := int(
+		round(float(rev["max_hp"]) * float(BossKits.BOSS_KITS["revenant"]["revive_frac"]))
+	)
+	assert_eq(int(rev["hp"]), expected)
+	assert_eq(_count_events(b, "undying_revive"), 1)
+
+
+func test_grave_chill_telegraph_atk_downs_the_target() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(7))
+	var rev := b._combatant_by_id("r")
+	var p := b._combatant_by_id("p")
+	var p_before: int = p["hp"]
+	rev["turns_until_big_hit"] = 0
+	assert_true(BossKits.on_turn(b, rev))
+	assert_lt(int(p["hp"]), p_before)
+	assert_almost_eq(
+		float(p["atk_multiplier"]),
+		float(BossKits.BOSS_KITS["revenant"]["grave_chill_atkdown"]),
+		0.001
+	)
+	assert_eq(int(p["atk_buff_turns"]), int(BossKits.BOSS_KITS["revenant"]["atkdown_turns"]))
+
+
+func test_leech_heals_the_boss_for_half_the_damage_dealt() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(8))
+	var rev := b._combatant_by_id("r")
+	var p := b._combatant_by_id("p")
+	rev["hp"] = int(rev["max_hp"] * 0.5)  # headroom to heal
+	rev["_kit_turn"] = int(BossKits.BOSS_KITS["revenant"]["leech_interval"]) - 1  # next turn -> Leech
+	rev["turns_until_big_hit"] = 5
+	var boss_before: int = rev["hp"]
+	var p_before: int = p["hp"]
+	assert_true(BossKits.on_turn(b, rev))
+	var dealt := p_before - int(p["hp"])
+	assert_gt(dealt, 0)
+	var expected_heal := int(
+		round(float(dealt) * float(BossKits.BOSS_KITS["revenant"]["leech_heal_frac"]))
+	)
+	assert_eq(int(rev["hp"]), boss_before + expected_heal)
+	var logged := false
+	for ev in b.log:
+		if ev.get("type", "") == "leech_heal" and int(ev.get("amount", -1)) == expected_heal:
+			logged = true
+	assert_true(logged)
+
+
+func test_revenant_on_phase_adds_one_break_segment() -> void:
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(9))
+	var rev := b._combatant_by_id("r")
+	var bmax_before: float = rev["break_max"]
+	var seg: float = rev["break_segment"]
+	BossKits.on_phase(b, rev)
+	assert_almost_eq(float(rev["break_max"]), bmax_before + seg, 0.01)
+
+
 func test_a_spawned_add_actually_gets_a_turn_when_the_battle_is_stepped() -> void:
 	# A beefy boss so the party cannot end the fight before the add's first turn;
 	# the Broodmother's own kit-turn 1 is a Spawn (not an attack), so nobody is hurt.

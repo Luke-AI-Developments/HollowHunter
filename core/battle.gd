@@ -309,6 +309,9 @@ static func make_enemy_combatant(
 		if kit == "warden":
 			# Bulwark (spec 4.2): DEF x1.4 baked here; physical break-resist is in _land_hit.
 			c["def"] = float(c["def"]) * float(BossKits.BOSS_KITS["warden"]["def_mult"])
+		if kit == "revenant":
+			# §4.6 on-phase adds one more copy of the (post-mult) break_max as a segment.
+			c["break_segment"] = float(c["break_max"])
 	return c
 
 
@@ -960,7 +963,17 @@ func _land_hit(
 ) -> int:
 	var scaled_damage := int(round(float(result["damage"]) * _incoming_damage_mult(target)))
 	var actual := _apply_shield(target, scaled_damage)
-	target["hp"] = maxi(0, target["hp"] - actual)
+	var would_be := int(target["hp"]) - actual
+	if (
+		would_be <= 0
+		and target.get("is_boss", false)
+		and String(target.get("kit", "")) == "revenant"
+		and not target.get("undying_spent", false)
+		and BossKits.on_would_die(self, target)
+	):
+		target["hp"] = 1
+	else:
+		target["hp"] = maxi(0, would_be)
 	if target.get("is_boss", false) and target.has("break_max"):
 		var on_telegraph := int(target.get("turns_until_big_hit", BOSS_BIG_HIT_INTERVAL)) <= 1
 		var dmg_fill := float(actual) * BREAK_FILL_PER_DAMAGE
@@ -1270,6 +1283,12 @@ func _maybe_break(boss: Dictionary, raw_fill: float = -1.0) -> void:
 		)
 	)
 	_add_monarch_gauge(MONARCH_GAUGE_ON_BREAK)
+	# §4.6 Undying: a Revenant Broken while its Death Window is open dies now,
+	# regardless of whether its own turn ever comes up again.
+	if boss.get("death_window", false):
+		boss["hp"] = 0
+		boss["death_window"] = false
+		log.append({"type": "undying_shatter", "actor_id": boss["id"]})
 
 
 ## Telegraph cadence (turns between big hits) for this boss. A kitted boss
