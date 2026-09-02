@@ -40,6 +40,16 @@ static func monster_atk_type(mdef: Dictionary) -> String:
 	return "magic" if String(mdef.get("clazz", "")) in ["MAGE", "SUPPORT"] else "physical"
 
 
+## The boss-kit id for a monster (spec §3.4): an explicit `kit` on the def
+## wins; else the family default; else "" (no kit -- plain boss). Only
+## meaningful for a boss.
+static func monster_kit(mdef: Dictionary) -> String:
+	var explicit := String(mdef.get("kit", ""))
+	if explicit != "":
+		return explicit
+	return String(BossKits.FAMILY_KIT.get(String(mdef.get("family", "")), ""))
+
+
 static func monsters_by_rank(monsters: Array, rank: String) -> Array:
 	return monsters.filter(func(m: Dictionary) -> bool: return m.get("rank") == rank)
 

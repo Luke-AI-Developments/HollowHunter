@@ -229,6 +229,10 @@ static func make_ally_combatant(
 ## to drive the §18 CLAIM telegraph). A boss (`is_boss`) also carries
 ## `break_max / break_current / break_count / broken_turns` (spec §5); every
 ## combatant carries `statuses` (`{name: turns_left}`, spec §8 primitive).
+## A boss also carries `kit` (the §3.4 archetype id, "" for a plain boss),
+## `is_multiphase`, and `phase` (1 or 2, flipped by _check_phase_transition
+## at 50% HP -- spec §3.5). A non-boss always keeps `kit == ""` /
+## `is_multiphase == false`.
 static func make_enemy_combatant(
 	id: String,
 	base_power: float,
@@ -237,7 +241,9 @@ static func make_enemy_combatant(
 	family: String = "",
 	elite: bool = false,
 	role: String = "bruiser",
-	atk_type: String = "physical"
+	atk_type: String = "physical",
+	kit: String = "",
+	is_multiphase: bool = false
 ) -> Dictionary:
 	var combat := CombatMath.enemy_stats(base_power, "boss" if is_boss else role)
 	var c := {
@@ -269,6 +275,9 @@ static func make_enemy_combatant(
 		"elite": elite,
 		"role": "boss" if is_boss else role,
 		"atk_type": atk_type,
+		"kit": "",
+		"is_multiphase": false,
+		"phase": 1,
 		"statuses": {},
 		"trait_flags":
 		{
@@ -280,6 +289,8 @@ static func make_enemy_combatant(
 		},
 	}
 	if is_boss:
+		c["kit"] = kit
+		c["is_multiphase"] = is_multiphase
 		c["break_max"] = float(combat["HP"]) * BREAK_MAX_HP_FRACTION
 		c["break_current"] = 0.0
 		c["break_count"] = 0
@@ -888,6 +899,8 @@ func _land_hit(
 	}
 	ev.merge(extra_event_fields)
 	log.append(ev)
+	if target.get("is_boss", false) and target.get("is_multiphase", false):
+		_check_phase_transition(target)
 	return actual
 
 
@@ -1160,6 +1173,23 @@ func _maybe_break(boss: Dictionary, raw_fill: float = -1.0) -> void:
 		)
 	)
 	_add_monarch_gauge(MONARCH_GAUGE_ON_BREAK)
+
+
+## Spec §3.5: a multi-phase boss crossing 50% HP downward enters phase 2 --
+## flips the flag and logs. The kit's on-phase effect is fired by the kit
+## dispatch (Tasks 3-6); the tightened telegraph cadence is read off `phase`
+## in _resolve_enemy_turn. No-op for a single-phase boss, one already in
+## phase 2, a dead boss, or one still above 50% HP.
+func _check_phase_transition(boss: Dictionary) -> void:
+	if not boss.get("is_multiphase", false):
+		return
+	if int(boss.get("phase", 1)) != 1 or boss.get("hp", 0) <= 0:
+		return
+	if _hp_fraction(boss) > 0.5:
+		return
+	boss["phase"] = 2
+	log.append({"type": "phase", "actor_id": boss["id"], "phase": 2})
+	# BossKits.on_phase(self, boss)  # wired in Task 3
 
 
 ## Spec §6.1. Offence-weighted party gauge fill. Emits a `gauge` event

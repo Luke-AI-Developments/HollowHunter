@@ -209,3 +209,10 @@ func test_applies_status_moves_have_valid_shape() -> void:
 	)
 	assert_eq(Content.move_by_id(mv, "move_support_ward")["applies_status"]["name"], "regen")
 	assert_eq(Content.move_by_id(mv, "move_mage_nova_burst")["applies_status"]["name"], "stun")
+
+
+func test_monster_kit_resolves_from_family_and_explicit_override() -> void:
+	assert_eq(Content.monster_kit({"family": "Ashen Wardens"}), "warden")
+	assert_eq(Content.monster_kit({"family": "Emberdrakes"}), "berserker")
+	assert_eq(Content.monster_kit({"family": "Nonexistent"}), "")
+	assert_eq(Content.monster_kit({"family": "Ashen Wardens", "kit": "colossus"}), "colossus")
