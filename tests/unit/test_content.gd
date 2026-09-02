@@ -71,8 +71,8 @@ func test_monsters_by_family_filters() -> void:
 		assert_eq(m["family"], "Hollow Brood")
 
 
-func test_all_25_moves_load() -> void:
-	assert_eq(moves.size(), 25)
+func test_all_26_moves_load() -> void:
+	assert_eq(moves.size(), 26)
 
 
 func test_move_by_id_found() -> void:
@@ -81,9 +81,21 @@ func test_move_by_id_found() -> void:
 	assert_eq(m["unlock_level"], 15)
 
 
-func test_moves_by_class_returns_5_per_class() -> void:
-	for clazz in ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]:
+func test_moves_by_class_returns_expected_per_class() -> void:
+	for clazz in ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE"]:
 		assert_eq(Content.moves_by_class(moves, clazz).size(), 5)
+	assert_eq(Content.moves_by_class(moves, "SUPPORT").size(), 6)  # + Reconstitute (§9.2)
+
+
+func test_reconstitute_move_exists_and_is_support_sixth() -> void:
+	var mv := Content.load_moves()
+	var support := Content.moves_by_class(mv, "SUPPORT")
+	assert_eq(support.size(), 6)
+	var recon := Content.move_by_id(mv, "move_support_reconstitute")
+	assert_eq(recon["move_type"], "revive")
+	assert_eq(recon["target_type"], "downed_ally")
+	assert_eq(int(recon["unlock_level"]), 12)
+	assert_eq(int(recon["cooldown"]), 6)
 
 
 func test_unlocked_moves_at_level_1_is_just_the_basic() -> void:

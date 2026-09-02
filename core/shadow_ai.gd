@@ -166,6 +166,15 @@ static func _choose_mage(moves: Array, enemies: Array) -> Dictionary:
 ## when the team's topped up and nothing else is needed (see the class
 ## doc comment above for the moveset-gap fallback this last branch uses).
 static func _choose_support(moves: Array, allies: Array) -> Dictionary:
+	var downed := allies.filter(func(a: Dictionary) -> bool: return int(a.get("hp", 0)) <= 0)
+	var revive := _find_by_move_type(moves, "revive")
+	if not revive.is_empty() and not downed.is_empty():
+		var best: Dictionary = downed[0]
+		for a: Dictionary in downed:
+			if int(a.get("max_hp", 0)) > int(best.get("max_hp", 0)):
+				best = a
+		return {"move_id": revive["id"], "target_id": best["id"]}
+
 	var alive_allies := _alive(allies)
 	var hurt := _hurt_below(alive_allies, SUPPORT_HEAL_THRESHOLD)
 	if not hurt.is_empty():
@@ -249,6 +258,13 @@ static func _lowest_hp_fraction_below(combatants: Array, threshold: float) -> Di
 static func _find_by_tag(moves: Array, tag: String) -> Dictionary:
 	for m: Dictionary in moves:
 		if m.get("tag", "") == tag:
+			return m
+	return {}
+
+
+static func _find_by_move_type(moves: Array, move_type: String) -> Dictionary:
+	for m: Dictionary in moves:
+		if String(m.get("move_type", "")) == move_type:
 			return m
 	return {}
 

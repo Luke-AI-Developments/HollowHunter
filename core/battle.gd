@@ -655,7 +655,7 @@ func _resolve_ai_turn(actor: Dictionary) -> Dictionary:
 			_defend(actor)
 			return _finish_check()
 	var self_view := _combatant_view(actor)
-	var allies_view := _combatant_views(_allies_of(actor))
+	var allies_view := _other_party_views(actor)
 	var enemies_view := _combatant_views(_alive(enemies))
 	var action := ShadowAI.choose_action(
 		actor["class"], self_view, available, allies_view, enemies_view, focus_target_id
@@ -688,6 +688,8 @@ func _apply_move(actor: Dictionary, move_id: String, target_id: String) -> Dicti
 			events = _apply_taunt(actor)
 		"cleanse":
 			events = _apply_cleanse(actor, move, target_id)
+		"revive":
+			events = _apply_revive(actor, move, target_id)
 		_:
 			events = []
 
@@ -940,6 +942,24 @@ func _apply_debuff(actor: Dictionary, move: Dictionary, target_id: String) -> Ar
 	return [{"type": "debuff", "actor_id": actor["id"], "target_id": target["id"]}]
 
 
+## Spec §9.2: Reconstitute -- bring one downed party member back at
+## `move.power` of its max HP and re-queue it. No-op if nobody is down.
+func _apply_revive(_actor: Dictionary, move: Dictionary, target_id: String) -> Array:
+	var down := downed_party()
+	if down.is_empty():
+		return []
+	var t := _combatant_by_id(target_id)
+	if t.is_empty() or int(t.get("hp", 0)) > 0:
+		t = down[0]
+		for c: Dictionary in down:
+			if int(c.get("max_hp", 0)) > int(t.get("max_hp", 0)):
+				t = c
+	t["hp"] = maxi(1, int(round(float(t["max_hp"]) * float(move.get("power", 0.5)))))
+	if not turn_queue.has(t["id"]):
+		turn_queue.append(t["id"])
+	return [{"type": "revive", "target_id": t["id"], "hp": t["hp"]}]
+
+
 func _apply_taunt(actor: Dictionary) -> Array:
 	actor["is_taunting"] = true
 	actor["taunt_turns"] = BUFF_DEBUFF_DURATION_TURNS
@@ -1159,6 +1179,17 @@ func _enemy_target() -> Dictionary:
 
 func _allies_of(actor: Dictionary) -> Array:
 	return party.filter(func(c: Dictionary) -> bool: return c["id"] != actor["id"] and c["hp"] > 0)
+
+
+## Every OTHER party member's view, living or downed -- the Support AI
+## needs to see corpses to pick Reconstitute (spec §9.2). The other role
+## AIs filter to living internally, so this is safe to pass to all.
+func _other_party_views(actor: Dictionary) -> Array:
+	var out := []
+	for c: Dictionary in party:
+		if c["id"] != actor["id"]:
+			out.append(_combatant_view(c))
+	return out
 
 
 func _available_moves_for(actor: Dictionary) -> Array:

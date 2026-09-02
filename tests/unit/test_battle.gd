@@ -379,6 +379,43 @@ func test_heal_never_exceeds_max_hp() -> void:
 	assert_eq(battle.party[1]["hp"], battle.party[1]["max_hp"])
 
 
+# --- Reconstitute (§9.2) ---
+
+
+func test_reconstitute_revives_a_downed_ally_at_half_hp() -> void:
+	var healer := Battle.make_ally_combatant(
+		"player", "SUPPORT", 15, {"STR": 100, "AGI": 300, "VIT": 300, "END": 100, "SEN": 200}
+	)
+	var downed := Battle.make_ally_combatant(
+		"s1", "WARRIOR", 15, {"STR": 300, "AGI": 100, "VIT": 300, "END": 60, "SEN": 10}
+	)
+	var b := Battle.new(
+		[healer, downed], [Battle.make_enemy_combatant("e", 400.0)], moves, false, _seeded_rng(1)
+	)
+	b._combatant_by_id("s1")["hp"] = 0
+	b.step()
+	b.resolve_player_action("move_support_reconstitute", "s1")
+	var r := b._combatant_by_id("s1")
+	assert_almost_eq(float(r["hp"]) / float(r["max_hp"]), 0.5, 0.02)
+	assert_true(b.turn_queue.has("s1"))
+
+
+func test_reconstitute_is_a_noop_with_no_downed_ally() -> void:
+	var healer := Battle.make_ally_combatant(
+		"player", "SUPPORT", 15, {"STR": 100, "AGI": 300, "VIT": 300, "END": 100, "SEN": 200}
+	)
+	var ally := Battle.make_ally_combatant(
+		"s1", "WARRIOR", 15, {"STR": 300, "AGI": 100, "VIT": 300, "END": 60, "SEN": 10}
+	)
+	var b := Battle.new(
+		[healer, ally], [Battle.make_enemy_combatant("e", 400.0)], moves, false, _seeded_rng(1)
+	)
+	b.step()
+	var hp_before: int = b._combatant_by_id("s1")["hp"]
+	b.resolve_player_action("move_support_reconstitute", "s1")
+	assert_eq(int(b._combatant_by_id("s1")["hp"]), hp_before)  # unchanged
+
+
 # --- Buff/debuff duration ---
 
 

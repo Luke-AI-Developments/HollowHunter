@@ -227,3 +227,15 @@ func test_focus_target_does_not_redirect_aoe() -> void:
 	# to a single target; target_id stays "" (AoE).
 	assert_true(String(r["move_id"]).begins_with("move_mage_"))
 	assert_eq(r["target_id"], "")
+
+
+func test_support_ai_revives_a_downed_ally_when_reconstitute_is_available() -> void:
+	var self_v := {"id": "p", "hp": 100, "max_hp": 100, "debuffed": false, "is_taunting": false}
+	var allies := [
+		{"id": "corpse", "hp": 0, "max_hp": 500, "debuffed": false, "is_taunting": false},
+		{"id": "ok", "hp": 300, "max_hp": 400, "debuffed": false, "is_taunting": false},
+	]
+	var mv := Content.moves_by_class(Content.load_moves(), "SUPPORT")
+	var r := ShadowAI.choose_action("SUPPORT", self_v, mv, allies, [], "")
+	assert_eq(r["move_id"], "move_support_reconstitute")
+	assert_eq(r["target_id"], "corpse")

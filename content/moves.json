@@ -29,6 +29,7 @@
     {"id": "move_support_ward", "class": "SUPPORT", "name": "Ward", "unlock_level": 3, "move_type": "buff", "target_type": "lowest_hp_ally", "power": 0.3, "cooldown": 3, "tag": "ally_defense_buff", "applies_status": {"name": "regen", "turns": 3, "amount_frac": 0.06}},
     {"id": "move_support_blessing", "class": "SUPPORT", "name": "Blessing", "unlock_level": 6, "move_type": "heal", "target_type": "all_allies", "power": 0.5, "cooldown": 4, "tag": "team_heal_and_attack_buff"},
     {"id": "move_support_cleanse", "class": "SUPPORT", "name": "Cleanse", "unlock_level": 9, "move_type": "cleanse", "target_type": "lowest_hp_ally", "power": 0.0, "cooldown": 4, "tag": "cleanse_debuff"},
-    {"id": "move_support_sanctuary", "class": "SUPPORT", "name": "Sanctuary", "unlock_level": 14, "move_type": "heal", "target_type": "all_allies", "power": 1.2, "cooldown": 5, "tag": "big_heal"}
+    {"id": "move_support_sanctuary", "class": "SUPPORT", "name": "Sanctuary", "unlock_level": 14, "move_type": "heal", "target_type": "all_allies", "power": 1.2, "cooldown": 5, "tag": "big_heal"},
+    {"id": "move_support_reconstitute", "class": "SUPPORT", "name": "Reconstitute", "unlock_level": 12, "move_type": "revive", "target_type": "downed_ally", "power": 0.5, "cooldown": 6, "tag": ""}
   ]
 }
