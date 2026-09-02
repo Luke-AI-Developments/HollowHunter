@@ -623,11 +623,20 @@ func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:
 	if target.is_empty():
 		return _finish_check()
 
+	if (
+		actor.get("is_boss", false)
+		and String(actor.get("kit", "")) != ""
+		and BossKits.on_turn(self, actor)
+	):
+		return _finish_check()
+
 	var is_big_hit := false
 	if actor.get("is_boss", false):
-		var remaining: int = actor.get("turns_until_big_hit", BOSS_BIG_HIT_INTERVAL)
+		var remaining: int = actor.get("turns_until_big_hit", _boss_telegraph_interval(actor))
 		is_big_hit = remaining <= 0
-		actor["turns_until_big_hit"] = BOSS_BIG_HIT_INTERVAL if is_big_hit else remaining - 1
+		actor["turns_until_big_hit"] = (
+			_boss_telegraph_interval(actor) if is_big_hit else remaining - 1
+		)
 
 	var move_power := BOSS_BIG_HIT_MULTIPLIER if is_big_hit else 1.0
 	var atk: float = actor["patk"] * float(actor.get("atk_multiplier", 1.0))
@@ -1173,6 +1182,23 @@ func _maybe_break(boss: Dictionary, raw_fill: float = -1.0) -> void:
 		)
 	)
 	_add_monarch_gauge(MONARCH_GAUGE_ON_BREAK)
+
+
+## Telegraph cadence (turns between big hits) for this boss. A kitted boss
+## reads its kit's `telegraph_interval` (or `phase2_telegraph_interval` once
+## in phase 2, spec §3.5); a non-kit boss keeps the phase-agnostic default.
+func _boss_telegraph_interval(boss: Dictionary) -> int:
+	var kit := String(boss.get("kit", ""))
+	if kit != "" and BossKits.BOSS_KITS.has(kit):
+		var t: Dictionary = BossKits.BOSS_KITS[kit]
+		return int(
+			(
+				t["phase2_telegraph_interval"]
+				if int(boss.get("phase", 1)) == 2
+				else t["telegraph_interval"]
+			)
+		)
+	return BOSS_BIG_HIT_INTERVAL
 
 
 ## Spec §3.5: a multi-phase boss crossing 50% HP downward enters phase 2 --

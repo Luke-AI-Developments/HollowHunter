@@ -66,3 +66,32 @@ func test_non_boss_never_gets_a_kit() -> void:
 	)
 	assert_eq(g["kit"], "")
 	assert_false(g.get("is_multiphase", false))
+
+
+func test_boss_telegraph_interval_is_kit_and_phase_aware() -> void:
+	var colossus := Battle.make_enemy_combatant(
+		"c", 2000.0, true, "C", "Rime Sylphs", true, "bruiser", "physical", "colossus", true
+	)
+	var plain := Battle.make_enemy_combatant("p", 2000.0, true, "P")
+	var b := Battle.new([_ally("x", "WARRIOR")], [colossus, plain], moves, true, _seeded_rng(1))
+	assert_eq(b._boss_telegraph_interval(b._combatant_by_id("c")), 4)
+	b._combatant_by_id("c")["phase"] = 2
+	assert_eq(b._boss_telegraph_interval(b._combatant_by_id("c")), 3)
+	assert_eq(b._boss_telegraph_interval(b._combatant_by_id("p")), Battle.BOSS_BIG_HIT_INTERVAL)
+
+
+func test_kit_on_turn_stub_falls_through_to_a_basic_boss_attack() -> void:
+	# With every kit arm still a stub, a kitted boss still attacks each turn.
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 100, "AGI": 5, "VIT": 900, "END": 400, "SEN": 10}
+	)
+	var boss := Battle.make_enemy_combatant(
+		"boss", 1200.0, true, "Boss", "Ashen Wardens", false, "bruiser", "physical", "warden", false
+	)
+	var b := Battle.new([actor], [boss], moves, true, _seeded_rng(4))
+	b.step()  # boss is faster -> it acts; stub on_turn returns false -> basic attack
+	var attacked := false
+	for ev in b.log:
+		if ev.get("type", "") == "enemy_attack" and ev["actor_id"] == "boss":
+			attacked = true
+	assert_true(attacked)

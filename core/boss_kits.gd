@@ -86,3 +86,29 @@ const BOSS_KITS := {
 		"revive_frac": 0.35,
 	},
 }
+
+
+## Called at the top of Battle._resolve_enemy_turn for a kitted boss. Returns
+## true if the kit fully resolved this turn (Battle then does nothing further),
+## false to fall through to the default basic attack. Per-kit arms land in
+## Tasks 3-6; until then every kit falls through.
+static func on_turn(_battle: Battle, boss: Dictionary) -> bool:
+	match String(boss.get("kit", "")):
+		_:
+			return false
+
+
+## One-time per-boss effect when it crosses into phase 2 (spec §3.5).
+static func on_phase(_battle: Battle, boss: Dictionary) -> void:
+	match String(boss.get("kit", "")):
+		_:
+			pass
+
+
+## Called from Battle._land_hit before a lethal blow is written. Returns true
+## if the kit intercepts it (Revenant Undying, Task 6) -- Battle then leaves
+## the boss at 1 HP instead of 0.
+static func on_would_die(_battle: Battle, boss: Dictionary) -> bool:
+	match String(boss.get("kit", "")):
+		_:
+			return false
