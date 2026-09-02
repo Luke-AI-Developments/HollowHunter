@@ -1242,3 +1242,35 @@ func test_a_non_damage_party_turn_resets_chain_count() -> void:
 	b._reset_chain_keep_target()
 	assert_eq(b.chain_count, 0)
 	assert_eq(b.chain_target_id, "boss")
+
+
+func test_set_and_clear_focus_target() -> void:
+	var b := Battle.new(
+		[_ally("player", "WARRIOR")],
+		[Battle.make_enemy_combatant("e1", 500.0), Battle.make_enemy_combatant("e2", 500.0)],
+		moves,
+		true
+	)
+	b.set_focus_target("e2")
+	assert_eq(b.focus_target_id, "e2")
+	b.set_focus_target("ghost")  # not a living enemy -> unchanged
+	assert_eq(b.focus_target_id, "e2")
+	b.clear_focus_target()
+	assert_eq(b.focus_target_id, "")
+
+
+func test_focus_auto_clears_when_the_focused_enemy_dies() -> void:
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 20, {"STR": 800, "AGI": 200, "VIT": 200, "END": 50, "SEN": 10}
+	)
+	var b := Battle.new(
+		[actor],
+		[Battle.make_enemy_combatant("weak", 100.0), Battle.make_enemy_combatant("tough", 3000.0)],
+		moves,
+		false,
+		_seeded_rng(1)
+	)
+	b.set_focus_target("weak")
+	b.step()
+	b.resolve_player_action("move_warrior_strike", "weak")  # one-shots it
+	assert_eq(b.focus_target_id, "")

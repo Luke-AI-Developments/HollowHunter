@@ -109,6 +109,8 @@ var monarch_gauge: float = 0.0  ## spec §6: one shared party gauge, 0..MONARCH_
 var chain_target_id: String = ""  ## spec §7.2: the enemy the focus-fire chain is on
 var chain_count: int = 0  ## spec §7.2: consecutive cross-class hits on
 ## chain_target_id, 0..CHAIN_COUNT_CAP
+## spec §7.3: player-set focus-fire target; free to set, drives the AI + chain
+var focus_target_id: String = ""
 var _last_chainer_class: String = ""  ## internal: class of the last party member to chain a hit
 
 var _moves: Array = []
@@ -616,7 +618,7 @@ func _resolve_ai_turn(actor: Dictionary) -> Dictionary:
 	var allies_view := _combatant_views(_allies_of(actor))
 	var enemies_view := _combatant_views(_alive(enemies))
 	var action := ShadowAI.choose_action(
-		actor["class"], self_view, available, allies_view, enemies_view
+		actor["class"], self_view, available, allies_view, enemies_view, focus_target_id
 	)
 	if String(action.get("move_id", "")) == "":
 		log.append({"type": "pass", "actor_id": actor["id"]})
@@ -991,6 +993,31 @@ func _reset_chain_keep_target() -> void:
 	_last_chainer_class = ""
 
 
+## Spec §7.3: set the focus-fire target. Free -- no turn consumed, queue
+## untouched. Ignored unless `enemy_id` names a living enemy.
+func set_focus_target(enemy_id: String) -> void:
+	var e := _combatant_by_id(enemy_id)
+	if e.is_empty() or e.get("is_enemy", false) == false or int(e.get("hp", 0)) <= 0:
+		return
+	focus_target_id = enemy_id
+	log.append({"type": "focus", "target_id": enemy_id})
+
+
+func clear_focus_target() -> void:
+	focus_target_id = ""
+	log.append({"type": "focus", "target_id": ""})
+
+
+## Drop a stale Focus when its enemy is gone. Cheap; called from
+## _finish_check so every resolution path covers it.
+func _clear_focus_if_dead() -> void:
+	if focus_target_id == "":
+		return
+	var e := _combatant_by_id(focus_target_id)
+	if e.is_empty() or int(e.get("hp", 0)) <= 0:
+		focus_target_id = ""
+
+
 ## Adds `amount` (may be negative-safe: it is clamped) to a boss's break
 ## bar (spec §5.2). No-op for a non-boss, a boss with no bar, or a boss
 ## that is already broken (it refills from 0 only after the stagger ends).
@@ -1149,6 +1176,7 @@ func _lowest_hp(list: Array) -> Dictionary:
 
 
 func _finish_check() -> Dictionary:
+	_clear_focus_if_dead()
 	if _alive(enemies).is_empty():
 		is_over = true
 		won = true

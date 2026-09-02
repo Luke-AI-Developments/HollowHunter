@@ -30,6 +30,18 @@ const SUPPORT_AOE_HEAL_MIN_HURT_ALLIES := 2  ## invented v0: hurt-ally count bef
 
 
 static func choose_action(
+	clazz: String,
+	self_combatant: Dictionary,
+	moves: Array,
+	allies: Array,
+	enemies: Array,
+	focus_target_id: String = ""
+) -> Dictionary:
+	var action := _dispatch(clazz, self_combatant, moves, allies, enemies)
+	return _apply_focus(action, moves, enemies, focus_target_id)
+
+
+static func _dispatch(
 	clazz: String, self_combatant: Dictionary, moves: Array, allies: Array, enemies: Array
 ) -> Dictionary:
 	match clazz.to_upper():
@@ -44,6 +56,27 @@ static func choose_action(
 		"SUPPORT":
 			return _choose_support(moves, allies)
 	return {"move_id": "", "target_id": ""}
+
+
+## Spec §7.4: redirect a single-enemy action onto the player-set Focus
+## target when that enemy is alive. AoE / heal / buff / self moves are
+## left alone (their target_id is "" or an ally).
+static func _apply_focus(
+	action: Dictionary, moves: Array, enemies: Array, focus_target_id: String
+) -> Dictionary:
+	if focus_target_id == "" or String(action.get("move_id", "")) == "":
+		return action
+	var focus_alive := false
+	for e: Dictionary in enemies:
+		if e.get("id", "") == focus_target_id and int(e.get("hp", 0)) > 0:
+			focus_alive = true
+			break
+	if not focus_alive:
+		return action
+	var move := Content.move_by_id(moves, String(action["move_id"]))
+	if String(move.get("target_type", "")) == "single_enemy":
+		action["target_id"] = focus_target_id
+	return action
 
 
 ## Warrior: finish low-HP enemies with Execute; Cleave into groups;

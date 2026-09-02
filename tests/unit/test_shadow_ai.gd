@@ -185,3 +185,45 @@ func test_support_falls_back_to_mend_when_no_attack_move_exists() -> void:
 	var allies := [_combatant("a1", 100, 100), _combatant("a2", 100, 100)]
 	var action := ShadowAI.choose_action("SUPPORT", {}, available, allies, [])
 	assert_eq(action["move_id"], "move_support_mend")
+
+
+# --- Focus lever (§7.3-7.4) ---
+
+
+func test_focus_target_overrides_single_enemy_selection() -> void:
+	var self_v := {"id": "s1", "hp": 100, "max_hp": 100, "debuffed": false, "is_taunting": false}
+	var allies := []
+	var enemies := [
+		{"id": "weak", "hp": 10, "max_hp": 100, "debuffed": false, "is_taunting": false},
+		{"id": "focused", "hp": 90, "max_hp": 100, "debuffed": false, "is_taunting": false},
+	]
+	var mv := Content.moves_by_class(Content.load_moves(), "WARRIOR")
+	var no_focus := ShadowAI.choose_action("WARRIOR", self_v, mv, allies, enemies)
+	var with_focus := ShadowAI.choose_action("WARRIOR", self_v, mv, allies, enemies, "focused")
+	# WARRIOR would normally pile onto "weak"; Focus redirects it to "focused".
+	assert_eq(no_focus["target_id"], "weak")
+	assert_eq(with_focus["target_id"], "focused")
+
+
+func test_focus_target_ignored_when_dead_or_absent() -> void:
+	var self_v := {"id": "s1", "hp": 100, "max_hp": 100, "debuffed": false, "is_taunting": false}
+	var enemies := [
+		{"id": "weak", "hp": 10, "max_hp": 100, "debuffed": false, "is_taunting": false}
+	]
+	var mv := Content.moves_by_class(Content.load_moves(), "WARRIOR")
+	var r := ShadowAI.choose_action("WARRIOR", self_v, mv, [], enemies, "ghost")
+	assert_eq(r["target_id"], "weak")  # "ghost" not present -> ignored
+
+
+func test_focus_target_does_not_redirect_aoe() -> void:
+	var self_v := {"id": "s1", "hp": 100, "max_hp": 100, "debuffed": false, "is_taunting": false}
+	var enemies := [
+		{"id": "a", "hp": 100, "max_hp": 100, "debuffed": false, "is_taunting": false},
+		{"id": "b", "hp": 100, "max_hp": 100, "debuffed": false, "is_taunting": false},
+	]
+	var mv := Content.moves_by_class(Content.load_moves(), "MAGE")
+	var r := ShadowAI.choose_action("MAGE", self_v, mv, [], enemies, "a")
+	# Mage picks an all_enemies spell with 2 up -> Focus must NOT redirect it
+	# to a single target; target_id stays "" (AoE).
+	assert_true(String(r["move_id"]).begins_with("move_mage_"))
+	assert_eq(r["target_id"], "")
