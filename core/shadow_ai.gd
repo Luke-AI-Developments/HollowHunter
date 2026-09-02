@@ -16,7 +16,7 @@ class_name ShadowAI
 ##
 ## Spec gap, flagged: §16's Support AI line says it should "attack when
 ## the team's topped up and nothing else is needed", but Support's full
-## 5-move kit (content/moves.json) is entirely heal/buff/cleanse -- no
+## 6-move kit (content/moves.json) is entirely heal/buff/cleanse -- no
 ## attack move exists in the class's kit at all. Rather than invent a 6th
 ## move that isn't in the given moveset, Support's "nothing else needed"
 ## fallback here re-applies Mend instead of attacking -- keeps it doing

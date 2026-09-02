@@ -1491,6 +1491,22 @@ offset_bottom = 2330.0
 theme_override_font_sizes/font_size = 18
 text = "Monarch Gauge: 0 / 100"
 
+[node name="FocusButton" type="Button" parent="GameUI/BattlePanel"]
+offset_left = 40.0
+offset_top = 2340.0
+offset_right = 500.0
+offset_bottom = 2400.0
+theme_override_font_sizes/font_size = 20
+text = "Focus: none"
+
+[node name="DefendButton" type="Button" parent="GameUI/BattlePanel"]
+offset_left = 520.0
+offset_top = 2340.0
+offset_right = 1040.0
+offset_bottom = 2400.0
+theme_override_font_sizes/font_size = 20
+text = "Defend"
+
 [node name="ResultLabel" type="Label" parent="GameUI/BattlePanel"]
 visible = false
 offset_left = 40.0

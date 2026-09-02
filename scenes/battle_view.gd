@@ -38,6 +38,7 @@ var _pending_move: Dictionary = {}  ## a single_enemy move awaiting a target tap
 var _awaiting_player_input := false  ## set from step()'s own waiting_for_player result --
 ## NOT inferred, since by the time a refresh runs, the turn queue has already moved past
 ## whoever just acted (see _advance()).
+var _focus_arm := false  ## when true, the next enemy-slot tap sets Focus instead of a move target
 var _party_portraits: Dictionary = {}  ## combatant id -> Texture2D, set by start_battle()'s
 ## caller (which already has the real monster_id per shadow before it's flattened into a
 ## combatant dict) -- core/battle.gd itself carries no art data, stays pure. "player" has no
@@ -60,6 +61,8 @@ var _party_portraits: Dictionary = {}  ## combatant id -> Texture2D, set by star
 @onready var advance_timer: Timer = $AdvanceTimer
 @onready var ultimate_button: Button = $UltimateButton
 @onready var gauge_label: Label = $GaugeLabel
+@onready var focus_button: Button = $FocusButton
+@onready var defend_button: Button = $DefendButton
 
 
 func _ready() -> void:
@@ -72,6 +75,8 @@ func _ready() -> void:
 	close_button.pressed.connect(_on_close_pressed)
 	advance_timer.timeout.connect(_advance)
 	ultimate_button.pressed.connect(_on_ultimate_pressed)
+	focus_button.pressed.connect(_on_focus_pressed)
+	defend_button.pressed.connect(_on_defend_pressed)
 
 
 ## Starts a fresh fight. `party`/`enemies` are Battle combatant dicts
@@ -148,7 +153,14 @@ func _refresh_enemy_slots() -> void:
 		if e.get("is_boss", false) and e.has("break_max"):
 			var bf := int(round(_battle.break_fraction(e["id"]) * 100.0))
 			brk = "\nBREAK %d%%%s" % [bf, " [BROKEN]" if _battle.is_broken(e["id"]) else ""]
-		slot.text = "%s\nHP: %s%s%s" % [e["name"], _hp_bar(e), telegraph, brk]
+		var st := ""
+		if _battle._has_status(e, "vulnerable"):
+			st += " VULN"
+		if _battle._has_status(e, "stun"):
+			st += " STUN"
+		if String(e["id"]) == _battle.focus_target_id:
+			st += " [FOCUS]"
+		slot.text = "%s\nHP: %s%s%s%s" % [e["name"], _hp_bar(e), telegraph, brk, st]
 		slot.disabled = not targeting
 
 
@@ -167,7 +179,12 @@ func _refresh_party_slots() -> void:
 			status = "\n[DOWN]"
 		elif bool(c.get("is_taunting", false)):
 			status = "\n[TAUNTING]"
-		slot.text = "%s (%s)\nHP: %s%s" % [c["name"], c["class"], _hp_bar(c), status]
+		var st := ""
+		if _battle._has_status(c, "regen"):
+			st += " REGEN"
+		if bool(c.get("defending", false)):
+			st += " DEF"
+		slot.text = "%s (%s)\nHP: %s%s%s" % [c["name"], c["class"], _hp_bar(c), status, st]
 
 
 func _refresh_turn_order_label() -> void:
@@ -204,6 +221,14 @@ func _refresh_action_bar() -> void:
 	ultimate_button.visible = false
 	# Gauge readout updates even while resolving / target-picking / under Auto.
 	gauge_label.text = "Monarch Gauge: %d / 100" % int(round(_battle.monarch_gauge))
+	if _battle.chain_count > 0:
+		gauge_label.text += "   Chain x%.1f" % (1.0 + 0.10 * _battle.chain_count)
+	var focus_name := _name_for(_battle.focus_target_id) if _battle.focus_target_id != "" else ""
+	focus_button.text = (
+		"Focus: %s" % focus_name
+		if focus_name != ""
+		else ("Focus: tap an enemy" if _focus_arm else "Focus: none")
+	)
 	if not _pending_move.is_empty():
 		return
 
@@ -292,6 +317,16 @@ func _describe_event(e: Dictionary) -> String:
 			text = "★ %s ★" % String(e.get("name", "Ultimate"))
 		"revive":
 			text = "%s is revived!" % target_name
+		"focus":
+			text = (
+				"Focus: %s" % target_name
+				if String(e.get("target_id", "")) != ""
+				else "Focus cleared"
+			)
+		"defend":
+			text = "%s braces" % actor_name
+		"regen_tick":
+			text = "%s regenerates %d" % [target_name, int(e.get("amount", 0))]
 	return text
 
 
@@ -329,7 +364,42 @@ func _on_ultimate_pressed() -> void:
 	advance_timer.start()
 
 
+## Free, no-turn-cost Focus toggle (§7.3 / §11.1). If a Focus target is
+## already set, tapping clears it; otherwise it arms the next enemy-slot
+## tap to set Focus instead of resolving a move.
+func _on_focus_pressed() -> void:
+	if _battle == null:
+		return
+	if _battle.focus_target_id != "":
+		_battle.clear_focus_target()
+		_focus_arm = false
+	else:
+		_focus_arm = true
+	_refresh_all()
+
+
+## Defend pseudo-move (§11.1): halves incoming damage until this ally's
+## next turn. Mirrors _resolve_and_continue's post-action flow exactly.
+func _on_defend_pressed() -> void:
+	if _battle == null or not _awaiting_player_input:
+		return
+	_pending_move = {}
+	_battle.resolve_player_defend()
+	_awaiting_player_input = false
+	_refresh_all()
+	if _battle.is_over:
+		_show_results()
+		return
+	advance_timer.start()
+
+
 func _on_enemy_slot_pressed(index: int) -> void:
+	if _focus_arm:
+		_focus_arm = false
+		if index < _battle.enemies.size():
+			_battle.set_focus_target(String(_battle.enemies[index]["id"]))
+		_refresh_all()
+		return
 	if _pending_move.is_empty() or index >= _battle.enemies.size():
 		return
 	var target: Dictionary = _battle.enemies[index]
