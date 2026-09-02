@@ -896,7 +896,9 @@ func test_monarch_gauge_starts_at_zero_by_default() -> void:
 
 
 func test_monarch_gauge_can_be_seeded_and_is_clamped() -> void:
-	var actor := Battle.make_ally_combatant("player", "WARRIOR", 10, {"STR": 100, "AGI": 50, "VIT": 100, "END": 30, "SEN": 10})
+	var actor := Battle.make_ally_combatant(
+		"player", "WARRIOR", 10, {"STR": 100, "AGI": 50, "VIT": 100, "END": 30, "SEN": 10}
+	)
 	var e := Battle.make_enemy_combatant("g", 500.0)
 	assert_eq(Battle.new([actor], [e], moves, false, null, 60.0).monarch_gauge, 60.0)
 	assert_eq(Battle.new([actor], [e], moves, false, null, 999.0).monarch_gauge, 100.0)
@@ -933,3 +935,50 @@ func test_gauge_never_exceeds_max() -> void:
 	b._add_monarch_gauge(500.0)
 	assert_eq(b.monarch_gauge, 100.0)
 	assert_true(b.can_use_ultimate())
+
+
+func test_resolve_player_ultimate_fires_and_zeros_the_gauge() -> void:
+	var b := _boss_fight(7)
+	b._add_monarch_gauge(100.0)
+	b.step()  # waiting_for_player
+	var hp_before: int = b._combatant_by_id("boss")["hp"]
+	b.resolve_player_ultimate()
+	assert_eq(b.monarch_gauge, 0.0)
+	assert_lt(b._combatant_by_id("boss")["hp"], hp_before)
+	var fired := false
+	for ev in b.log:
+		if ev.get("type", "") == "ultimate":
+			fired = true
+	assert_true(fired)
+
+
+func test_resolve_player_ultimate_is_a_noop_when_gauge_not_full() -> void:
+	var b := _boss_fight(7)
+	b._add_monarch_gauge(40.0)
+	b.step()
+	var hp_before: int = b._combatant_by_id("boss")["hp"]
+	b.resolve_player_ultimate()
+	assert_eq(b.monarch_gauge, 40.0)
+	assert_eq(b._combatant_by_id("boss")["hp"], hp_before)
+
+
+func test_auto_battle_fires_the_ultimate_on_the_first_full_player_turn() -> void:
+	var actor := Battle.make_ally_combatant(
+		"player", "MAGE", 20, {"STR": 100, "AGI": 300, "VIT": 200, "END": 50, "SEN": 300}
+	)
+	var enemies := [
+		Battle.make_enemy_combatant("g1", 300.0), Battle.make_enemy_combatant("g2", 300.0)
+	]
+	var b := Battle.new([actor], enemies, moves, true, _seeded_rng(9), 100.0)
+	b.step()  # player's auto turn -> should be the Ultimate (Nova), not Cyan Bolt
+	var fired := false
+	for ev in b.log:
+		if ev.get("type", "") == "ultimate" and ev.get("name", "") == "Nova Cataclysm":
+			fired = true
+	assert_true(fired)
+	assert_eq(b.monarch_gauge, 0.0)
+
+
+func test_ultimate_name_reflects_the_player_subclass() -> void:
+	var b := _boss_fight(7)  # player is WARRIOR
+	assert_eq(b.ultimate_name(), "Monarch's Wrath")

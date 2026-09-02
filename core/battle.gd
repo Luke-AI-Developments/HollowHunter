@@ -350,6 +350,28 @@ func resolve_player_action(move_id: String, target_id: String) -> Dictionary:
 	return _apply_move(actor, move_id, target_id)
 
 
+func ultimate_name() -> String:
+	if party.is_empty():
+		return ""
+	return Ultimates.for_subclass(String(party[0].get("class", "")))
+
+
+## Fires the Hunter Ultimate for the pending player turn (spec §6.2).
+## Valid only right after step() returned waiting_for_player. No-op (no
+## gauge spent, turn not consumed here -- caller should fall back to a
+## normal move) if the gauge is not full or the player is down. The
+## Ultimate resolves FIRST, then the gauge is zeroed -- spec §6.2's
+## "resolves the Ultimate, gauge -> 0" -- so a Break or crit the Ultimate
+## itself causes does not leave the gauge partly refilled afterward.
+func resolve_player_ultimate() -> Dictionary:
+	var actor := _combatant_by_id(player_id)
+	if actor.is_empty() or actor["hp"] <= 0 or not can_use_ultimate():
+		return _finish_check()
+	Ultimates.resolve(self, String(actor.get("class", "")))
+	monarch_gauge = 0.0
+	return _finish_check()
+
+
 ## Resolves the CURRENTLY-PENDING player turn via ShadowAI, same as any
 ## auto-controlled ally -- for when Auto-battle gets toggled on while
 ## step() is already paused waiting on the player specifically. Calling
@@ -554,6 +576,10 @@ func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:
 
 
 func _resolve_ai_turn(actor: Dictionary) -> Dictionary:
+	if actor["id"] == player_id and can_use_ultimate():
+		Ultimates.resolve(self, String(actor.get("class", "")))
+		monarch_gauge = 0.0
+		return _finish_check()
 	var available := _available_moves_for(actor)
 	var self_view := _combatant_view(actor)
 	var allies_view := _combatant_views(_allies_of(actor))
