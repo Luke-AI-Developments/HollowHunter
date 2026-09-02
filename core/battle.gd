@@ -81,6 +81,11 @@ const BREAK_FILL_FOLLOWUP_DEBUFF_FRAC := 0.05  ## spec §7.1, v0:
 const CHAIN_COUNT_CAP := 4  ## spec §7.2, v0
 const CHAIN_DAMAGE_STEP := 0.10  ## spec §7.2, v0: +this per chain_count, cap CHAIN_COUNT_CAP
 
+## --- §11 Defend / Auto (spec §11 / §12, all v0) -------------------------
+const DEFEND_DEF_MULT := 0.5  ## spec §11.1, v0: incoming-damage multiplier while defending
+const AUTO_DEFEND_HP_FRAC := 0.20  ## spec §11.2, v0: auto-player Defends below
+## this HP fraction
+
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
 ## invented v0: frostblooded's "Rime" target family (content/monsters.json)
@@ -199,6 +204,8 @@ static func make_ally_combatant(
 		"poison_damage": 0,
 		"shield_hp": 0,
 		"statuses": {},
+		"defending": false,
+		"defend_turns": 0,
 		"trait_flags": trait_flags,
 	}
 
@@ -393,6 +400,28 @@ func resolve_player_ultimate() -> Dictionary:
 	return _finish_check()
 
 
+## Spec §11.1: Defend -- halve incoming damage until this unit's next turn.
+## Not a wasted turn, but it deals no damage so it resets the chain count.
+## Implemented as an incoming-damage multiplier (DEFEND_DEF_MULT, applied in
+## `_incoming_damage_mult` off the `defending` flag) rather than by scaling
+## `def_multiplier`: in this model `dmg = power*atk - def*def_multiplier`, so a
+## `def_multiplier` BELOW 1.0 is a defence DEBUFF that raises damage taken -- the
+## opposite of Defend. See task-5-report.md for the deviation rationale.
+func _defend(actor: Dictionary) -> void:
+	actor["defending"] = true
+	actor["defend_turns"] = 1
+	log.append({"type": "defend", "actor_id": actor["id"]})
+	_reset_chain_keep_target()
+
+
+func resolve_player_defend() -> Dictionary:
+	var actor := _combatant_by_id(player_id)
+	if actor.is_empty() or actor["hp"] <= 0:
+		return _finish_check()
+	_defend(actor)
+	return _finish_check()
+
+
 ## Resolves the CURRENTLY-PENDING player turn via ShadowAI, same as any
 ## auto-controlled ally -- for when Auto-battle gets toggled on while
 ## step() is already paused waiting on the player specifically. Calling
@@ -557,6 +586,10 @@ func _tick_start_of_turn(actor: Dictionary) -> void:
 		actor["taunt_turns"] -= 1
 		if actor["taunt_turns"] <= 0:
 			actor["is_taunting"] = false
+	if actor.get("defend_turns", 0) > 0:
+		actor["defend_turns"] -= 1
+		if actor["defend_turns"] <= 0:
+			actor["defending"] = false
 	var statuses: Dictionary = actor.get("statuses", {})
 	for sname in statuses.keys():
 		statuses[sname] = maxi(0, int(statuses[sname]) - 1)
@@ -614,6 +647,13 @@ func _resolve_ai_turn(actor: Dictionary) -> Dictionary:
 		monarch_gauge = 0.0
 		return _finish_check()
 	var available := _available_moves_for(actor)
+	if actor["id"] == player_id and _hp_fraction(actor) < AUTO_DEFEND_HP_FRAC:
+		var has_recovery := available.any(
+			func(m: Dictionary) -> bool: return String(m.get("move_type", "")) in ["heal", "revive"]
+		)
+		if not has_recovery:
+			_defend(actor)
+			return _finish_check()
 	var self_view := _combatant_view(actor)
 	var allies_view := _combatant_views(_allies_of(actor))
 	var enemies_view := _combatant_views(_alive(enemies))
@@ -955,6 +995,8 @@ func _incoming_damage_mult(target: Dictionary) -> float:
 		m *= BROKEN_DAMAGE_TAKEN_MULT
 	if _has_status(target, "vulnerable"):
 		m *= 1.25  ## spec §8/§12, v0: Vulnerable damage-taken multiplier
+	if target.get("defending", false):
+		m *= DEFEND_DEF_MULT  ## spec §11.1, v0: Defend halves incoming damage until next turn
 	return m
 
 

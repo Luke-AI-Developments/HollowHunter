@@ -562,13 +562,16 @@ func test_bloodhunger_heals_the_killer_on_a_kill() -> void:
 		0.0,
 		["bloodhunger"]
 	)
-	actor["hp"] = 10  # well below max
+	# Well below max so the heal is observable, but above AUTO_DEFEND_HP_FRAC so
+	# the auto-controlled player still attacks instead of Defending (§11.2).
+	var start_hp := int(actor["max_hp"] * 0.5)
+	actor["hp"] = start_hp
 	var expected_heal := int(round(actor["max_hp"] * Battle.BLOODHUNGER_HEAL_FRAC))
 	var enemy := Battle.make_enemy_combatant("e1", 20.0)  # 12 HP -- one hit kills
 	var battle := Battle.new([actor], [enemy], moves, true, rng)
 	battle.step()
 	assert_eq(battle.enemies[0]["hp"], 0)
-	assert_eq(battle.party[0]["hp"], mini(actor["max_hp"], 10 + expected_heal))
+	assert_eq(battle.party[0]["hp"], mini(actor["max_hp"], start_hp + expected_heal))
 
 
 func test_bloodhunger_does_not_heal_on_a_non_killing_hit() -> void:
@@ -1274,3 +1277,106 @@ func test_focus_auto_clears_when_the_focused_enemy_dies() -> void:
 	b.step()
 	b.resolve_player_action("move_warrior_strike", "weak")  # one-shots it
 	assert_eq(b.focus_target_id, "")
+
+
+func test_defend_halves_incoming_damage_until_next_turn() -> void:
+	var player := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 200, "AGI": 5, "VIT": 400, "END": 200, "SEN": 10}
+	)
+	var boss := Battle.make_enemy_combatant("boss", 1500.0, true, "Boss")
+	# baseline: boss hits the undefended player
+	var b0 := Battle.new(
+		[player.duplicate(true)], [boss.duplicate(true)], moves, true, _seeded_rng(2)
+	)
+	b0.step()  # boss faster -> it attacks the player
+	var undef := 0
+	for ev in b0.log:
+		if ev.get("type", "") == "enemy_attack":
+			undef = int(ev["damage"])
+	# defended:
+	var b1 := Battle.new(
+		[player.duplicate(true)], [boss.duplicate(true)], moves, false, _seeded_rng(2)
+	)
+	# player is slower, so step() pauses on the boss first; force the player's Defend by
+	# constructing so the player is faster instead:
+	var fast_player := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 200, "AGI": 900, "VIT": 400, "END": 200, "SEN": 10}
+	)
+	var b2 := Battle.new(
+		[fast_player],
+		[Battle.make_enemy_combatant("boss", 1500.0, true, "Boss")],
+		moves,
+		false,
+		_seeded_rng(2)
+	)
+	b2.step()  # waiting_for_player
+	b2.resolve_player_defend()
+	assert_true(b2._combatant_by_id("player")["defending"])
+	# let the boss act
+	var guard := 0
+	while not b2.is_over and guard < 12:
+		guard += 1
+		var r := b2.step()
+		if r.get("waiting_for_player", false):
+			break
+	var def_dmg := 0
+	for ev in b2.log:
+		if ev.get("type", "") == "enemy_attack":
+			def_dmg = int(ev["damage"])
+	assert_lt(def_dmg, undef)  # roughly half -- exact ratio is seed/DEF dependent
+
+
+func test_defend_expires_on_the_players_next_turn() -> void:
+	var fast_player := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 200, "AGI": 900, "VIT": 400, "END": 200, "SEN": 10}
+	)
+	var b := Battle.new(
+		[fast_player], [Battle.make_enemy_combatant("e", 300.0)], moves, false, _seeded_rng(1)
+	)
+	b.step()
+	b.resolve_player_defend()
+	assert_eq(int(b._combatant_by_id("player")["defend_turns"]), 1)
+	# cycle back to the player's turn
+	var guard := 0
+	while guard < 20:
+		guard += 1
+		var r := b.step()
+		if r.get("waiting_for_player", false):
+			break
+	assert_eq(int(b._combatant_by_id("player")["defend_turns"]), 0)
+	assert_false(b._combatant_by_id("player")["defending"])
+	assert_almost_eq(float(b._combatant_by_id("player")["def_multiplier"]), 1.0, 0.001)
+
+
+func test_defend_does_not_stomp_an_active_def_buff() -> void:
+	var p := Battle.make_ally_combatant(
+		"player", "GUARDIAN", 15, {"STR": 200, "AGI": 900, "VIT": 400, "END": 200, "SEN": 10}
+	)
+	var b := Battle.new(
+		[p], [Battle.make_enemy_combatant("e", 300.0)], moves, false, _seeded_rng(1)
+	)
+	var pc := b._combatant_by_id("player")
+	pc["def_multiplier"] = 1.5
+	pc["def_mod_turns"] = 3  # Fortress-style buff active
+	b.step()
+	b.resolve_player_defend()
+	# Defend is an incoming-damage multiplier (the `defending` flag), NOT a
+	# `def_multiplier` write -- so an active Fortress-style DEF buff is left
+	# completely untouched and its own `def_mod_turns` tick still owns it.
+	assert_true(pc["defending"])
+	assert_almost_eq(float(pc["def_multiplier"]), 1.5, 0.001)
+	assert_gt(int(pc["def_mod_turns"]), 0)
+
+
+func test_auto_player_defends_when_critically_low_and_no_heal() -> void:
+	var p := Battle.make_ally_combatant(
+		"player", "WARRIOR", 15, {"STR": 200, "AGI": 900, "VIT": 400, "END": 200, "SEN": 10}
+	)
+	var b := Battle.new([p], [Battle.make_enemy_combatant("e", 300.0)], moves, true, _seeded_rng(1))
+	b._combatant_by_id("player")["hp"] = int(b._combatant_by_id("player")["max_hp"] * 0.15)
+	b.step()  # auto player's turn -> Defend (WARRIOR has no heal)
+	var defended := false
+	for ev in b.log:
+		if ev.get("type", "") == "defend" and ev["actor_id"] == "player":
+			defended = true
+	assert_true(defended)
