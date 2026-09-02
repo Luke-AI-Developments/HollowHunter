@@ -408,6 +408,57 @@ func is_broken(enemy_id: String) -> bool:
 	return not e.is_empty() and e["hp"] > 0 and int(e.get("broken_turns", 0)) > 0
 
 
+func living_enemies() -> Array:
+	return _alive(enemies)
+
+
+func living_party() -> Array:
+	return _alive(party)
+
+
+func downed_party() -> Array:
+	return party.filter(func(c: Dictionary) -> bool: return int(c.get("hp", 0)) <= 0)
+
+
+## Spec §8 primitive: set a status to at least `turns` on `target`.
+func apply_status(target: Dictionary, name: String, turns: int) -> void:
+	var statuses: Dictionary = target.get("statuses", {})
+	statuses[name] = maxi(int(statuses.get(name, 0)), turns)
+	target["statuses"] = statuses
+	log.append(
+		{"type": "status", "target_id": target["id"], "status": name, "turns": int(statuses[name])}
+	)
+
+
+## One Hunter-Ultimate hit from party[0]. See core/ultimates.gd.
+func deal_ultimate_damage(
+	target: Dictionary,
+	power: float,
+	atk_type: String,
+	auto_crit: bool,
+	def_pierce: float,
+	break_fill_mult: float
+) -> int:
+	if party.is_empty() or int(target.get("hp", 0)) <= 0:
+		return 0
+	var hunter: Dictionary = party[0]
+	var is_physical := atk_type != "magic"
+	var atk: float = (
+		(float(hunter["patk"]) if is_physical else float(hunter["matk"]))
+		* float(hunter.get("atk_multiplier", 1.0))
+	)
+	var target_def: float = float(target["def"]) * float(target.get("def_multiplier", 1.0))
+	var pierce := maxf(def_pierce, MAGIC_DEF_PIERCE if atk_type == "magic" else 0.0)
+	var crit_chance := 1.0 if auto_crit else float(hunter.get("crit_chance", 0.0))
+	var result := CombatMath.resolve_damage(power, atk, target_def, crit_chance, _rng, pierce)
+	# Route through _land_hit for shield/hp/gauge/log; then apply the ultimate's
+	# own break-fill rate on top of the standard per-damage fill _land_hit did.
+	var actual := _land_hit(hunter, target, result, "", "", is_physical, {"ultimate": true})
+	if break_fill_mult != 1.0 and target.get("is_boss", false) and target.has("break_max"):
+		_add_break_fill(target, float(actual) * BREAK_FILL_PER_DAMAGE * (break_fill_mult - 1.0))
+	return actual
+
+
 func _build_turn_queue() -> void:
 	var ids := []
 	for c: Dictionary in party:
@@ -441,9 +492,11 @@ func _apply_warcaller_aura() -> void:
 
 
 func _tick_start_of_turn(actor: Dictionary) -> void:
-	var cd_step := (
-		RELENTLESS_COOLDOWN_TICK if actor.get("trait_flags", {}).get("relentless", false) else 1
-	)
+	var cd_step := 1
+	if actor.get("trait_flags", {}).get("relentless", false):
+		cd_step = RELENTLESS_COOLDOWN_TICK
+	if _has_status(actor, "overdrive"):
+		cd_step = maxi(cd_step, 2)  ## spec §6.3, v0
 	var cooldowns: Dictionary = actor.get("cooldowns", {})
 	for move_id in cooldowns.keys():
 		cooldowns[move_id] = maxi(0, int(cooldowns[move_id]) - cd_step)
@@ -559,6 +612,8 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 	var is_physical := String(move.get("move_type", "")) == "physical"
 	var base_atk: float = actor["patk"] if is_physical else actor["matk"]
 	var atk := base_atk * float(actor.get("atk_multiplier", 1.0))
+	if _has_status(actor, "overdrive"):
+		atk *= 1.25  ## spec §6.3, v0: Sovereign's Grace overdrive
 	var power := float(move.get("power", 1.0))
 	var tag := String(move.get("tag", ""))
 	var events := []
@@ -582,30 +637,7 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 		var result := CombatMath.resolve_damage(
 			power * bonus_mult, atk, target_def, float(actor.get("crit_chance", 0.0)), _rng, pierce
 		)
-		var scaled_damage := int(round(float(result["damage"]) * _incoming_damage_mult(target)))
-		var actual := _apply_shield(target, scaled_damage)
-		target["hp"] = maxi(0, target["hp"] - actual)
-		if target.get("is_boss", false) and target.has("break_max"):
-			var on_telegraph := int(target.get("turns_until_big_hit", BOSS_BIG_HIT_INTERVAL)) <= 1
-			var dmg_fill := float(actual) * BREAK_FILL_PER_DAMAGE
-			if on_telegraph:
-				dmg_fill *= BREAK_FILL_TELEGRAPH_MULT
-			var flat_fill := 0.0
-			if tag == "heavy":
-				flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
-			if target_type == "all_enemies" and not is_physical:
-				flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
-			_add_break_fill(target, dmg_fill + flat_fill)
-		var tmax: int = maxi(1, int(target.get("max_hp", 1)))
-		_add_monarch_gauge(
-			clampf(
-				float(actual) / float(tmax) * MONARCH_GAUGE_PER_HIT_SCALE,
-				0.0,
-				MONARCH_GAUGE_PER_HIT_CAP
-			)
-		)
-		if result["crit"]:
-			_add_monarch_gauge(MONARCH_GAUGE_ON_CRIT)
+		var actual := _land_hit(actor, target, result, tag, target_type, is_physical)
 		if target["hp"] == 0 and actor_flags.get("bloodhunger", false) and actor["hp"] > 0:
 			var heal := int(round(float(actor["max_hp"]) * BLOODHUNGER_HEAL_FRAC))
 			var hp_before: int = actor["hp"]
@@ -613,24 +645,62 @@ func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
 			events.append(
 				{"type": "lifesteal", "actor_id": actor["id"], "amount": actor["hp"] - hp_before}
 			)
-		(
-			events
-			. append(
-				{
-					"type": "damage",
-					"actor_id": actor["id"],
-					"target_id": target["id"],
-					"damage": actual,
-					"crit": result["crit"],
-				}
-			)
-		)
 		if tag == "dot":
 			target["poison_turns"] = POISON_DURATION_TURNS
 			target["poison_damage"] = int(round(atk * POISON_DAMAGE_SCALE))
-		if tag == "dot" and target.get("is_boss", false) and target.has("break_max"):
-			_add_break_fill(target, float(target["break_max"]) * BREAK_FILL_DEBUFF_FRAC)
+			if target.get("is_boss", false) and target.has("break_max"):
+				_add_break_fill(target, float(target["break_max"]) * BREAK_FILL_DEBUFF_FRAC)
 	return events
+
+
+## Applies one already-resolved hit (`result` from CombatMath.resolve_damage)
+## to `target`: incoming-damage multiplier, shield, hp, boss break-fill,
+## Monarch Gauge fill, and the `damage` log event. Returns the actual HP
+## removed. Shared by `_apply_attack` and `Ultimates` (via
+## `deal_ultimate_damage`) so the hit-application rules live in one place.
+func _land_hit(
+	actor: Dictionary,
+	target: Dictionary,
+	result: Dictionary,
+	tag: String,
+	target_type: String,
+	is_physical: bool,
+	extra_event_fields: Dictionary = {}
+) -> int:
+	var scaled_damage := int(round(float(result["damage"]) * _incoming_damage_mult(target)))
+	var actual := _apply_shield(target, scaled_damage)
+	target["hp"] = maxi(0, target["hp"] - actual)
+	if target.get("is_boss", false) and target.has("break_max"):
+		var on_telegraph := int(target.get("turns_until_big_hit", BOSS_BIG_HIT_INTERVAL)) <= 1
+		var dmg_fill := float(actual) * BREAK_FILL_PER_DAMAGE
+		if on_telegraph:
+			dmg_fill *= BREAK_FILL_TELEGRAPH_MULT
+		var flat_fill := 0.0
+		if tag == "heavy":
+			flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
+		if target_type == "all_enemies" and not is_physical:
+			flat_fill += float(target["break_max"]) * BREAK_FILL_HEAVY_FRAC
+		_add_break_fill(target, dmg_fill + flat_fill)
+	var tmax: int = maxi(1, int(target.get("max_hp", 1)))
+	_add_monarch_gauge(
+		clampf(
+			float(actual) / float(tmax) * MONARCH_GAUGE_PER_HIT_SCALE,
+			0.0,
+			MONARCH_GAUGE_PER_HIT_CAP
+		)
+	)
+	if result["crit"]:
+		_add_monarch_gauge(MONARCH_GAUGE_ON_CRIT)
+	var ev := {
+		"type": "damage",
+		"actor_id": actor["id"],
+		"target_id": target["id"],
+		"damage": actual,
+		"crit": result["crit"],
+	}
+	ev.merge(extra_event_fields)
+	log.append(ev)
+	return actual
 
 
 func _apply_heal(actor: Dictionary, move: Dictionary, target_id: String) -> Array:
