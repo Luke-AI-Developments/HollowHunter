@@ -763,6 +763,14 @@ func _last_damage(b: Battle) -> int:
 	return d
 
 
+func _last_damage_event(b: Battle) -> Dictionary:
+	var out := {}
+	for ev in b.log:
+		if ev.get("type", "") == "damage":
+			out = ev
+	return out
+
+
 func _seeded_rng(s: int) -> RandomNumberGenerator:
 	var r := RandomNumberGenerator.new()
 	r.seed = s
@@ -1314,6 +1322,52 @@ func test_focus_auto_clears_when_the_focused_enemy_dies() -> void:
 	b.step()
 	b.resolve_player_action("move_warrior_strike", "weak")  # one-shots it
 	assert_eq(b.focus_target_id, "")
+
+
+func test_a_player_attack_hits_the_named_target_not_the_lowest_hp_enemy() -> void:
+	# C1 regression: _apply_move must thread target_id into _apply_attack so a
+	# manual enemy tap / Focus actually redirects the hit.
+	var b := Battle.new(
+		[_ally("player", "WARRIOR")],
+		[
+			Battle.make_enemy_combatant("e_hurt", 1200.0),
+			Battle.make_enemy_combatant("e_full", 1200.0)
+		],
+		moves,
+		false,
+		_seeded_rng(3)
+	)
+	b.enemies[0]["hp"] = 3  # e_hurt is now unambiguously the lowest-HP enemy
+	b.step()  # player's turn -> waiting_for_player
+	b.resolve_player_action("move_warrior_strike", "e_full")
+	assert_eq(String(_last_damage_event(b).get("target_id", "")), "e_full")
+
+
+func test_a_shadows_auto_turn_hits_the_focus_target() -> void:
+	# C1 regression via the AI path: a shadow's single-target attack lands on the
+	# player-set Focus target, not the AI's default lowest-HP pick.
+	var party := [
+		Battle.make_ally_combatant(
+			"player", "WARRIOR", 15, {"STR": 200, "AGI": 50, "VIT": 200, "END": 50, "SEN": 10}
+		),
+		Battle.make_ally_combatant(
+			"s_war", "WARRIOR", 15, {"STR": 260, "AGI": 260, "VIT": 200, "END": 50, "SEN": 10}
+		),
+	]
+	var b := Battle.new(
+		party,
+		[
+			Battle.make_enemy_combatant("e_hurt", 1500.0),
+			Battle.make_enemy_combatant("e_full", 1500.0)
+		],
+		moves,
+		false,
+		_seeded_rng(5)
+	)
+	b.enemies[0]["hp"] = 3  # the AI would otherwise Execute this one
+	b.set_focus_target("e_full")
+	b.step()  # the faster WARRIOR shadow acts via its AI
+	assert_eq(String(_last_damage_event(b).get("target_id", "")), "e_full")
 
 
 func test_defend_halves_incoming_damage_until_next_turn() -> void:

@@ -29,7 +29,7 @@ signal battle_finished(won: bool)
 const LOG_LINES_SHOWN := 6
 const MAX_ENEMY_SLOTS := 4
 const MAX_PARTY_SLOTS := 4
-const MAX_ACTION_BUTTONS := 5
+const MAX_ACTION_BUTTONS := 6
 
 var _battle: Battle
 var _moves: Array = []
@@ -52,7 +52,7 @@ var _party_portraits: Dictionary = {}  ## combatant id -> Texture2D, set by star
 @onready var party_slots: Array[Button] = [$PartySlot1, $PartySlot2, $PartySlot3, $PartySlot4]
 @onready var waiting_label: Label = $WaitingLabel
 @onready var action_buttons: Array[Button] = [
-	$ActionButton1, $ActionButton2, $ActionButton3, $ActionButton4, $ActionButton5
+	$ActionButton1, $ActionButton2, $ActionButton3, $ActionButton4, $ActionButton5, $ActionButton6
 ]
 @onready var auto_button: Button = $AutoButton
 @onready var skip_button: Button = $SkipButton
@@ -98,6 +98,7 @@ func start_battle(
 	_party_portraits = party_portraits
 	_battle = Battle.new(party, enemies, moves, auto, null, initial_gauge)
 	_pending_move = {}
+	_focus_arm = false
 	result_label.visible = false
 	close_button.visible = false
 	visible = true
@@ -130,7 +131,7 @@ func _refresh_all() -> void:
 
 
 func _refresh_enemy_slots() -> void:
-	var targeting := not _pending_move.is_empty()
+	var targeting := not _pending_move.is_empty() or _focus_arm
 	for i in enemy_slots.size():
 		var slot := enemy_slots[i]
 		if i >= _battle.enemies.size():
@@ -154,9 +155,9 @@ func _refresh_enemy_slots() -> void:
 			var bf := int(round(_battle.break_fraction(e["id"]) * 100.0))
 			brk = "\nBREAK %d%%%s" % [bf, " [BROKEN]" if _battle.is_broken(e["id"]) else ""]
 		var st := ""
-		if _battle._has_status(e, "vulnerable"):
+		if _battle.has_status(e, "vulnerable"):
 			st += " VULN"
-		if _battle._has_status(e, "stun"):
+		if _battle.has_status(e, "stun"):
 			st += " STUN"
 		if String(e["id"]) == _battle.focus_target_id:
 			st += " [FOCUS]"
@@ -180,7 +181,7 @@ func _refresh_party_slots() -> void:
 		elif bool(c.get("is_taunting", false)):
 			status = "\n[TAUNTING]"
 		var st := ""
-		if _battle._has_status(c, "regen"):
+		if _battle.has_status(c, "regen"):
 			st += " REGEN"
 		if bool(c.get("defending", false)):
 			st += " DEF"
@@ -222,7 +223,9 @@ func _refresh_action_bar() -> void:
 	# Gauge readout updates even while resolving / target-picking / under Auto.
 	gauge_label.text = "Monarch Gauge: %d / 100" % int(round(_battle.monarch_gauge))
 	if _battle.chain_count > 0:
-		gauge_label.text += "   Chain x%.1f" % (1.0 + 0.10 * _battle.chain_count)
+		gauge_label.text += (
+			"   Chain x%.1f" % (1.0 + Battle.CHAIN_DAMAGE_STEP * _battle.chain_count)
+		)
 	var focus_name := _name_for(_battle.focus_target_id) if _battle.focus_target_id != "" else ""
 	focus_button.text = (
 		"Focus: %s" % focus_name
@@ -368,12 +371,14 @@ func _on_ultimate_pressed() -> void:
 ## already set, tapping clears it; otherwise it arms the next enemy-slot
 ## tap to set Focus instead of resolving a move.
 func _on_focus_pressed() -> void:
-	if _battle == null:
+	if _battle == null or _battle.is_over:
 		return
 	if _battle.focus_target_id != "":
 		_battle.clear_focus_target()
 		_focus_arm = false
 	else:
+		if not _pending_move.is_empty():
+			return
 		_focus_arm = true
 	_refresh_all()
 
@@ -470,6 +475,9 @@ func _show_results() -> void:
 	log_label.visible = false
 	gauge_label.visible = false
 	ultimate_button.visible = false
+	focus_button.visible = false
+	defend_button.visible = false
+	_focus_arm = false
 	result_label.visible = true
 	result_label.text = "VICTORY!" if _battle.won else "DEFEAT"
 	close_button.visible = true

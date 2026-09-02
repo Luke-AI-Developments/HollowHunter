@@ -300,7 +300,7 @@ func step() -> Dictionary:
 		return _finish_check()  # nobody left able to act -- shouldn't happen if not is_over
 
 	# `was_*` captured BEFORE _tick_start_of_turn, which decrements the counters.
-	var was_stunned := _has_status(actor, "stun")
+	var was_stunned := has_status(actor, "stun")
 	var was_broken := int(actor.get("broken_turns", 0)) > 0
 	_tick_start_of_turn(actor)
 	# poison finished them off, OR they forfeit the turn (broken/stunned).
@@ -569,7 +569,7 @@ func _tick_start_of_turn(actor: Dictionary) -> void:
 	var cd_step := 1
 	if actor.get("trait_flags", {}).get("relentless", false):
 		cd_step = RELENTLESS_COOLDOWN_TICK
-	if _has_status(actor, "overdrive"):
+	if has_status(actor, "overdrive"):
 		cd_step = maxi(cd_step, 2)  ## spec §6.3, v0
 	var cooldowns: Dictionary = actor.get("cooldowns", {})
 	for move_id in cooldowns.keys():
@@ -597,7 +597,7 @@ func _tick_start_of_turn(actor: Dictionary) -> void:
 			statuses.erase(sname)
 	# Regen heal AFTER the decrement loop -- a status ticking to 0 this turn does
 	# not also heal, matching how `stun` is read post-decrement elsewhere (spec §8.2, v0).
-	if _has_status(actor, "regen"):
+	if has_status(actor, "regen"):
 		var heal := int(round(float(actor["max_hp"]) * float(actor.get("regen_amount_frac", 0.0))))
 		if heal > 0 and actor["hp"] > 0:
 			var before: int = actor["hp"]
@@ -677,7 +677,7 @@ func _apply_move(actor: Dictionary, move_id: String, target_id: String) -> Dicti
 	var events: Array = []
 	match String(move.get("move_type", "")):
 		"physical", "magic":
-			events = _apply_attack(actor, move)
+			events = _apply_attack(actor, move, target_id)
 		"heal":
 			events = _apply_heal(actor, move, target_id)
 		"buff":
@@ -705,16 +705,32 @@ func _apply_move(actor: Dictionary, move_id: String, target_id: String) -> Dicti
 ## Attack moves (physical/magic) only ever come from party members, only
 ## ever hit `enemies` -- enemy attacks are their own separate code path
 ## (_resolve_enemy_turn), never routed through here.
-func _apply_attack(actor: Dictionary, move: Dictionary) -> Array:
+func _apply_attack(actor: Dictionary, move: Dictionary, target_id: String = "") -> Array:
 	var target_type := String(move.get("target_type", ""))
-	var targets: Array = (
-		_alive(enemies) if target_type == "all_enemies" else [_single_target(enemies)]
+	var picked := _combatant_by_id(target_id)
+	var single: Dictionary = (
+		picked
+		if not picked.is_empty() and picked.get("is_enemy", false) and int(picked.get("hp", 0)) > 0
+		else _single_target(enemies)
 	)
+	var targets: Array = _alive(enemies) if target_type == "all_enemies" else [single]
 	targets = targets.filter(func(t: Dictionary) -> bool: return not t.is_empty())
 	if targets.is_empty():
 		return []
 
-	var chain_first_target := "" if targets.is_empty() else String(targets[0]["id"])
+	var chain_first_target := ""
+	if not targets.is_empty():
+		if target_type == "all_enemies":
+			var focus_in_targets := targets.any(
+				func(t: Dictionary) -> bool: return String(t["id"]) == focus_target_id
+			)
+			chain_first_target = (
+				focus_target_id
+				if focus_target_id != "" and focus_in_targets
+				else String(_lowest_hp(targets)["id"])
+			)
+		else:
+			chain_first_target = String(targets[0]["id"])
 	var chain_mult := 1.0
 	if not actor.get("is_enemy", false):
 		chain_mult = _chain_multiplier_for(actor, chain_first_target)
@@ -814,7 +830,7 @@ func _resolve_applied_status(move: Dictionary, targets: Array) -> void:
 func _outgoing_atk(actor: Dictionary, is_physical: bool) -> float:
 	var base_atk: float = actor["patk"] if is_physical else actor["matk"]
 	var atk := base_atk * float(actor.get("atk_multiplier", 1.0))
-	if _has_status(actor, "overdrive"):
+	if has_status(actor, "overdrive"):
 		atk *= 1.25  ## spec §6.3, v0: Sovereign's Grace overdrive
 	return atk
 
@@ -949,7 +965,7 @@ func _apply_revive(_actor: Dictionary, move: Dictionary, target_id: String) -> A
 	if down.is_empty():
 		return []
 	var t := _combatant_by_id(target_id)
-	if t.is_empty() or int(t.get("hp", 0)) > 0:
+	if t.is_empty() or bool(t.get("is_enemy", false)) or int(t.get("hp", 0)) > 0:
 		t = down[0]
 		for c: Dictionary in down:
 			if int(c.get("max_hp", 0)) > int(t.get("max_hp", 0)):
@@ -1001,19 +1017,19 @@ func _single_target(pool: Array) -> Dictionary:
 	return _lowest_hp(_alive(pool))
 
 
-func _has_status(c: Dictionary, name: String) -> bool:
+func has_status(c: Dictionary, name: String) -> bool:
 	return int(c.get("statuses", {}).get(name, 0)) > 0
 
 
 ## Central multiplier on damage ARRIVING at `target` (spec §5.3 broken,
 ## §8 statuses). Composed multiplicatively; invuln wins by zeroing.
 func _incoming_damage_mult(target: Dictionary) -> float:
-	if _has_status(target, "invuln"):
+	if has_status(target, "invuln"):
 		return 0.0
 	var m := 1.0
 	if int(target.get("broken_turns", 0)) > 0:
 		m *= BROKEN_DAMAGE_TAKEN_MULT
-	if _has_status(target, "vulnerable"):
+	if has_status(target, "vulnerable"):
 		m *= 1.25  ## spec §8/§12, v0: Vulnerable damage-taken multiplier
 	if target.get("defending", false):
 		m *= DEFEND_DEF_MULT  ## spec §11.1, v0: Defend halves incoming damage until next turn

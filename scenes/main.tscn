@@ -1424,86 +1424,93 @@ text = ""
 
 [node name="ActionButton1" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 1810.0
+offset_top = 1770.0
 offset_right = 1040.0
-offset_bottom = 1880.0
+offset_bottom = 1830.0
 text = "Move 1"
 
 [node name="ActionButton2" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 1890.0
+offset_top = 1840.0
 offset_right = 1040.0
-offset_bottom = 1960.0
+offset_bottom = 1900.0
 text = "Move 2"
 
 [node name="ActionButton3" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 1970.0
+offset_top = 1910.0
 offset_right = 1040.0
-offset_bottom = 2040.0
+offset_bottom = 1970.0
 text = "Move 3"
 
 [node name="ActionButton4" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 2050.0
+offset_top = 1980.0
 offset_right = 1040.0
-offset_bottom = 2120.0
+offset_bottom = 2040.0
 text = "Move 4"
 
 [node name="ActionButton5" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 2130.0
+offset_top = 2050.0
 offset_right = 1040.0
-offset_bottom = 2200.0
+offset_bottom = 2110.0
 text = "Move 5"
+
+[node name="ActionButton6" type="Button" parent="GameUI/BattlePanel"]
+offset_left = 40.0
+offset_top = 2120.0
+offset_right = 1040.0
+offset_bottom = 2180.0
+text = "Move 6"
 
 [node name="AutoButton" type="Button" parent="GameUI/BattlePanel"]
 toggle_mode = true
 offset_left = 40.0
-offset_top = 2220.0
+offset_top = 2200.0
 offset_right = 340.0
-offset_bottom = 2280.0
+offset_bottom = 2260.0
 theme_override_font_sizes/font_size = 22
 text = "Auto-battle: OFF"
 
 [node name="SkipButton" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 360.0
-offset_top = 2220.0
+offset_top = 2200.0
 offset_right = 560.0
-offset_bottom = 2280.0
+offset_bottom = 2260.0
 theme_override_font_sizes/font_size = 22
 text = "Skip"
 
 [node name="UltimateButton" type="Button" parent="GameUI/BattlePanel"]
 visible = false
 offset_left = 580.0
-offset_top = 2220.0
+offset_top = 2200.0
 offset_right = 1040.0
-offset_bottom = 2280.0
+offset_bottom = 2260.0
 theme_override_font_sizes/font_size = 22
 text = "ULTIMATE"
 
 [node name="GaugeLabel" type="Label" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 2290.0
+offset_top = 2270.0
 offset_right = 1040.0
-offset_bottom = 2330.0
+offset_bottom = 2310.0
 theme_override_font_sizes/font_size = 18
 text = "Monarch Gauge: 0 / 100"
 
 [node name="FocusButton" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 2340.0
+offset_top = 2320.0
 offset_right = 500.0
-offset_bottom = 2400.0
+offset_bottom = 2380.0
 theme_override_font_sizes/font_size = 20
 text = "Focus: none"
 
 [node name="DefendButton" type="Button" parent="GameUI/BattlePanel"]
 offset_left = 520.0
-offset_top = 2340.0
+offset_top = 2320.0
 offset_right = 1040.0
-offset_bottom = 2400.0
+offset_bottom = 2380.0
 theme_override_font_sizes/font_size = 20
 text = "Defend"
 
