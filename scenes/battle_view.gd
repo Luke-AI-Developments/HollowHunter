@@ -46,6 +46,7 @@ var _ticker_lines: Array[String] = []  ## Task 6: rolling ticker copy, trimmed t
 var _last_consumed: Array = []  ## Task 6: raw dicts _refresh_ticker just walked (Task 7 replays)
 var _num_pool: Array[Label] = []  ## Task 7: pooled floating damage-number Labels under $Stage
 var _num_next: int = 0  ## Task 7: round-robin cursor into _num_pool
+var _banner_tween: Tween = null  ## Task 7 review: kill an in-flight banner tween before a new one
 
 @onready var title_label: Label = $TitleLabel
 @onready var arena: Control = $Arena
@@ -921,7 +922,10 @@ func _banner_fx(text: String, col: Color) -> void:
 	banner.scale = Vector2(0.7, 0.7)  ## v0
 	banner.modulate = Color(1, 1, 1, 1)
 	banner.visible = true
+	if _banner_tween != null and _banner_tween.is_valid():
+		_banner_tween.kill()
 	var t := create_tween()
+	_banner_tween = t
 	t.tween_property(banner, "scale", Vector2(1.1, 1.1), 0.2)  ## v0
 	t.tween_property(banner, "scale", Vector2.ONE, 0.15)  ## v0
 	t.tween_property(banner, "modulate:a", 0.0, 0.25)  ## v0
@@ -1104,8 +1108,9 @@ func _on_skip_pressed() -> void:
 
 
 ## Hides every mid-battle band (arena, turn strip, stage, party row,
-## command panel, vignette) so result_label/close_button -- which occupy
-## the same screen space -- aren't drawn over still-visible combat UI.
+## command panel, vignette, banner) so result_label/close_button -- which
+## occupy the same screen space -- aren't drawn over still-visible combat UI,
+## then styles the win/loss headline and fades it in over a one-shot tween.
 func _show_results() -> void:
 	arena.visible = false
 	turn_strip.visible = false
@@ -1115,9 +1120,16 @@ func _show_results() -> void:
 	vignette.visible = false
 	banner.visible = false
 	_focus_arm = false
-	result_label.visible = true
+	var win_color := Color(0.5, 0.95, 0.6)  ## v0
+	var lose_color := Color(0.95, 0.4, 0.35)  ## v0
 	result_label.text = "VICTORY!" if _battle.won else "DEFEAT"
+	result_label.add_theme_color_override("font_color", win_color if _battle.won else lose_color)
+	result_label.modulate.a = 0.0
+	result_label.visible = true
 	close_button.visible = true
+	var t := create_tween()
+	t.tween_property(result_label, "modulate:a", 1.0, 0.3)  ## v0
+	t.tween_callback(func() -> void: result_label.modulate.a = 1.0)
 
 
 func _on_close_pressed() -> void:
