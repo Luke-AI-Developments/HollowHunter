@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/map_view.gd" id="2"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://scenes/system_panel.gd" id="14"]
 [ext_resource type="Texture2D" path="res://art/ui/ui_system_frame.webp" id="15"]
 [ext_resource type="Script" path="res://scenes/shadow_reveal_card.gd" id="16"]
+[ext_resource type="Script" path="res://scenes/stat_bar.gd" id="17"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -1317,220 +1318,211 @@ visible = false
 script = ExtResource("3")
 
 [node name="Bg" type="ColorRect" parent="GameUI/BattlePanel"]
-offset_left = 0.0
-offset_top = 0.0
 offset_right = 1080.0
 offset_bottom = 2424.0
-color = Color(0.02, 0.05, 0.09, 0.99)
+color = Color(0.016, 0.039, 0.07, 1)
 
 [node name="TitleLabel" type="Label" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 10.0
+offset_top = 12.0
 offset_right = 1040.0
-offset_bottom = 50.0
-theme_override_font_sizes/font_size = 26
+offset_bottom = 56.0
+theme_type_variation = &"Title"
+horizontal_alignment = 1
 text = "Battle"
 
-[node name="EnemySlot1" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 60.0
-offset_right = 1040.0
-offset_bottom = 220.0
-theme_override_font_sizes/font_size = 18
-text = "Enemy 1"
+[node name="Arena" type="Control" parent="GameUI/BattlePanel"]
+offset_left = 20.0
+offset_top = 64.0
+offset_right = 1060.0
+offset_bottom = 700.0
 
-[node name="EnemySlot2" type="Button" parent="GameUI/BattlePanel"]
+[node name="TurnStrip" type="HBoxContainer" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 230.0
+offset_top = 712.0
 offset_right = 1040.0
-offset_bottom = 390.0
-theme_override_font_sizes/font_size = 18
-text = "Enemy 2"
+offset_bottom = 800.0
+theme_override_constants/separation = 10
+alignment = 1
 
-[node name="EnemySlot3" type="Button" parent="GameUI/BattlePanel"]
+[node name="Stage" type="Control" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 400.0
+offset_top = 812.0
 offset_right = 1040.0
-offset_bottom = 560.0
-theme_override_font_sizes/font_size = 18
-text = "Enemy 3"
+offset_bottom = 1044.0
 
-[node name="EnemySlot4" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 570.0
-offset_right = 1040.0
-offset_bottom = 730.0
-theme_override_font_sizes/font_size = 18
-text = "Enemy 4"
-
-[node name="TurnOrderLabel" type="Label" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 740.0
-offset_right = 1040.0
-offset_bottom = 780.0
-theme_override_font_sizes/font_size = 18
-text = "Turn order: --"
-
-[node name="LogLabel" type="Label" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 790.0
-offset_right = 1040.0
-offset_bottom = 1120.0
-text = ""
-autowrap_mode = 3
-vertical_alignment = 2
-clip_text = true
-
-[node name="PartySlot1" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 1130.0
-offset_right = 1040.0
-offset_bottom = 1290.0
-theme_override_font_sizes/font_size = 18
-text = "You"
-
-[node name="PartySlot2" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 1300.0
-offset_right = 1040.0
-offset_bottom = 1460.0
-theme_override_font_sizes/font_size = 18
-text = "Shadow 1"
-
-[node name="PartySlot3" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 1470.0
-offset_right = 1040.0
-offset_bottom = 1630.0
-theme_override_font_sizes/font_size = 18
-text = "Shadow 2"
-
-[node name="PartySlot4" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 1640.0
-offset_right = 1040.0
-offset_bottom = 1800.0
-theme_override_font_sizes/font_size = 18
-text = "Shadow 3"
-
-[node name="WaitingLabel" type="Label" parent="GameUI/BattlePanel"]
-visible = false
-offset_left = 40.0
-offset_top = 1810.0
-offset_right = 1040.0
-offset_bottom = 1880.0
+[node name="TickerLabel" type="Label" parent="GameUI/BattlePanel/Stage"]
+offset_right = 1000.0
+offset_bottom = 232.0
 theme_override_font_sizes/font_size = 22
+vertical_alignment = 1
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Banner" type="Label" parent="GameUI/BattlePanel/Stage"]
+visible = false
+offset_right = 1000.0
+offset_bottom = 232.0
+theme_override_font_sizes/font_size = 52
+horizontal_alignment = 1
+vertical_alignment = 1
 text = ""
 
-[node name="ActionButton1" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 1770.0
-offset_right = 1040.0
-offset_bottom = 1830.0
+[node name="Vignette" type="ColorRect" parent="GameUI/BattlePanel"]
+visible = false
+mouse_filter = 2
+offset_right = 1080.0
+offset_bottom = 2424.0
+color = Color(0.8, 0.1, 0.1, 0.0)
+
+[node name="PartyRow" type="HBoxContainer" parent="GameUI/BattlePanel"]
+offset_left = 24.0
+offset_top = 1056.0
+offset_right = 1056.0
+offset_bottom = 1420.0
+theme_override_constants/separation = 8
+
+[node name="Command" type="Panel" parent="GameUI/BattlePanel"]
+offset_left = 24.0
+offset_top = 1440.0
+offset_right = 1056.0
+offset_bottom = 2400.0
+
+[node name="GaugeLabel" type="Label" parent="GameUI/BattlePanel/Command"]
+offset_left = 20.0
+offset_top = 14.0
+offset_right = 700.0
+offset_bottom = 40.0
+theme_override_font_sizes/font_size = 16
+text = "MONARCH GAUGE 0 / 100"
+
+[node name="GaugeBar" type="Control" parent="GameUI/BattlePanel/Command"]
+offset_left = 20.0
+offset_top = 44.0
+offset_right = 700.0
+offset_bottom = 60.0
+script = ExtResource("17")
+
+[node name="ChainPill" type="Label" parent="GameUI/BattlePanel/Command"]
+visible = false
+offset_left = 720.0
+offset_top = 20.0
+offset_right = 900.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 18
+text = "CHAIN x1.0"
+
+[node name="AutoButton" type="Button" parent="GameUI/BattlePanel/Command"]
+toggle_mode = true
+offset_left = 720.0
+offset_top = 62.0
+offset_right = 880.0
+offset_bottom = 108.0
+theme_override_font_sizes/font_size = 18
+text = "AUTO"
+
+[node name="SkipButton" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 892.0
+offset_top = 62.0
+offset_right = 1012.0
+offset_bottom = 108.0
+theme_override_font_sizes/font_size = 18
+text = "SKIP"
+
+[node name="WaitingLabel" type="Label" parent="GameUI/BattlePanel/Command"]
+visible = false
+offset_left = 20.0
+offset_top = 300.0
+offset_right = 1012.0
+offset_bottom = 360.0
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "Resolving..."
+
+[node name="UltimateButton" type="Button" parent="GameUI/BattlePanel/Command"]
+visible = false
+offset_left = 20.0
+offset_top = 130.0
+offset_right = 1012.0
+offset_bottom = 210.0
+theme_override_font_sizes/font_size = 26
+text = "MONARCH'S WRATH"
+
+[node name="ActionButton1" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 20.0
+offset_top = 130.0
+offset_right = 510.0
+offset_bottom = 210.0
 text = "Move 1"
 
-[node name="ActionButton2" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 1840.0
-offset_right = 1040.0
-offset_bottom = 1900.0
+[node name="ActionButton2" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 522.0
+offset_top = 130.0
+offset_right = 1012.0
+offset_bottom = 210.0
 text = "Move 2"
 
-[node name="ActionButton3" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 1910.0
-offset_right = 1040.0
-offset_bottom = 1970.0
+[node name="ActionButton3" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 20.0
+offset_top = 222.0
+offset_right = 510.0
+offset_bottom = 302.0
 text = "Move 3"
 
-[node name="ActionButton4" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 1980.0
-offset_right = 1040.0
-offset_bottom = 2040.0
+[node name="ActionButton4" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 522.0
+offset_top = 222.0
+offset_right = 1012.0
+offset_bottom = 302.0
 text = "Move 4"
 
-[node name="ActionButton5" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 2050.0
-offset_right = 1040.0
-offset_bottom = 2110.0
+[node name="ActionButton5" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 20.0
+offset_top = 314.0
+offset_right = 510.0
+offset_bottom = 394.0
 text = "Move 5"
 
-[node name="ActionButton6" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 2120.0
-offset_right = 1040.0
-offset_bottom = 2180.0
+[node name="ActionButton6" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 522.0
+offset_top = 314.0
+offset_right = 1012.0
+offset_bottom = 394.0
 text = "Move 6"
 
-[node name="AutoButton" type="Button" parent="GameUI/BattlePanel"]
-toggle_mode = true
-offset_left = 40.0
-offset_top = 2200.0
-offset_right = 340.0
-offset_bottom = 2260.0
-theme_override_font_sizes/font_size = 22
-text = "Auto-battle: OFF"
-
-[node name="SkipButton" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 360.0
-offset_top = 2200.0
-offset_right = 560.0
-offset_bottom = 2260.0
-theme_override_font_sizes/font_size = 22
-text = "Skip"
-
-[node name="UltimateButton" type="Button" parent="GameUI/BattlePanel"]
-visible = false
-offset_left = 580.0
-offset_top = 2200.0
-offset_right = 1040.0
-offset_bottom = 2260.0
-theme_override_font_sizes/font_size = 22
-text = "ULTIMATE"
-
-[node name="GaugeLabel" type="Label" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 2270.0
-offset_right = 1040.0
-offset_bottom = 2310.0
-theme_override_font_sizes/font_size = 18
-text = "Monarch Gauge: 0 / 100"
-
-[node name="FocusButton" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 40.0
-offset_top = 2320.0
-offset_right = 500.0
-offset_bottom = 2380.0
+[node name="FocusButton" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 20.0
+offset_top = 410.0
+offset_right = 510.0
+offset_bottom = 480.0
 theme_override_font_sizes/font_size = 20
-text = "Focus: none"
+text = "FOCUS"
 
-[node name="DefendButton" type="Button" parent="GameUI/BattlePanel"]
-offset_left = 520.0
-offset_top = 2320.0
-offset_right = 1040.0
-offset_bottom = 2380.0
+[node name="DefendButton" type="Button" parent="GameUI/BattlePanel/Command"]
+offset_left = 522.0
+offset_top = 410.0
+offset_right = 1012.0
+offset_bottom = 480.0
 theme_override_font_sizes/font_size = 20
-text = "Defend"
+text = "DEFEND"
 
 [node name="ResultLabel" type="Label" parent="GameUI/BattlePanel"]
 visible = false
 offset_left = 40.0
-offset_top = 900.0
+offset_top = 1000.0
 offset_right = 1040.0
-offset_bottom = 1400.0
-theme_override_font_sizes/font_size = 36
+offset_bottom = 1200.0
+theme_override_font_sizes/font_size = 64
 horizontal_alignment = 1
 text = ""
 
 [node name="CloseButton" type="Button" parent="GameUI/BattlePanel"]
 visible = false
-offset_left = 390.0
-offset_top = 1450.0
-offset_right = 690.0
-offset_bottom = 1520.0
-theme_override_font_sizes/font_size = 24
+offset_left = 340.0
+offset_top = 1260.0
+offset_right = 740.0
+offset_bottom = 1340.0
+theme_override_font_sizes/font_size = 26
 text = "Continue"
 
 [node name="AdvanceTimer" type="Timer" parent="GameUI/BattlePanel"]
