@@ -147,47 +147,168 @@ func _refresh_all() -> void:
 	_refresh_action_bar()
 
 
-## Task-1 placeholder: one column (caption Label + drawn HP StatBar + a
-## portrait TextureRect) per enemy, spread across the arena band by simple
-## math. Task 2 replaces this with the real enemy band.
+## Task 2: the real enemy arena band. One `Control` column per enemy named
+## `E<i>` (index-matched to `_battle.enemies`, so targeting stays by index),
+## laid out as a horizontally-centred strip across the 1040-wide arena -- a
+## boss column is 300 wide, grunts 180. Each column stacks, top->bottom:
+## name caption / HP capsule / break capsule (bosses only) / portrait block
+## (dim platform + portrait + telegraph badge + unused targeting ring) /
+## status pips. Targeting/focus/defeated feedback is done by tinting
+## `pic.modulate` (see `_refresh_enemy_slots`), not the ring, for v0.
+## Every colour/size here is a v0 hypothesis (sub-project C tunes them).
 func _build_enemy_nodes() -> void:
 	for c in arena.get_children():
 		c.queue_free()
 	var n := _battle.enemies.size()
+	var gap := 20.0  ## v0
+	var widths: Array[float] = []
+	var total := 0.0
 	for i in n:
-		var col := VBoxContainer.new()
+		var w := 300.0 if _battle.enemies[i].get("is_boss") else 180.0  ## v0
+		widths.append(w)
+		total += w
+	total += gap * maxi(n - 1, 0)
+	var x := (1040.0 - total) / 2.0
+	for i in n:
+		var e: Dictionary = _battle.enemies[i]
+		var col_w: float = widths[i]
+		var col := Control.new()
 		col.name = "E%d" % i
-		col.position = Vector2(60 + i * (940.0 / maxi(n, 1)), 40)
-		col.custom_minimum_size = Vector2(940.0 / maxi(n, 1) - 20, 0)
+		col.position = Vector2(x, 0)
+		col.custom_minimum_size = Vector2(col_w, 0)
+		x += col_w + gap
+
 		var cap := Label.new()
 		cap.name = "cap"
+		cap.position = Vector2(0, 0)
+		cap.size = Vector2(col_w, 26)
+		cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(cap)
-		var hp := StatBar.new()
-		hp.name = "hp"
-		hp.custom_minimum_size = Vector2(160, 14)
-		col.add_child(hp)
+
+		var hpbar := StatBar.new()
+		hpbar.name = "hpbar"
+		hpbar.set_palette("hp")
+		hpbar.position = Vector2(10, 30)
+		hpbar.custom_minimum_size = Vector2(col_w - 20, 14)
+		hpbar.size = Vector2(col_w - 20, 14)
+		col.add_child(hpbar)
+
+		var brkbar := StatBar.new()
+		brkbar.name = "brkbar"
+		brkbar.set_palette("break")
+		brkbar.position = Vector2(10, 48)
+		brkbar.custom_minimum_size = Vector2(col_w - 20, 8)
+		brkbar.size = Vector2(col_w - 20, 8)
+		brkbar.visible = bool(e.get("is_boss")) and e.has("break_max")
+		col.add_child(brkbar)
+
+		var pics := Control.new()
+		pics.name = "pics"
+		pics.position = Vector2(0, 62)
+		pics.custom_minimum_size = Vector2(col_w, col_w)
+		col.add_child(pics)
+
+		var plat := ColorRect.new()
+		plat.name = "plat"
+		plat.color = Color(0, 0, 0, 0.5)  ## v0
+		plat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plat.position = Vector2(0, col_w - 24)
+		plat.size = Vector2(col_w, 24)
+		pics.add_child(plat)
+
 		var pic := TextureRect.new()
 		pic.name = "pic"
-		pic.custom_minimum_size = Vector2(0, 200)
+		pic.position = Vector2(0, 0)
+		pic.size = Vector2(col_w, col_w)
+		pic.custom_minimum_size = Vector2(col_w, col_w)
 		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.mouse_filter = Control.MOUSE_FILTER_STOP
 		pic.gui_input.connect(_on_enemy_pic_input.bind(i))
-		col.add_child(pic)
+		pics.add_child(pic)
+
+		var ring := ColorRect.new()
+		ring.name = "ring"
+		ring.color = Color(0.498, 0.941, 1, 0)  ## v0
+		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ring.position = Vector2(-3, -3)
+		ring.size = Vector2(col_w + 6, col_w + 6)
+		pics.add_child(ring)
+
+		var telegraph := Label.new()
+		telegraph.name = "telegraph"
+		telegraph.text = "⚠"
+		telegraph.add_theme_color_override("font_color", Color(1, 0.66, 0.3))  ## v0
+		telegraph.add_theme_font_size_override("font_size", 32)  ## v0
+		telegraph.position = Vector2(col_w - 40, 2)
+		telegraph.visible = false
+		pics.add_child(telegraph)
+
+		var pips := Label.new()
+		pips.name = "pips"
+		pips.position = Vector2(0, 62 + col_w + 8)
+		pips.size = Vector2(col_w, 44)
+		pips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		pips.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(pips)
+
 		arena.add_child(col)
+
+		# Repeating fade so the telegraph badge reads as "incoming". Started
+		# once here; harmless while the badge is hidden.
+		var tw := telegraph.create_tween().set_loops()
+		tw.tween_property(telegraph, "modulate:a", 0.3, 0.6)  ## v0
+		tw.tween_property(telegraph, "modulate:a", 1.0, 0.6)  ## v0
 
 
 func _refresh_enemy_slots() -> void:
+	var targeting := not _pending_move.is_empty() or _focus_arm
 	for i in _battle.enemies.size():
 		var e: Dictionary = _battle.enemies[i]
 		var col := arena.get_node_or_null("E%d" % i)
 		if col == null:
 			continue
+		var alive := int(e["hp"]) > 0
 		var cap: Label = col.get_node("cap")
-		var hp: StatBar = col.get_node("hp")
-		var pic: TextureRect = col.get_node("pic")
-		cap.text = String(e["name"])
-		hp.set_values(float(e["hp"]), float(e["max_hp"]))
+		var tag := (" · " + String(e.get("kit", "")).to_upper()) if e.get("kit", "") != "" else ""
+		cap.text = String(e["name"]) + tag
+		var hpbar: StatBar = col.get_node("hpbar")
+		hpbar.set_values(float(e["hp"]), float(e["max_hp"]))
+		var brkbar: StatBar = col.get_node("brkbar")
+		if brkbar.visible:
+			brkbar.set_values(_battle.break_fraction(String(e["id"])), 1.0)
+		var pic: TextureRect = col.get_node("pics/pic")
 		pic.texture = ArtPaths.monster_portrait(String(e["id"]))
-		pic.modulate = Color(0.4, 0.4, 0.4) if int(e["hp"]) <= 0 else Color.WHITE
+		var focused := String(e["id"]) == _battle.focus_target_id
+		if not alive:
+			pic.modulate = Color(0.35, 0.35, 0.4)
+		elif focused:
+			pic.modulate = Color(0.7, 1.0, 1.0)
+		elif targeting:
+			pic.modulate = Color(0.85, 0.95, 1.0)
+		else:
+			pic.modulate = Color.WHITE
+		var tele: Label = col.get_node("pics/telegraph")
+		tele.visible = alive and _battle.is_boss_next_hit_big(String(e["id"]))
+		var pips: Label = col.get_node("pips")
+		pips.text = _enemy_pips(e)
+
+
+func _enemy_pips(e: Dictionary) -> String:
+	var out: Array[String] = []
+	if _battle.has_status(e, "vulnerable"):
+		out.append("VULN %d" % int(e["statuses"]["vulnerable"]))
+	if _battle.has_status(e, "stun"):
+		out.append("STUN %d" % int(e["statuses"]["stun"]))
+	if _battle.is_broken(String(e["id"])):
+		out.append("BROKEN")
+	if int(e.get("phase", 1)) >= 2:
+		out.append("PHASE 2")
+	if bool(e.get("death_window", false)):
+		out.append("DEATH-WINDOW")
+	if String(e["id"]) == _battle.focus_target_id:
+		out.append("◎ FOCUS")
+	return "  ".join(out)
 
 
 ## Task-1 placeholder: one column (name / class / drawn HP StatBar / HP
