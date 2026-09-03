@@ -179,6 +179,7 @@ func _refresh_all() -> void:
 ## Every colour/size here is a v0 hypothesis (sub-project C tunes them).
 func _build_enemy_nodes() -> void:
 	for c in arena.get_children():
+		arena.remove_child(c)
 		c.queue_free()
 	var n := _battle.enemies.size()
 	var gap := 20.0  ## v0
@@ -351,6 +352,7 @@ func _enemy_pips(e: Dictionary) -> String:
 ## `_refresh_party_slots`.
 func _build_party_nodes() -> void:
 	for c in party_row.get_children():
+		party_row.remove_child(c)
 		c.queue_free()
 	for i in _battle.party.size():
 		var c: Dictionary = _battle.party[i]
@@ -835,7 +837,7 @@ func _play_new_events(events: Array) -> void:
 			"undying":
 				_banner_fx("UNDYING", Color(0.8, 0.9, 1))  ## v0
 			"undying_shatter":
-				_banner_fx("SHATTERED", Color(1, 1, 1))
+				_banner_fx("SHATTERED", Color(1, 1, 1))  ## v0: white
 			"undying_revive", "revive":
 				_banner_fx("REVIVED", Color(0.5, 0.95, 0.6))  ## v0
 			"ultimate":
