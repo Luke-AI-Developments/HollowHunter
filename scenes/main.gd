@@ -12,6 +12,7 @@ extends Node2D
 const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
 const MARKER_CARD_MARGIN := 12.0  ## keeps the card off the very edge of the screen
 const MARKER_CARD_GAP := 16.0  ## vertical gap between the card and the marker it points at
+const GATE_REENTRY_COOLDOWN_S := 180  ## spec §11.3 / §12, v0
 const _HUNTER_RETURN_HP_FRAC := 0.30  ## spec §9.1, v0
 
 var bridge: Object
@@ -658,6 +659,8 @@ func _start_gate_battle(
 	var family := String(mdef.get("family", ""))
 	var role := String(mdef.get("role", "bruiser"))
 	var atk_type := Content.monster_atk_type(mdef)
+	var kit := Content.monster_kit(mdef)
+	var multiphase := gate["rank"] in ["A", "S"]
 	var enemies := [
 		Battle.make_enemy_combatant(
 			gate["monster_id"],
@@ -667,7 +670,9 @@ func _start_gate_battle(
 			family,
 			gate["rank"] in ["A", "S"],
 			role,
-			atk_type
+			atk_type,
+			kit,
+			multiphase
 		)
 	]
 	var battle_party := _build_battle_party()
@@ -701,12 +706,14 @@ func _start_nadir_battle() -> void:
 	var enemy_family := ""
 	var role := "bruiser"  # non-boss Nadir floors have no monster def -> code defaults
 	var atk_type := "physical"
+	var nadir_kit := ""
 	if _pending_nadir_is_boss and _pending_nadir_boss_id != "":
 		var boss_monster := Content.monster_by_id(_monsters, _pending_nadir_boss_id)
 		enemy_name = String(boss_monster.get("name", enemy_name))
 		enemy_family = String(boss_monster.get("family", ""))
 		role = String(boss_monster.get("role", "bruiser"))
 		atk_type = Content.monster_atk_type(boss_monster)
+		nadir_kit = Content.monster_kit(boss_monster)
 	var enemies := [
 		Battle.make_enemy_combatant(
 			"nadir_floor_%d" % floor_n,
@@ -716,7 +723,9 @@ func _start_nadir_battle() -> void:
 			enemy_family,
 			_pending_nadir_is_boss,
 			role,
-			atk_type
+			atk_type,
+			nadir_kit,
+			_pending_nadir_is_boss
 		)
 	]
 	var battle_party := _build_battle_party(true)
@@ -793,6 +802,14 @@ func _on_battle_finished(won: bool) -> void:
 	# gate_index is -1 for ticket / gate-break fights (no map marker).
 	if won and claimed_ok and gate_index >= 0:
 		map_view.remove_gate(gate_index)
+
+	# §11.3: a map-gate loss locks that gate for GATE_REENTRY_COOLDOWN_S.
+	# gate_index == -1 for ticket / gate-break fights -> skipped; the Nadir
+	# never reaches this branch.
+	if not won and gate_index >= 0:
+		map_view.set_gate_regroup(
+			gate_index, Time.get_unix_time_from_system() + GATE_REENTRY_COOLDOWN_S
+		)
 
 	_record_run_casualties()
 	SaveService.save(state)
@@ -910,6 +927,11 @@ func _position_marker_card_centered() -> void:
 func _enter_gate(index: int) -> void:
 	var gate := map_view.get_gate(index)
 	if gate.is_empty():
+		return
+	# §11.3: refuse re-entry while this gate is still on its post-loss cooldown.
+	var remaining := map_view.gate_regrouping(index)
+	if remaining > 0.0:
+		system_toast.show_toast("Regrouping… %d:%02d" % [int(remaining) / 60, int(remaining) % 60])
 		return
 	_start_gate_battle(gate, "", false, index)
 

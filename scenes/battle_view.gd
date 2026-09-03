@@ -161,6 +161,10 @@ func _refresh_enemy_slots() -> void:
 			st += " STUN"
 		if String(e["id"]) == _battle.focus_target_id:
 			st += " [FOCUS]"
+		if int(e.get("phase", 1)) >= 2:
+			st += " PHASE2"
+		if bool(e.get("death_window", false)):
+			st += " DEATH-WINDOW"
 		slot.text = "%s\nHP: %s%s%s%s" % [e["name"], _hp_bar(e), telegraph, brk, st]
 		slot.disabled = not targeting
 
@@ -330,6 +334,24 @@ func _describe_event(e: Dictionary) -> String:
 			text = "%s braces" % actor_name
 		"regen_tick":
 			text = "%s regenerates %d" % [target_name, int(e.get("amount", 0))]
+		"phase":
+			text = "%s enters PHASE %d!" % [actor_name, int(e.get("phase", 2))]
+		"spawn":
+			text = "%s spawns an add!" % actor_name
+		"undying":
+			text = "%s refuses to die -- Death Window!" % actor_name
+		"undying_revive":
+			text = "%s claws back to life" % actor_name
+		"undying_shatter":
+			text = "%s shatters!" % actor_name
+		"bastion":
+			text = "%s raises a Bastion" % actor_name
+		"doom":
+			text = "%s casts Doom on the party" % actor_name
+		"siphon":
+			text = "%s siphons %d HP from %s" % [actor_name, int(e.get("amount", 0)), target_name]
+		"devour_heal", "leech_heal":
+			text = "%s heals %d" % [actor_name, int(e.get("amount", 0))]
 	return text
 
 

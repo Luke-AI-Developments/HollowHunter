@@ -319,6 +319,23 @@ func remove_gate(index: int) -> void:
 	queue_redraw()
 
 
+## §11.3: stamp a unix time until which this gate cannot be re-entered
+## (set after a loss). 0 / absent = enterable.
+func set_gate_regroup(index: int, until_unix: float) -> void:
+	if index < 0 or index >= _gates.size():
+		return
+	_gates[index]["regroup_until"] = until_unix
+	queue_redraw()
+
+
+## Seconds still remaining on this gate's re-entry cooldown, 0 if none / expired.
+func gate_regrouping(index: int) -> float:
+	if index < 0 or index >= _gates.size():
+		return 0.0
+	var until: float = _gates[index].get("regroup_until", 0.0)
+	return maxf(0.0, until - Time.get_unix_time_from_system())
+
+
 func get_sanctuary(index: int) -> Dictionary:
 	if index < 0 or index >= _sanctuaries.size():
 		return {}
@@ -405,6 +422,19 @@ func _draw() -> void:
 				-1,
 				28,
 				Color.BLACK
+			)
+		# §11.3: post-loss re-entry cooldown countdown, below the marker.
+		if g.get("regroup_until", 0.0) - Time.get_unix_time_from_system() > 0.0:
+			var secs := int(ceil(g["regroup_until"] - Time.get_unix_time_from_system()))
+			var label := "Regrouping %d:%02d" % [secs / 60, secs % 60]
+			draw_string(
+				ThemeDB.fallback_font,
+				pos + Vector2(-40, 40) * marker_scale,
+				label,
+				HORIZONTAL_ALIGNMENT_CENTER,
+				-1,
+				20,
+				Color(1, 0.6, 0.4)
 			)
 
 	for s: Dictionary in _sanctuaries:
