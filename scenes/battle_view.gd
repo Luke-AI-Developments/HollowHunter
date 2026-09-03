@@ -42,6 +42,8 @@ var _log_cursor: int = 0  ## Task 6 ticker roll-in reset point; declared now for
 var _active_id: String = ""  ## Task 3 active-combatant highlight; declared now
 var _gauge_was_full: bool = false  ## Task 5: edge-track so gauge_bar.flash() fires once per fill
 var _ult_tween: Tween = null  ## Task 5: looped pulse on ultimate_button while it's swapped in
+var _ticker_lines: Array[String] = []  ## Task 6: rolling ticker copy, trimmed to the last 3
+var _last_consumed: Array = []  ## Task 6: raw dicts _refresh_ticker just walked (Task 7 replays)
 
 @onready var title_label: Label = $TitleLabel
 @onready var arena: Control = $Arena
@@ -110,6 +112,8 @@ func start_battle(
 	_focus_arm = false
 	_gauge_was_full = false
 	_log_cursor = _battle.log.size()
+	_ticker_lines.clear()
+	_last_consumed.clear()
 	_active_id = ""
 	result_label.visible = false
 	close_button.visible = false
@@ -121,6 +125,7 @@ func start_battle(
 	party_row.visible = true
 	command.visible = true
 	vignette.visible = false
+	_build_stage_nodes()
 	_build_enemy_nodes()
 	_build_party_nodes()
 	_build_turn_chip_nodes()
@@ -507,16 +512,68 @@ func _is_enemy_id(id: String) -> bool:
 	return false
 
 
-## Plain last-N event lines, no fade (Task 6 adds the roll-in). Same
-## take-last-N-then-drop-empties semantics as the old _refresh_log_label.
+## Task 6: the rolling ticker's three stacked fading Labels, built under
+## $Stage at runtime (oldest -> newest = L0 -> L2). Runtime rather than in
+## the .tscn so the pre-rebuild $Stage/TickerLabel can stay untouched (it is
+## just hidden). Safe to call again -- Nadir floors reuse one BattleView, so
+## any prior L0/L1/L2 are freed first.
+func _build_stage_nodes() -> void:
+	ticker_label.visible = false
+	var alphas := [0.3, 0.55, 1.0]  ## v0: oldest dim -> newest bright
+	for i in LOG_LINES_SHOWN:
+		var old_lab := $Stage.get_node_or_null("L%d" % i)
+		if old_lab != null:
+			$Stage.remove_child(old_lab)
+			old_lab.queue_free()
+		var lab := Label.new()
+		lab.name = "L%d" % i
+		lab.position = Vector2(0, 78 * i)  ## v0: 78px per ticker line
+		lab.size = Vector2(1000, 78)  ## v0: $Stage inner width, one line's band
+		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lab.add_theme_font_size_override("font_size", 22)  ## v0
+		lab.modulate.a = alphas[i]
+		$Stage.add_child(lab)
+
+
+## Task 6: classify a _battle.log event type into a ticker render lane.
+## "banner" = the big beats Task 7's effects layer also reacts to; "silent"
+## = telemetry the ticker drops; "line" = everything else.
+static func _render_style_for(event_type: String) -> String:
+	if (
+		event_type
+		in ["break", "phase", "undying", "undying_shatter", "ultimate", "revive", "undying_revive"]
+	):
+		return "banner"
+	if event_type in ["break_fill", "gauge", "status"]:
+		return "silent"
+	return "line"
+
+
+## Task 6: the rolling 3-line ticker. Walks every _battle.log entry added
+## since _log_cursor (advancing it inline -- no separate bump in _advance),
+## drops "silent" telemetry, appends the _describe_event() copy for the rest,
+## keeps the last LOG_LINES_SHOWN, and renders them into L0/L1/L2 with the
+## newest on the bottom. The raw dicts it walked are stashed in
+## _last_consumed so Task 7 can replay the same slice without a second cursor.
 func _refresh_ticker() -> void:
-	var lines := []
-	var start := maxi(0, _battle.log.size() - LOG_LINES_SHOWN)
-	for i in range(start, _battle.log.size()):
-		var line := _describe_event(_battle.log[i])
-		if line != "":
-			lines.append(line)
-	ticker_label.text = "\n".join(lines)
+	var consumed: Array = []
+	while _log_cursor < _battle.log.size():
+		var ev: Dictionary = _battle.log[_log_cursor]
+		_log_cursor += 1
+		consumed.append(ev)
+		if _render_style_for(String(ev.get("type", ""))) == "silent":
+			continue
+		var line := _describe_event(ev)
+		if line == "":
+			continue
+		_ticker_lines.append(line)
+	while _ticker_lines.size() > LOG_LINES_SHOWN:
+		_ticker_lines.pop_front()
+	var labels := [$Stage/L0, $Stage/L1, $Stage/L2]
+	for i in LOG_LINES_SHOWN:
+		var idx := _ticker_lines.size() - LOG_LINES_SHOWN + i
+		labels[i].text = _ticker_lines[idx] if idx >= 0 else ""
+	_last_consumed = consumed
 
 
 ## Only touches the action bar/waiting label when NOT already mid-target-
