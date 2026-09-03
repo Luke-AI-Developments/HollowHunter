@@ -437,22 +437,68 @@ func _refresh_party_slots() -> void:
 		pips.text = "  ".join(pl)
 
 
-## Task-1 placeholder: clears the turn strip; _refresh_turn_order() rebuilds
-## the chips each step (turn_queue is dynamic). Task 3 replaces this.
+## Task 4: the real turn-order strip. A fixed pool of 7 portrait chips is
+## built ONCE here (turn_queue only shrinks/reorders within a fight, never
+## grows past its start size), each a `C<i>` container holding a `ring`
+## ColorRect bg + a `pic` TextureRect portrait; a static `"NOW"` Label sits
+## before chip 0. `_refresh_turn_order` then only re-fills texture / ring
+## colour / visibility -- no per-`_advance` node churn. Ring tint reads
+## party (cyan) vs enemy (red) via `_is_enemy_id`; chips past the live
+## `turn_queue.size()` hide. Chip 60x60 + the two ring colours are the
+## brief's; the ring's 3px bleed / strip separation are v0 hypotheses.
 func _build_turn_chip_nodes() -> void:
 	for c in turn_strip.get_children():
 		turn_strip.remove_child(c)
 		c.queue_free()
+	turn_strip.add_theme_constant_override("separation", 10)  ## v0
+	var now := Label.new()
+	now.name = "NOW"
+	now.text = "NOW"
+	turn_strip.add_child(now)
+	for i in 7:
+		var chip := Control.new()
+		chip.name = "C%d" % i
+		chip.custom_minimum_size = Vector2(60, 60)
+		var ring := ColorRect.new()
+		ring.name = "ring"
+		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ring.position = Vector2(-3, -3)  ## v0
+		ring.size = Vector2(66, 66)  ## v0
+		chip.add_child(ring)
+		var pic := TextureRect.new()
+		pic.name = "pic"
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pic.position = Vector2(0, 0)
+		pic.size = Vector2(60, 60)
+		pic.custom_minimum_size = Vector2(60, 60)
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		chip.add_child(pic)
+		turn_strip.add_child(chip)
 
 
 func _refresh_turn_order() -> void:
-	for c in turn_strip.get_children():
-		turn_strip.remove_child(c)
-		c.queue_free()
-	for id: String in _battle.turn_queue:
-		var chip := Label.new()
-		chip.text = _name_for(id).substr(0, 3)
-		turn_strip.add_child(chip)
+	var q := _battle.turn_queue
+	for i in 7:
+		var chip := turn_strip.get_node_or_null("C%d" % i)
+		if chip == null:
+			continue
+		if i >= q.size():
+			chip.visible = false
+			continue
+		chip.visible = true
+		var id := String(q[i])
+		var is_enemy := _is_enemy_id(id)
+		var ring: ColorRect = chip.get_node("ring")
+		ring.color = Color(0.85, 0.3, 0.3, 0.9) if is_enemy else Color(0.498, 0.941, 1, 0.9)
+		var pic: TextureRect = chip.get_node("pic")
+		pic.texture = ArtPaths.monster_portrait(id) if is_enemy else _party_portraits.get(id, null)
+
+
+func _is_enemy_id(id: String) -> bool:
+	for e: Dictionary in _battle.enemies:
+		if String(e["id"]) == id:
+			return true
+	return false
 
 
 ## Plain last-N event lines, no fade (Task 6 adds the roll-in). Same
