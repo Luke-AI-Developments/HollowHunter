@@ -12,6 +12,7 @@ extends Node2D
 const CLASSES := ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]
 const MARKER_CARD_MARGIN := 12.0  ## keeps the card off the very edge of the screen
 const MARKER_CARD_GAP := 16.0  ## vertical gap between the card and the marker it points at
+const _HUNTER_RETURN_HP_FRAC := 0.30  ## spec §9.1, v0
 
 var bridge: Object
 var state: HunterState
@@ -57,6 +58,11 @@ var _nadir_run_active: bool = false  ## §20: a Nadir run costs 1 Gate Ticket on
 var _nadir_monarch_gauge: float = 0.0  ## combat v1 §6.1: the Monarch Gauge persists across
 ## a Nadir run's floor fights -- carried out of a won floor, seeded into the next, zeroed on
 ## a loss or when the run ends.
+var _downed_instance_ids: Dictionary = {}  ## §9.1: shadow instance_ids KO'd earlier in this
+## run -- not re-fielded in later sub-battles. Cleared when the run ends (win or loss) and at
+## the top of each single-battle gate.
+var _hunter_return_pending: bool = false  ## §9.1: hunter was KO'd last sub-battle -> returns
+## at 30% HP next sub-battle (the hunter never "stays down").
 
 @onready var preset_picker: Node2D = $PresetPicker
 @onready var preset_grid: GridContainer = $PresetPicker/Grid
@@ -534,6 +540,13 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 	var chosen := SquadBuilder.resolve_party(
 		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
 	)
+	## §9.1: shadows KO'd earlier in this run are not re-fielded. Filtering
+	## `chosen` here drops them from the party, the synergy calc, and the
+	## trait-id gather -- all downstream of this list.
+	chosen = chosen.filter(
+		func(m: Dictionary) -> bool:
+			return not _downed_instance_ids.has(String(m.get("instance_id", "")))
+	)
 	var synergy_bonus := _army_synergy_bonus(chosen) if apply_synergy else 0.0
 	## spec §10.3: the hunter's active armour-set combat effects. `stat_pct`
 	## entries are folded inside make_ally_combatant; `gauge_start` seeds the
@@ -555,6 +568,11 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 			hunter_effects
 		)
 	]
+	## §9.1: the hunter never "stays down" -- if it was KO'd last sub-battle
+	## it returns here at 30% HP (once), then the flag clears.
+	if _hunter_return_pending:
+		party[0]["hp"] = int(round(float(party[0]["max_hp"]) * _HUNTER_RETURN_HP_FRAC))
+		_hunter_return_pending = false
 	var portraits := {}
 	portraits["player"] = ArtPaths.preset_portrait(
 		state.preset_id, GameLogic.stage_for_rank(state.hunter_rank)
@@ -626,6 +644,12 @@ func _start_gate_battle(
 	gate: Dictionary, prefix: String = "", is_break: bool = false, gate_index: int = -1
 ) -> void:
 	_hide_marker_card()
+	## §9.1: a gate is a single independent Battle -- each gate fight starts
+	## with a clean casualty slate (the populate in _on_battle_finished's gate
+	## branch is then inert, kept only for symmetry with a future trash->boss
+	## multi-battle gate).
+	_downed_instance_ids = {}
+	_hunter_return_pending = false
 	_pending_battle_gate = gate
 	_pending_battle_gate_index = gate_index
 	_pending_battle_prefix = prefix
@@ -770,10 +794,25 @@ func _on_battle_finished(won: bool) -> void:
 	if won and claimed_ok and gate_index >= 0:
 		map_view.remove_gate(gate_index)
 
+	_record_run_casualties()
 	SaveService.save(state)
 	_refresh_label()
 	army_view.refresh_if_open()
 	system_panel.show_panel(header, body)
+
+
+## §9.1: after a sub-battle, remember which fielded SHADOWS ended it KO'd
+## (so they're not re-fielded later in the same run) and whether the HUNTER
+## was KO'd (so it returns at 30% HP next sub-battle rather than staying
+## down). battle_view still holds the finished Battle here -- battle_finished
+## is emitted from _on_close_pressed with _battle still set. Inert for the
+## single-battle gate flow (state is cleared at the top of _start_gate_battle
+## each time); live for the Nadir multi-floor run.
+func _record_run_casualties() -> void:
+	for did in battle_view.downed_shadow_instance_ids():
+		_downed_instance_ids[did] = true
+	if battle_view.hunter_was_downed():
+		_hunter_return_pending = true
 
 
 ## §6b/§6c: fires on every SystemPanel dismissal. Only a real gate / Nadir
@@ -1213,6 +1252,8 @@ func _on_nadir_close_pressed() -> void:
 	nadir_panel.visible = false
 	_nadir_run_active = false
 	_nadir_monarch_gauge = 0.0
+	_downed_instance_ids = {}  ## §9.1: run ended -- clear casualties
+	_hunter_return_pending = false
 
 
 ## No longer shows a RAID_POWER-vs-target comparison -- real combat
@@ -1266,6 +1307,8 @@ func _on_nadir_take_on_pressed() -> void:
 		state.spend_gate_ticket()
 		_nadir_run_active = true
 		_nadir_monarch_gauge = 0.0
+		_downed_instance_ids = {}  ## §9.1: fresh run -- nobody is down yet
+		_hunter_return_pending = false
 		SaveService.save(state)
 		_refresh_label()
 		_refresh_nadir_panel()
@@ -1283,6 +1326,7 @@ func _apply_nadir_battle_result(won: bool) -> void:
 	var is_boss := _pending_nadir_is_boss
 	var boss_id := _pending_nadir_boss_id
 	var party_trait_ids := _pending_battle_party_trait_ids
+	_record_run_casualties()
 	_nadir_monarch_gauge = battle_view.battle_monarch_gauge() if won else 0.0
 	_pending_nadir_floor = -1
 	_pending_nadir_is_boss = false

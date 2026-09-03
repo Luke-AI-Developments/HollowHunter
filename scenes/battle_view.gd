@@ -493,3 +493,24 @@ func _on_close_pressed() -> void:
 ## (spec §6.1: the gauge persists across a gate/Nadir run's sub-battles).
 func battle_monarch_gauge() -> float:
 	return _battle.monarch_gauge if _battle != null else 0.0
+
+
+## Instance-ids of fielded SHADOWS that ended the just-finished fight at 0 HP
+## -- main.gd carries these across a run so they stay unfielded (spec §9.1).
+func downed_shadow_instance_ids() -> Array:
+	var out := []
+	if _battle == null:
+		return out
+	for c: Dictionary in _battle.party:
+		if String(c.get("id", "")) != "player" and int(c.get("hp", 0)) <= 0:
+			out.append(String(c["id"]))
+	return out
+
+
+## Whether the hunter (party slot 0) ended the just-finished fight at 0 HP.
+## The hunter never "stays down" -- main.gd instead returns it at 30% HP
+## in the next sub-battle (spec §9.1).
+func hunter_was_downed() -> bool:
+	if _battle == null or _battle.party.is_empty():
+		return false
+	return int(_battle.party[0].get("hp", 0)) <= 0
