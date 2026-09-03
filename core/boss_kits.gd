@@ -31,6 +31,7 @@ const BOSS_KITS := {
 		"fury_cap_phase2": 2.0,
 		"burn_frac": 0.25,
 		"burn_turns": 3,
+		"burn_interval": 2,
 	},
 	"warden":
 	{
@@ -63,6 +64,7 @@ const BOSS_KITS := {
 		"atkdown_turns": 2,
 		"siphon_interval": 3,
 		"siphon_frac": 0.08,
+		"aura_interval": 2,
 	},
 	"colossus":
 	{
@@ -162,6 +164,9 @@ static func rising_fury_mult(boss: Dictionary, round_number: int) -> float:
 ## broken window), every OTHER living party member is also struck at
 ## `splash_power`. Used by Immolate (no splash) and Avalanche (splash unless
 ## Broken).
+## NOTE: splash_unbroken_only is defence-in-depth for direct invocation -- in
+## real play a Broken boss is turn-skipped before its kit arm runs, so the
+## Break already prevents the whole Avalanche.
 static func _boss_signature_hit(
 	battle: Battle,
 	boss: Dictionary,
@@ -197,7 +202,8 @@ static func _berserker_turn(battle: Battle, boss: Dictionary) -> bool:
 	boss["turns_until_big_hit"] = tele - 1
 	var target := battle._enemy_target()
 	if not target.is_empty():
-		battle.boss_strike(boss, target, 1.0, kit_turn % 2 == 0)
+		var burn_turn := kit_turn % int(BOSS_KITS["berserker"]["burn_interval"]) == 0
+		battle.boss_strike(boss, target, 1.0, burn_turn)
 	return true
 
 
@@ -299,7 +305,7 @@ static func _hexer_turn(battle: Battle, boss: Dictionary) -> bool:
 	var target := battle._enemy_target()
 	if not target.is_empty():
 		battle.boss_strike(boss, target, 1.0)
-		if kit_turn % 2 == 0 and int(target.get("hp", 0)) > 0:
+		if kit_turn % int(kit["aura_interval"]) == 0 and int(target.get("hp", 0)) > 0:
 			target["atk_multiplier"] = float(kit["atkdown_mult"])
 			target["atk_buff_turns"] = int(kit["atkdown_turns"])
 	return true
@@ -342,8 +348,10 @@ static func _broodmother_turn(battle: Battle, boss: Dictionary) -> bool:
 		boss["turns_until_big_hit"] = battle._boss_telegraph_interval(boss)
 		return true
 	boss["turns_until_big_hit"] = tele - 1
-	if kit_turn % int(kit["spawn_interval"]) == 1:
-		battle.spawn_add(boss)
+	# Spawn turn -- but a capped / row-full Spawn (spawn_add -> {}) falls through
+	# to the basic attack below rather than forfeiting the whole turn (spec §4.3
+	# "if full, Spawn is skipped" -- the ability, not the action).
+	if kit_turn % int(kit["spawn_interval"]) == 1 and not battle.spawn_add(boss).is_empty():
 		return true
 	var target := battle._enemy_target()
 	if not target.is_empty():

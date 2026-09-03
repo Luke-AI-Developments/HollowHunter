@@ -85,6 +85,8 @@ const CHAIN_DAMAGE_STEP := 0.10  ## spec §7.2, v0: +this per chain_count, cap C
 const DEFEND_DEF_MULT := 0.5  ## spec §11.1, v0: incoming-damage multiplier while defending
 const AUTO_DEFEND_HP_FRAC := 0.20  ## spec §11.2, v0: auto-player Defends below
 ## this HP fraction
+const OVERDRIVE_LOW_HP_FRAC := 0.25  ## spec §10.3, v0: overdrive_on_low set effect's HP-frac gate
+const MAX_ENEMY_ROW := 4  ## enemy-row slots -- must match battle_view.enemy_slots
 
 const LOW_HP_THRESHOLD := ShadowAI.LOW_HP_THRESHOLD  ## same threshold ShadowAI targets by
 
@@ -387,13 +389,29 @@ func _apply_poison_tick(actor: Dictionary) -> bool:
 	if actor.get("poison_turns", 0) <= 0:
 		return false
 	var poison_dmg: int = actor.get("poison_damage", 0)
-	actor["hp"] = maxi(0, actor["hp"] - poison_dmg)
+	# The one boss HP-write that does NOT run through _land_hit -- so it mirrors
+	# _land_hit's two tail behaviours: Revenant Undying (spec §4.6) and the
+	# 50%-HP phase flip (spec §3.5), neither of which should hinge on whether
+	# the killing blow was a direct hit or a DoT tick.
+	var would_be := int(actor["hp"]) - poison_dmg
+	if (
+		would_be <= 0
+		and actor.get("is_boss", false)
+		and String(actor.get("kit", "")) == "revenant"
+		and not actor.get("undying_spent", false)
+		and BossKits.on_would_die(self, actor)
+	):
+		actor["hp"] = 1
+	else:
+		actor["hp"] = maxi(0, would_be)
 	# v0: DoT ticks are deliberately NOT routed into break-bar / Monarch-Gauge
 	# fill (spec §5.2 "any damage" / §6.1). Poison carries no applier reference,
 	# so gauge attribution would be arbitrary; the debuff's ONE-TIME break-fill
 	# already fired when Poison Edge landed (see _apply_attack). Revisit with the
 	# full status roster in Plan 3.
 	log.append({"type": "poison_tick", "target_id": actor["id"], "damage": poison_dmg})
+	if actor.get("is_boss", false) and actor.get("is_multiphase", false):
+		_check_phase_transition(actor)
 	return actor["hp"] <= 0
 
 
@@ -456,7 +474,7 @@ func _defend(actor: Dictionary) -> void:
 	actor["defending"] = true
 	actor["defend_turns"] = 1
 	log.append({"type": "defend", "actor_id": actor["id"]})
-	_reset_chain_keep_target()
+	FocusChain.reset_keep_target(self)
 
 
 func resolve_player_defend() -> Dictionary:
@@ -692,8 +710,6 @@ func boss_strike(boss: Dictionary, target: Dictionary, power: float, apply_burn 
 			}
 		)
 	)
-	if target.get("is_boss", false) and target.get("is_multiphase", false):
-		_check_phase_transition(target)
 	return actual
 
 
@@ -709,7 +725,7 @@ func spawn_add(boss: Dictionary) -> Dictionary:
 	for e: Dictionary in enemies:
 		if String(e.get("id", "")).find("_add_") != -1 and int(e.get("hp", 0)) > 0:
 			alive_adds += 1
-	if alive_adds >= int(kit["spawn_cap"]) or living_enemies().size() >= 4:
+	if alive_adds >= int(kit["spawn_cap"]) or living_enemies().size() >= MAX_ENEMY_ROW:
 		return {}
 	var n := int(boss.get("_add_count", 0)) + 1
 	boss["_add_count"] = n
@@ -829,7 +845,7 @@ func _apply_move(actor: Dictionary, move_id: String, target_id: String) -> Dicti
 	if not actor.get("is_enemy", false):
 		var move_type := String(move.get("move_type", ""))
 		if move_type not in ["physical", "magic"]:
-			_reset_chain_keep_target()
+			FocusChain.reset_keep_target(self)
 	return _finish_check()
 
 
@@ -864,7 +880,7 @@ func _apply_attack(actor: Dictionary, move: Dictionary, target_id: String = "") 
 			chain_first_target = String(targets[0]["id"])
 	var chain_mult := 1.0
 	if not actor.get("is_enemy", false):
-		chain_mult = _chain_multiplier_for(actor, chain_first_target)
+		chain_mult = FocusChain.chain_multiplier(self, chain_first_target)
 	var chain_first_target_hit := false
 
 	var is_physical := String(move.get("move_type", "")) == "physical"
@@ -899,7 +915,8 @@ func _apply_attack(actor: Dictionary, move: Dictionary, target_id: String = "") 
 		if String(target.get("role", "")) == "armoured":
 			bonus_mult *= 1.0 + _set_effect_value(actor, "vs_armoured") / 100.0
 		if has_status(target, "vulnerable"):
-			bonus_mult *= 1.0 + _set_effect_value(actor, "vulnerable_potency")  ## fraction
+			## spec §10.3: deepen the x1.25 Vulnerable, not stack on it (x1.25 -> x1.25+v).
+			bonus_mult *= (1.25 + _set_effect_value(actor, "vulnerable_potency")) / 1.25
 		var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
 		var pierce := MAGIC_DEF_PIERCE if String(move.get("move_type", "")) == "magic" else 0.0
 		## spec §10.3 first_strike_crit: force a crit on this unit's FIRST attack
@@ -938,9 +955,9 @@ func _apply_attack(actor: Dictionary, move: Dictionary, target_id: String = "") 
 				_add_break_fill(target, float(target["break_max"]) * BREAK_FILL_DEBUFF_FRAC)
 	if not actor.get("is_enemy", false) and chain_first_target != "":
 		if chain_first_target_hit:
-			_advance_chain(String(actor.get("class", "")), chain_first_target)
+			FocusChain.advance(self, String(actor.get("class", "")), chain_first_target)
 		else:
-			_reset_chain_keep_target()
+			FocusChain.reset_keep_target(self)
 	_resolve_applied_status(move, targets)
 	return events
 
@@ -976,7 +993,7 @@ func _outgoing_atk(actor: Dictionary, is_physical: bool) -> float:
 	var atk := base_atk * float(actor.get("atk_multiplier", 1.0))
 	if has_status(actor, "overdrive"):
 		atk *= 1.25  ## spec §6.3, v0: Sovereign's Grace overdrive
-	if _has_set_effect(actor, "overdrive_on_low") and _hp_fraction(actor) < 0.25:
+	if _has_set_effect(actor, "overdrive_on_low") and _hp_fraction(actor) < OVERDRIVE_LOW_HP_FRAC:
 		atk *= 1.0 + _set_effect_value(actor, "overdrive_on_low") / 100.0  ## spec §10.3, v0
 	return atk
 
@@ -1229,55 +1246,16 @@ func _apply_shield(target: Dictionary, damage: int) -> int:
 	return damage - absorbed
 
 
-## Spec §7.2: the damage multiplier for a party hit whose first target is
-## `first_target_id`, from the CURRENT chain_count. 1.0 for a fresh chain
-## (count 0). _advance_chain() does the state transition afterwards.
-func _chain_multiplier_for(_actor: Dictionary, first_target_id: String) -> float:
-	if first_target_id != chain_target_id:
-		return 1.0
-	return 1.0 + CHAIN_DAMAGE_STEP * float(mini(chain_count, CHAIN_COUNT_CAP))
-
-
-## Spec §7.2 state transition after a party member damages an enemy.
-func _advance_chain(actor_class: String, damaged_target_id: String) -> void:
-	if damaged_target_id == chain_target_id and actor_class != _last_chainer_class:
-		chain_count = mini(chain_count + 1, CHAIN_COUNT_CAP)
-	else:
-		chain_target_id = damaged_target_id
-		chain_count = 0
-	_last_chainer_class = actor_class
-
-
-## Spec §7.2: a party turn that dealt no damage to chain_target_id keeps the
-## target but drops the count and the last-chainer lock.
-func _reset_chain_keep_target() -> void:
-	chain_count = 0
-	_last_chainer_class = ""
-
-
-## Spec §7.3: set the focus-fire target. Free -- no turn consumed, queue
-## untouched. Ignored unless `enemy_id` names a living enemy.
+## Spec §7.3: set/clear the focus-fire target -- thin wrappers over FocusChain
+## (battle_view calls these; the chain/focus logic itself lives in
+## core/focus_chain.gd to keep this file under the file-length lint). Free:
+## no turn consumed, queue untouched.
 func set_focus_target(enemy_id: String) -> void:
-	var e := _combatant_by_id(enemy_id)
-	if e.is_empty() or e.get("is_enemy", false) == false or int(e.get("hp", 0)) <= 0:
-		return
-	focus_target_id = enemy_id
-	log.append({"type": "focus", "target_id": enemy_id})
+	FocusChain.set_focus(self, enemy_id)
 
 
 func clear_focus_target() -> void:
-	focus_target_id = ""
-	log.append({"type": "focus", "target_id": ""})
-
-
-## Drop a stale Focus when its enemy is gone. Cheap; called from
-## _finish_check so every resolution path covers it.
-func _clear_focus_if_dead() -> void:
-	if focus_target_id == "":
-		return
-	var e := _combatant_by_id(focus_target_id)
-	if e.is_empty() or int(e.get("hp", 0)) <= 0:
-		focus_target_id = ""
+	FocusChain.clear_focus(self)
 
 
 ## Adds `amount` (may be negative-safe: it is clamped) to a boss's break
@@ -1325,7 +1303,7 @@ func _maybe_break(boss: Dictionary, raw_fill: float = -1.0) -> void:
 		BREAK_STUN_TURNS_LONG if overfill >= BREAK_OVERFILL_LONG_STUN else BREAK_STUN_TURNS_SHORT
 	)
 	boss["broken_turns"] = stun_turns
-	boss["turns_until_big_hit"] = BOSS_BIG_HIT_INTERVAL  # cancel any pending telegraph
+	boss["turns_until_big_hit"] = _boss_telegraph_interval(boss)  # cancel any pending telegraph
 	var statuses: Dictionary = boss["statuses"]
 	statuses["stun"] = maxi(int(statuses.get("stun", 0)), BREAK_STUN_TURNS_SHORT)
 	boss["break_count"] = int(boss["break_count"]) + 1
@@ -1489,7 +1467,7 @@ func _lowest_hp(list: Array) -> Dictionary:
 
 
 func _finish_check() -> Dictionary:
-	_clear_focus_if_dead()
+	FocusChain.clear_if_dead(self)
 	if _alive(enemies).is_empty():
 		is_over = true
 		won = true

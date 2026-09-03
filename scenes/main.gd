@@ -594,6 +594,11 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 		for t in member.get("traits", []):
 			member_trait_ids.append(t["id"] if t is Dictionary else t)
 		party_trait_ids.append_array(member_trait_ids)
+		## spec §10.3: a fielded shadow's own gauge_start armour-set effect also
+		## seeds the shared Monarch Gauge (was hunter-only -- M5).
+		for e in member.get("combat_set_effects", []):
+			if String(e.get("effect", "")) == "gauge_start":
+				gauge_start += float(e.get("value", 0.0))
 		party.append(
 			Battle.make_ally_combatant(
 				member["instance_id"],

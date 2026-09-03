@@ -1204,7 +1204,7 @@ func _two_class_party() -> Array:
 
 
 func test_cross_class_hits_on_the_same_target_build_the_chain() -> void:
-	# Unit-level: _advance_chain is exercised directly (the seeded turn-order
+	# Unit-level: FocusChain.advance is exercised directly (the seeded turn-order
 	# drive in the brief's draft was replaced -- see task-3-report.md).
 	var b := Battle.new(
 		_two_class_party(),
@@ -1213,10 +1213,10 @@ func test_cross_class_hits_on_the_same_target_build_the_chain() -> void:
 		true,
 		_seeded_rng(4)
 	)
-	b._advance_chain("WARRIOR", "boss")  # first hit opens the chain
+	FocusChain.advance(b, "WARRIOR", "boss")  # first hit opens the chain
 	assert_eq(b.chain_count, 0)
 	assert_eq(b.chain_target_id, "boss")
-	b._advance_chain("ASSASSIN", "boss")  # 2nd cross-class hit on the same target
+	FocusChain.advance(b, "ASSASSIN", "boss")  # 2nd cross-class hit on the same target
 	assert_eq(b.chain_count, 1)
 
 
@@ -1231,11 +1231,11 @@ func test_chain_multiplier_scales_damage_and_caps_at_four() -> void:
 	)
 	b.chain_target_id = "boss"
 	b.chain_count = 0
-	assert_almost_eq(b._chain_multiplier_for(b._combatant_by_id("player"), "boss"), 1.0, 0.001)
+	assert_almost_eq(FocusChain.chain_multiplier(b, "boss"), 1.0, 0.001)
 	b.chain_count = 3
-	assert_almost_eq(b._chain_multiplier_for(b._combatant_by_id("player"), "boss"), 1.30, 0.001)
+	assert_almost_eq(FocusChain.chain_multiplier(b, "boss"), 1.30, 0.001)
 	b.chain_count = 9  # cap
-	assert_almost_eq(b._chain_multiplier_for(b._combatant_by_id("player"), "boss"), 1.40, 0.001)
+	assert_almost_eq(FocusChain.chain_multiplier(b, "boss"), 1.40, 0.001)
 
 
 func test_same_class_repeat_resets_chain_count_keeps_target() -> void:
@@ -1246,10 +1246,10 @@ func test_same_class_repeat_resets_chain_count_keeps_target() -> void:
 		true,
 		_seeded_rng(4)
 	)
-	b._advance_chain("WARRIOR", "boss")  # open
-	b._advance_chain("ASSASSIN", "boss")  # cross-class -> count 1
+	FocusChain.advance(b, "WARRIOR", "boss")  # open
+	FocusChain.advance(b, "ASSASSIN", "boss")  # cross-class -> count 1
 	assert_eq(b.chain_count, 1)
-	b._advance_chain("ASSASSIN", "boss")  # same class -> reset count, keep target
+	FocusChain.advance(b, "ASSASSIN", "boss")  # same class -> reset count, keep target
 	assert_eq(b.chain_count, 0)
 	assert_eq(b.chain_target_id, "boss")
 
@@ -1268,10 +1268,10 @@ func test_switching_target_starts_a_new_chain() -> void:
 			_seeded_rng(4)
 		)
 	)
-	b._advance_chain("WARRIOR", "a")
-	b._advance_chain("ASSASSIN", "a")
+	FocusChain.advance(b, "WARRIOR", "a")
+	FocusChain.advance(b, "ASSASSIN", "a")
 	assert_eq(b.chain_count, 1)
-	b._advance_chain("WARRIOR", "bb")
+	FocusChain.advance(b, "WARRIOR", "bb")
 	assert_eq(b.chain_target_id, "bb")
 	assert_eq(b.chain_count, 0)
 
@@ -1284,10 +1284,10 @@ func test_a_non_damage_party_turn_resets_chain_count() -> void:
 		true,
 		_seeded_rng(4)
 	)
-	b._advance_chain("WARRIOR", "boss")
-	b._advance_chain("ASSASSIN", "boss")
+	FocusChain.advance(b, "WARRIOR", "boss")
+	FocusChain.advance(b, "ASSASSIN", "boss")
 	assert_eq(b.chain_count, 1)
-	b._reset_chain_keep_target()
+	FocusChain.reset_keep_target(b)
 	assert_eq(b.chain_count, 0)
 	assert_eq(b.chain_target_id, "boss")
 

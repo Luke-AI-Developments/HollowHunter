@@ -188,6 +188,9 @@ func test_colossus_avalanche_splashes_the_rest_of_the_party_when_not_broken() ->
 	assert_lt(int(b._combatant_by_id("p3")["hp"]), p3_before)
 
 
+# M1: covers _boss_signature_hit invoked directly with broken_turns > 0 -- a
+# state step() cannot reach, since a Broken boss is turn-skipped before its kit
+# arm runs. Kept as defence-in-depth coverage.
 func test_colossus_avalanche_does_not_splash_when_the_boss_is_broken() -> void:
 	var b := Battle.new(
 		[_ally("p1", "WARRIOR"), _ally("p2", "WARRIOR"), _ally("p3", "WARRIOR")],
@@ -691,3 +694,71 @@ func test_a_spawned_add_actually_gets_a_turn_when_the_battle_is_stepped() -> voi
 			if ev.get("type", "") == "enemy_attack" and ev.get("actor_id", "") == add["id"]:
 				acted = true
 	assert_true(acted, "the freshly-appended add is popped off turn_queue and takes its turn")
+
+
+# --- whole-branch review regressions (I1 / I2 / I3) -----------------------------
+
+
+func test_poison_tick_that_would_kill_a_revenant_opens_the_death_window() -> void:
+	# I1: the one boss HP-write not routed through _land_hit still honours Undying.
+	var b := Battle.new([_ally("p", "WARRIOR")], [_revenant("r")], moves, true, _seeded_rng(2))
+	var rev := b._combatant_by_id("r")
+	rev["hp"] = 10
+	rev["poison_turns"] = 3
+	rev["poison_damage"] = 999_999
+	var killed := b._apply_poison_tick(rev)
+	assert_false(killed, "Undying caught the lethal poison tick")
+	assert_eq(int(rev["hp"]), 1)
+	assert_true(bool(rev["death_window"]))
+	assert_true(bool(rev["undying_spent"]))
+	assert_eq(_count_events(b, "undying"), 1)
+
+
+func test_poison_tick_alone_can_trigger_the_50_percent_phase_flip() -> void:
+	# I1: a multiphase boss chipped past 50% purely by a DoT tick still phases.
+	var b := Battle.new([_ally("p", "WARRIOR")], [_berserker("boss")], moves, true, _seeded_rng(3))
+	var bc := b._combatant_by_id("boss")
+	bc["hp"] = int(bc["max_hp"] * 0.51)
+	bc["poison_turns"] = 3
+	bc["poison_damage"] = int(bc["max_hp"] * 0.05)
+	assert_eq(int(bc["phase"]), 1)
+	b._apply_poison_tick(bc)
+	assert_eq(int(bc["phase"]), 2)
+
+
+func test_break_resets_the_telegraph_to_the_kit_and_phase_interval() -> void:
+	# I2: _maybe_break must re-seed turns_until_big_hit from _boss_telegraph_interval,
+	# not the hardcoded BOSS_BIG_HIT_INTERVAL.
+	var b := Battle.new([_ally("p", "WARRIOR")], [_colossus("boss")], moves, true, _seeded_rng(4))
+	var bc := b._combatant_by_id("boss")
+	bc["break_current"] = float(bc["break_max"])
+	b._maybe_break(bc)
+	assert_eq(int(bc["turns_until_big_hit"]), b._boss_telegraph_interval(bc))
+	assert_eq(int(bc["turns_until_big_hit"]), 4, "phase-1 Colossus telegraph interval")
+	# phase 2: the §3.5 tightened cadence must survive the Break reset.
+	bc["phase"] = 2
+	bc["broken_turns"] = 0
+	bc["break_current"] = float(bc["break_max"])
+	b._maybe_break(bc)
+	assert_eq(int(bc["turns_until_big_hit"]), b._boss_telegraph_interval(bc))
+	assert_eq(int(bc["turns_until_big_hit"]), 3, "phase-2 Colossus telegraph interval")
+
+
+func test_a_capped_broodmother_falls_through_to_a_basic_attack_on_a_spawn_turn() -> void:
+	# I3: with the +2 add cap already hit, a Spawn turn attacks instead of no-op'ing.
+	var b := Battle.new(
+		[_ally("p", "WARRIOR")], [_broodmother("boss")], moves, true, _seeded_rng(5)
+	)
+	var bc := b._combatant_by_id("boss")
+	assert_false(b.spawn_add(bc).is_empty())
+	assert_false(b.spawn_add(bc).is_empty())
+	var size_before := b.enemies.size()  # boss + 2 adds
+	bc["_kit_turn"] = 0  # -> kit_turn 1, and 1 % spawn_interval(3) == 1 -> Spawn turn
+	bc["turns_until_big_hit"] = 5  # keep it off the telegraph
+	assert_true(BossKits.on_turn(b, bc))
+	assert_eq(b.enemies.size(), size_before, "the capped Spawn did not add a 4th enemy")
+	var attacked := false
+	for ev in b.log:
+		if ev.get("type", "") == "enemy_attack" and ev.get("actor_id", "") == "boss":
+			attacked = true
+	assert_true(attacked, "the boss spent its turn on a basic attack, not a silent no-op")

@@ -139,6 +139,12 @@ func test_vulnerable_potency_deepens_damage_only_when_target_is_vulnerable() -> 
 	base.apply_status(base._combatant_by_id("e"), "vulnerable", 3)
 	base._apply_attack(base._combatant_by_id("p"), _strike(), "e")
 	assert_gt(_last_damage(vuln), _last_damage(base))
+	# M3: potency DEEPENS the x1.25 Vulnerable (x1.25 -> x1.25+v), it does not
+	# stack a separate multiplier. With v = 0.20 the potency hit is ~1.45/1.25
+	# above the plain-Vulnerable hit (slightly more, as DEF is subtracted after
+	# the power scale).
+	var ratio := float(_last_damage(vuln)) / float(_last_damage(base))
+	assert_almost_eq(ratio, 1.45 / 1.25, 0.08)
 	var nv := Battle.new([_ally("p", "WARRIOR", eff)], [_grunt("e")], moves, false, _seeded_rng(3))
 	nv._apply_attack(nv._combatant_by_id("p"), _strike(), "e")
 	var nv_plain := Battle.new([_ally("p", "WARRIOR")], [_grunt("e")], moves, false, _seeded_rng(3))
