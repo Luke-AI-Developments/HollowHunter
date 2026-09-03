@@ -130,6 +130,12 @@ func _advance() -> void:
 		return
 	var result := _battle.step()
 	_awaiting_player_input = result.get("waiting_for_player", false)
+	if result.get("waiting_for_player", false):
+		_active_id = String(result.get("actor_id", "player"))
+	elif not _battle.turn_queue.is_empty():
+		_active_id = String(_battle.turn_queue[0])
+	else:
+		_active_id = ""
 	_refresh_all()
 	if _awaiting_player_input:
 		return
@@ -319,45 +325,116 @@ func _enemy_pips(e: Dictionary) -> String:
 	return "  ".join(out)
 
 
-## Task-1 placeholder: one column (name / class / drawn HP StatBar / HP
-## number) per party member in the party row. Task 4 replaces this.
+## Task 3: the real party row band. One `Panel` card per `_battle.party`
+## member named `P<i>` (index-matched to `_battle.party`), each stacking:
+## shader-recoloured shadow thumb (the hunter's preset portrait stays raw --
+## no material) / name caption (gets a `▶` prefix + brightened `self_modulate`
+## while this unit is the acting one, per `_active_id`) / class icon / HP
+## StatBar + number / cooldown dots / status pips. Card size and the thumb /
+## icon dimensions are the brief's; every internal offset/height is a v0
+## layout hypothesis (sub-project C retunes). Per-frame state is applied in
+## `_refresh_party_slots`.
 func _build_party_nodes() -> void:
 	for c in party_row.get_children():
 		c.queue_free()
 	for i in _battle.party.size():
-		var col := VBoxContainer.new()
-		col.name = "P%d" % i
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var c: Dictionary = _battle.party[i]
+		var card := Panel.new()
+		card.name = "P%d" % i
+		card.custom_minimum_size = Vector2(250, 360)
+
+		var thumb := TextureRect.new()
+		thumb.name = "thumb"
+		thumb.position = Vector2(12, 12)  ## v0
+		thumb.size = Vector2(60, 60)
+		thumb.custom_minimum_size = Vector2(60, 60)
+		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		if String(c["id"]) != "player":
+			thumb.material = ArtPaths.shadow_material()
+		card.add_child(thumb)
+
 		var nm := Label.new()
-		nm.name = "nm"
-		col.add_child(nm)
-		var cls := Label.new()
+		nm.name = "name"
+		nm.position = Vector2(84, 14)  ## v0
+		nm.size = Vector2(154, 24)  ## v0
+		card.add_child(nm)
+
+		var cls := TextureRect.new()
 		cls.name = "cls"
-		col.add_child(cls)
-		var hp := StatBar.new()
-		hp.name = "hp"
-		hp.custom_minimum_size = Vector2(0, 14)
-		col.add_child(hp)
-		var num := Label.new()
-		num.name = "num"
-		col.add_child(num)
-		party_row.add_child(col)
+		cls.position = Vector2(84, 44)  ## v0
+		cls.size = Vector2(24, 24)
+		cls.custom_minimum_size = Vector2(24, 24)
+		cls.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var icon_path := "res://art/ui/ui_class_%s.webp" % String(c["class"]).to_lower()
+		if ResourceLoader.exists(icon_path):
+			cls.texture = load(icon_path)
+		card.add_child(cls)
+
+		var hpbar := StatBar.new()
+		hpbar.name = "hpbar"
+		hpbar.set_palette("hp")
+		hpbar.position = Vector2(12, 82)  ## v0
+		hpbar.custom_minimum_size = Vector2(226, 14)  ## v0
+		hpbar.size = Vector2(226, 14)  ## v0
+		card.add_child(hpbar)
+
+		var hpnum := Label.new()
+		hpnum.name = "hpnum"
+		hpnum.position = Vector2(12, 100)  ## v0
+		hpnum.size = Vector2(226, 20)  ## v0
+		card.add_child(hpnum)
+
+		var cds := Label.new()
+		cds.name = "cds"
+		cds.position = Vector2(12, 126)  ## v0
+		cds.size = Vector2(226, 24)  ## v0
+		card.add_child(cds)
+
+		var pips := Label.new()
+		pips.name = "pips"
+		pips.position = Vector2(12, 156)  ## v0
+		pips.size = Vector2(226, 192)  ## v0
+		pips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card.add_child(pips)
+
+		party_row.add_child(card)
 
 
 func _refresh_party_slots() -> void:
 	for i in _battle.party.size():
 		var c: Dictionary = _battle.party[i]
-		var col := party_row.get_node_or_null("P%d" % i)
-		if col == null:
+		var card := party_row.get_node_or_null("P%d" % i)
+		if card == null:
 			continue
-		var nm: Label = col.get_node("nm")
-		var cls: Label = col.get_node("cls")
-		var hp: StatBar = col.get_node("hp")
-		var num: Label = col.get_node("num")
-		nm.text = String(c["name"])
-		cls.text = String(c["class"])
-		hp.set_values(float(c["hp"]), float(c["max_hp"]))
-		num.text = "%d / %d" % [int(c["hp"]), int(c["max_hp"])]
+		var active := String(c["id"]) == _active_id
+		card.self_modulate = Color(1.25, 1.25, 1.3) if active else Color.WHITE
+		var nm: Label = card.get_node("name")
+		nm.text = ("▶ " if active else "") + String(c["name"])
+		var thumb: TextureRect = card.get_node("thumb")
+		thumb.texture = _party_portraits.get(String(c["id"]), null)
+		var hpbar: StatBar = card.get_node("hpbar")
+		hpbar.set_values(float(c["hp"]), float(c["max_hp"]))
+		var hpnum: Label = card.get_node("hpnum")
+		hpnum.text = "%d / %d" % [int(c["hp"]), int(c["max_hp"])]
+		var down := int(c["hp"]) <= 0
+		thumb.modulate = Color(0.35, 0.35, 0.4) if down else Color.WHITE
+		var cds: Label = card.get_node("cds")
+		var on_cd := 0
+		for v in c.get("cooldowns", {}).values():
+			if int(v) > 0:
+				on_cd += 1
+		cds.text = "●".repeat(on_cd)
+		var pips: Label = card.get_node("pips")
+		var pl: Array[String] = []
+		if down:
+			pl.append("DOWN")
+		if bool(c.get("is_taunting", false)):
+			pl.append("TAUNT")
+		if bool(c.get("defending", false)):
+			pl.append("DEF")
+		if _battle.has_status(c, "regen"):
+			pl.append("REGEN")
+		pips.text = "  ".join(pl)
 
 
 ## Task-1 placeholder: clears the turn strip; _refresh_turn_order() rebuilds
@@ -551,6 +628,7 @@ func _on_ultimate_pressed() -> void:
 	_pending_move = {}
 	_battle.resolve_player_ultimate()
 	_awaiting_player_input = false
+	_active_id = ""
 	_refresh_all()
 	if _battle.is_over:
 		_show_results()
@@ -582,6 +660,7 @@ func _on_defend_pressed() -> void:
 	_pending_move = {}
 	_battle.resolve_player_defend()
 	_awaiting_player_input = false
+	_active_id = ""
 	_refresh_all()
 	if _battle.is_over:
 		_show_results()
@@ -619,6 +698,7 @@ func _on_enemy_slot_pressed(index: int) -> void:
 func _resolve_and_continue(move_id: String, target_id: String) -> void:
 	_battle.resolve_player_action(move_id, target_id)
 	_awaiting_player_input = false
+	_active_id = ""
 	_refresh_all()
 	if _battle.is_over:
 		_show_results()
