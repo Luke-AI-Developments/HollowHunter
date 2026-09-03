@@ -44,6 +44,8 @@ var _gauge_was_full: bool = false  ## Task 5: edge-track so gauge_bar.flash() fi
 var _ult_tween: Tween = null  ## Task 5: looped pulse on ultimate_button while it's swapped in
 var _ticker_lines: Array[String] = []  ## Task 6: rolling ticker copy, trimmed to the last 3
 var _last_consumed: Array = []  ## Task 6: raw dicts _refresh_ticker just walked (Task 7 replays)
+var _num_pool: Array[Label] = []  ## Task 7: pooled floating damage-number Labels under $Stage
+var _num_next: int = 0  ## Task 7: round-robin cursor into _num_pool
 
 @onready var title_label: Label = $TitleLabel
 @onready var arena: Control = $Arena
@@ -129,6 +131,7 @@ func start_battle(
 	_build_enemy_nodes()
 	_build_party_nodes()
 	_build_turn_chip_nodes()
+	_build_number_pool()
 	visible = true
 	auto_button.button_pressed = auto
 	auto_button.text = "Auto-battle: ON" if auto else "Auto-battle: OFF"
@@ -162,6 +165,7 @@ func _refresh_all() -> void:
 	_refresh_turn_order()
 	_refresh_ticker()
 	_refresh_action_bar()
+	_play_new_events(_last_consumed)
 
 
 ## Task 2: the real enemy arena band. One `Control` column per enemy named
@@ -449,8 +453,9 @@ func _refresh_party_slots() -> void:
 
 
 ## Task 4: the real turn-order strip. A fixed pool of 7 portrait chips is
-## built ONCE here (turn_queue only shrinks/reorders within a fight, never
-## grows past its start size), each a `C<i>` container holding a `ring`
+## built ONCE here (the strip shows at most the first 7 entries of a
+## turn_queue that CAN grow -- spawn/reinforcement turns append to it in
+## core/battle.gd), each a `C<i>` container holding a `ring`
 ## ColorRect bg + a `pic` TextureRect portrait; a static `"NOW"` Label sits
 ## before chip 0. `_refresh_turn_order` then only re-fills texture / ring
 ## colour / visibility -- no per-`_advance` node churn. Ring tint reads
@@ -757,6 +762,212 @@ func _describe_event(e: Dictionary) -> String:
 	return text
 
 
+## Task 7: eight reusable floating-number Labels parented to $Stage, hidden
+## until _pop_number lifts one. Safe to call again on a later start_battle
+## (Nadir floors reuse this view) -- any prior pool is freed first. The
+## trailing move_child is the Task 6 review fix: $Stage/L0..L2 (built by
+## _build_stage_nodes) are added after $Stage/Banner and paint over it, so
+## the banner is raised back to the top of the child order here, once every
+## sibling that could occlude it exists, so _banner_fx reads above the ticker.
+func _build_number_pool() -> void:
+	for old_lbl in _num_pool:
+		if is_instance_valid(old_lbl):
+			old_lbl.queue_free()
+	_num_pool.clear()
+	_num_next = 0
+	for _i in 8:  ## v0: pool size
+		var lbl := Label.new()
+		lbl.visible = false
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lbl.add_theme_font_size_override("font_size", 34)  ## v0
+		$Stage.add_child(lbl)
+		_num_pool.append(lbl)
+	$Stage.move_child($Stage/Banner, $Stage.get_child_count() - 1)
+
+
+## Task 7: take the next pooled Label, place it at `anchor`'s centre in $Stage
+## local space, then rise + fade it over 0.7 s and hide on finish. `big` picks
+## the larger font and a longer rise (crit / boss BIG HIT).
+func _pop_number(anchor: Control, text: String, col: Color, big: bool) -> void:
+	if anchor == null or _num_pool.is_empty():
+		return
+	var lbl := _num_pool[_num_next]
+	_num_next = (_num_next + 1) % _num_pool.size()
+	lbl.text = text
+	lbl.add_theme_color_override("font_color", col)
+	lbl.add_theme_font_size_override("font_size", 48 if big else 34)  ## v0
+	var stage: Control = $Stage
+	var origin := anchor.get_global_position() + anchor.size * 0.5 - stage.get_global_position()
+	lbl.position = origin
+	lbl.modulate = Color(1, 1, 1, 1)
+	lbl.visible = true
+	var t := create_tween().set_parallel(true)
+	t.tween_property(lbl, "position:y", origin.y - (60.0 if big else 40.0), 0.7)  ## v0
+	t.tween_property(lbl, "modulate:a", 0.0, 0.7)  ## v0
+	t.chain().tween_callback(func() -> void: lbl.visible = false)
+
+
+## Task 7: replay this tick's freshly-consumed _battle.log slice (Task 6's
+## _last_consumed) as cosmetic beats -- floating numbers, shake, white flash,
+## centre banner, red vignette, Ultimate gold tint. Reads nothing back and
+## changes no pacing; `_:` types are already covered by the ticker.
+func _play_new_events(events: Array) -> void:
+	for ev: Dictionary in events:
+		match String(ev.get("type", "")):
+			"damage", "poison_tick":
+				_hit_fx(
+					String(ev.get("target_id", "")),
+					int(ev.get("damage", 0)),
+					bool(ev.get("crit", false)),
+					false
+				)
+			"enemy_attack":
+				var big := bool(ev.get("big_hit", false))
+				_hit_fx(String(ev.get("target_id", "")), int(ev.get("damage", 0)), big, big)
+			"heal", "regen_tick", "devour_heal", "leech_heal", "lifesteal":
+				var who := String(ev.get("target_id", ev.get("actor_id", "")))
+				_heal_fx(who, int(ev.get("amount", 0)))
+			"break":
+				_banner_fx("BREAK!", Color(1, 0.7, 0.3))  ## v0: amber
+				_enemy_bar_flash(String(ev.get("target_id", "")))
+			"phase":
+				_banner_fx("PHASE %d" % int(ev.get("phase", 2)), Color(1, 0.5, 0.85))  ## v0
+			"undying":
+				_banner_fx("UNDYING", Color(0.8, 0.9, 1))  ## v0
+			"undying_shatter":
+				_banner_fx("SHATTERED", Color(1, 1, 1))
+			"undying_revive", "revive":
+				_banner_fx("REVIVED", Color(0.5, 0.95, 0.6))  ## v0
+			"ultimate":
+				var nm := String(ev.get("name", "Ultimate"))
+				_banner_fx("★ %s ★" % nm, Color(1, 0.85, 0.4))  ## v0: gold
+				_screen_tint(Color(1, 0.85, 0.4, 0.18))  ## v0
+			"spawn":
+				# Task 2 review fix: _build_enemy_nodes only runs in start_battle,
+				# so a spawned add has no E<i> column. Rebuild every column
+				# (idempotent) then re-fill so the add gets a portrait.
+				_build_enemy_nodes()
+				_refresh_enemy_slots()
+			_:
+				pass
+
+
+## Task 7: an incoming hit on `target_id` -- a rising damage number (grey
+## em-dash if it did nothing, gold + larger on a crit / big hit), a positional
+## shake, a white flash on the portrait, and, only for a boss BIG HIT (`big`),
+## a red screen pulse.
+func _hit_fx(target_id: String, dmg: int, crit: bool, big: bool) -> void:
+	var anchor := _anchor_for(target_id)
+	var loud := crit or big
+	if dmg <= 0:
+		_pop_number(anchor, "—", Color(0.7, 0.7, 0.72), false)  ## v0: grey
+	else:
+		_pop_number(anchor, str(dmg), Color(1, 0.85, 0.35) if crit else Color.WHITE, loud)
+	_shake(anchor, 10.0 if loud else 6.0)  ## v0
+	_white_flash(anchor)
+	if big:
+		_red_vignette()
+
+
+## Task 7: a heal / regen / drain landing on `id` -- a green "+N" number plus
+## a brief green tint pulse on the target's portrait.
+func _heal_fx(id: String, amt: int) -> void:
+	var anchor := _anchor_for(id)
+	_pop_number(anchor, "+%d" % amt, Color(0.5, 0.95, 0.6), false)  ## v0: green
+	_tint_pulse(anchor, Color(0.5, 1.2, 0.6))  ## v0: over-bright green
+
+
+## Task 7: nudge `node` left / right around its resting x and settle back.
+## Restores the original x on finish so a mid-shake refresh can't strand it.
+func _shake(node: Control, px: float) -> void:
+	if node == null:
+		return
+	var x0 := node.position.x
+	var t := create_tween()
+	t.tween_property(node, "position:x", x0 + px, 0.06)  ## v0
+	t.tween_property(node, "position:x", x0 - px * 0.5, 0.07)  ## v0
+	t.tween_property(node, "position:x", x0 + px * 0.25, 0.06)  ## v0
+	t.tween_property(node, "position:x", x0, 0.06)  ## v0
+	t.chain().tween_callback(func() -> void: node.position.x = x0)
+
+
+## Task 7: white hit-spark on `node` -- routed through _tint_pulse so it
+## always eases back to a clean Color.WHITE rest state.
+func _white_flash(node: Control) -> void:
+	_tint_pulse(node, Color(2, 2, 2))  ## v0: over-bright white
+
+
+## Task 7: snap `node.modulate` to `col`, then tween it back to Color.WHITE
+## over ~0.2 s (the next _refresh_* pass re-applies any targeting tint).
+func _tint_pulse(node: Control, col: Color) -> void:
+	if node == null:
+		return
+	node.modulate = col
+	var t := create_tween()
+	t.tween_property(node, "modulate", Color.WHITE, 0.2)  ## v0
+	t.chain().tween_callback(func() -> void: node.modulate = Color.WHITE)
+
+
+## Task 7: flash the centre banner -- set copy + colour, pop scale
+## 0.7 -> 1.1 -> 1.0 while alpha holds then fades, hide on finish, all inside
+## 0.6 s. pivot_offset is re-centred each call (the Label's size isn't known
+## until it is in the tree).
+func _banner_fx(text: String, col: Color) -> void:
+	banner.text = text
+	banner.add_theme_color_override("font_color", col)
+	banner.pivot_offset = banner.size * 0.5
+	banner.scale = Vector2(0.7, 0.7)  ## v0
+	banner.modulate = Color(1, 1, 1, 1)
+	banner.visible = true
+	var t := create_tween()
+	t.tween_property(banner, "scale", Vector2(1.1, 1.1), 0.2)  ## v0
+	t.tween_property(banner, "scale", Vector2.ONE, 0.15)  ## v0
+	t.tween_property(banner, "modulate:a", 0.0, 0.25)  ## v0
+	t.tween_callback(func() -> void: banner.visible = false)
+
+
+## Task 7: wash the full-screen vignette with `col`, then fade its alpha to 0
+## over 0.25 s and hide it.
+func _screen_tint(col: Color) -> void:
+	vignette.color = col
+	vignette.visible = true
+	var t := create_tween()
+	t.tween_property(vignette, "color:a", 0.0, 0.25)  ## v0
+	t.tween_callback(func() -> void: vignette.visible = false)
+
+
+## Task 7: the boss BIG HIT variant of _screen_tint.
+func _red_vignette() -> void:
+	_screen_tint(Color(0.8, 0.1, 0.1, 0.35))  ## v0
+
+
+## Task 7: flash the break capsule of whichever enemy column owns `id`.
+func _enemy_bar_flash(id: String) -> void:
+	for i in _battle.enemies.size():
+		if String(_battle.enemies[i]["id"]) == id:
+			var bar := arena.get_node_or_null("E%d/brkbar" % i)
+			if bar is StatBar:
+				(bar as StatBar).flash()
+			return
+
+
+## Task 7: the Control a floating number / shake / flash anchors to for combat
+## id `id` -- the enemy column's portrait, else the party card's thumb, else
+## $Stage as a safe fallback so callers never get null.
+func _anchor_for(id: String) -> Control:
+	for i in _battle.enemies.size():
+		if String(_battle.enemies[i]["id"]) == id:
+			var pic := arena.get_node_or_null("E%d/pics/pic" % i)
+			if pic is Control:
+				return pic as Control
+	for i in _battle.party.size():
+		if String(_battle.party[i]["id"]) == id:
+			var thumb := party_row.get_node_or_null("P%d/thumb" % i)
+			if thumb is Control:
+				return thumb as Control
+	return $Stage as Control
+
+
 func _on_action_button_pressed(index: int) -> void:
 	if index >= _current_player_moves.size():
 		return
@@ -900,6 +1111,7 @@ func _show_results() -> void:
 	party_row.visible = false
 	command.visible = false
 	vignette.visible = false
+	banner.visible = false
 	_focus_arm = false
 	result_label.visible = true
 	result_label.text = "VICTORY!" if _battle.won else "DEFEAT"
