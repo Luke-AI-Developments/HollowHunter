@@ -535,6 +535,14 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
 	)
 	var synergy_bonus := _army_synergy_bonus(chosen) if apply_synergy else 0.0
+	## spec §10.3: the hunter's active armour-set combat effects. `stat_pct`
+	## entries are folded inside make_ally_combatant; `gauge_start` seeds the
+	## Monarch Gauge below; the rest ride along as the combatant's set_effects.
+	var hunter_effects := ArmorSets.combat_effects(state.equipped, state.inventory, _equipment)
+	var gauge_start := 0.0
+	for e in hunter_effects:
+		if String(e.get("effect", "")) == "gauge_start":
+			gauge_start += float(e.get("value", 0.0))
 	var party := [
 		Battle.make_ally_combatant(
 			"player",
@@ -542,7 +550,9 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 			state.level,
 			state.combat_stats(_equipment),
 			"You",
-			synergy_bonus
+			synergy_bonus,
+			[],
+			hunter_effects
 		)
 	]
 	var portraits := {}
@@ -573,11 +583,17 @@ func _build_battle_party(apply_synergy: bool = false) -> Dictionary:
 				shadow_stats,
 				member["display_name"],
 				synergy_bonus,
-				member_trait_ids
+				member_trait_ids,
+				member.get("combat_set_effects", [])
 			)
 		)
 		portraits[member["instance_id"]] = ArtPaths.monster_portrait(member["monster_id"])
-	return {"party": party, "portraits": portraits, "party_trait_ids": party_trait_ids}
+	return {
+		"party": party,
+		"portraits": portraits,
+		"party_trait_ids": party_trait_ids,
+		"gauge_start": gauge_start,
+	}
 
 
 ## Army Synergy (§16/§20): "your full army beyond the 3 in your active
@@ -633,7 +649,12 @@ func _start_gate_battle(
 	var battle_party := _build_battle_party()
 	_pending_battle_party_trait_ids = battle_party["party_trait_ids"]
 	battle_view.start_battle(
-		battle_party["party"], enemies, _moves, false, battle_party["portraits"]
+		battle_party["party"],
+		enemies,
+		_moves,
+		false,
+		battle_party["portraits"],
+		float(battle_party["gauge_start"])
 	)
 
 
@@ -682,7 +703,7 @@ func _start_nadir_battle() -> void:
 		_moves,
 		false,
 		battle_party["portraits"],
-		_nadir_monarch_gauge
+		maxf(_nadir_monarch_gauge, float(battle_party["gauge_start"]))
 	)
 
 

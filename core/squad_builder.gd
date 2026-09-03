@@ -76,6 +76,8 @@ static func enrich_army(
 					"trait_power_pct": trait_power_pct,
 					"trait_combat_pct": tmods["combat_pct"],
 					"combat_gear_stat_mods": combat_gear_stat_mods,
+					"combat_set_effects":
+					ArmorSets.combat_effects(shadow_equipped, inventory, equipment),
 					"locked": shadow.get("locked", false),
 					"favorite": shadow.get("favorite", false),
 				}

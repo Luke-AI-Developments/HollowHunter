@@ -171,9 +171,25 @@ static func make_ally_combatant(
 	stats: Dictionary,
 	display_name: String = "",
 	synergy_bonus: float = 0.0,
-	trait_ids: Array = []
+	trait_ids: Array = [],
+	set_effects: Array = []
 ) -> Dictionary:
 	var combat := CombatMath.combat_stats(stats)
+	# spec §10.3: fold every `stat_pct` armour-set effect into the combat stat
+	# dict BEFORE the synergy multiply -- `value` is a percent (12 -> +12%).
+	var stat_key := {
+		"hp": "HP",
+		"patk": "PATK",
+		"matk": "MATK",
+		"def": "DEF",
+		"crit": "CRIT_CHANCE",
+		"speed": "SPEED",
+	}
+	for e: Dictionary in set_effects:
+		if String(e.get("effect", "")) == "stat_pct":
+			var k := String(stat_key.get(String(e.get("stat", "")), ""))
+			if k != "" and combat.has(k):
+				combat[k] = float(combat[k]) * (1.0 + float(e.get("value", 0)) / 100.0)
 	var mult := 1.0 + synergy_bonus
 	var hp := int(round(float(combat["HP"]) * mult))
 	var trait_flags := {}
@@ -207,6 +223,7 @@ static func make_ally_combatant(
 		"defending": false,
 		"defend_turns": 0,
 		"trait_flags": trait_flags,
+		"set_effects": set_effects,
 	}
 
 
@@ -599,9 +616,15 @@ func _tick_start_of_turn(actor: Dictionary) -> void:
 		cd_step = RELENTLESS_COOLDOWN_TICK
 	if has_status(actor, "overdrive"):
 		cd_step = maxi(cd_step, 2)  ## spec §6.3, v0
+	cd_step += int(_set_effect_value(actor, "cooldown_reduction"))  ## spec §10.3: turns
 	var cooldowns: Dictionary = actor.get("cooldowns", {})
 	for move_id in cooldowns.keys():
 		cooldowns[move_id] = maxi(0, int(cooldowns[move_id]) - cd_step)
+	## spec §10.3 shield_on_turn: a fresh shield worth `value`% of max HP each turn.
+	if _has_set_effect(actor, "shield_on_turn"):
+		var shield_pct := _set_effect_value(actor, "shield_on_turn") / 100.0
+		var shield_gain := int(round(float(actor.get("max_hp", 0)) * shield_pct))
+		actor["shield_hp"] = int(actor.get("shield_hp", 0)) + shield_gain
 	if actor.get("atk_buff_turns", 0) > 0:
 		actor["atk_buff_turns"] -= 1
 		if actor["atk_buff_turns"] <= 0:
@@ -869,15 +892,28 @@ func _apply_attack(actor: Dictionary, move: Dictionary, target_id: String = "") 
 			and _hp_fraction(target) < SKIRMISHER_EXECUTE_HP_FRAC
 		):
 			bonus_mult *= SKIRMISHER_EXECUTE_MULT  ## spec §7.1, v0
+		## spec §10.3 armour-set bonus_mult folds -- each is a no-op (x1.0) when
+		## `actor` carries no such set effect (`_set_effect_value` returns 0).
+		if String(target.get("id", "")) == focus_target_id and focus_target_id != "":
+			bonus_mult *= 1.0 + _set_effect_value(actor, "focus_damage") / 100.0
+		if String(target.get("role", "")) == "armoured":
+			bonus_mult *= 1.0 + _set_effect_value(actor, "vs_armoured") / 100.0
+		if has_status(target, "vulnerable"):
+			bonus_mult *= 1.0 + _set_effect_value(actor, "vulnerable_potency")  ## fraction
 		var target_def: float = target["def"] * float(target.get("def_multiplier", 1.0))
 		var pierce := MAGIC_DEF_PIERCE if String(move.get("move_type", "")) == "magic" else 0.0
+		## spec §10.3 first_strike_crit: force a crit on this unit's FIRST attack
+		## of the sub-battle, then never again (`_first_strike_done` is set once).
+		var cc := float(actor.get("crit_chance", 0.0))
+		var force_crit := (
+			_has_set_effect(actor, "first_strike_crit")
+			and not bool(actor.get("_first_strike_done", false))
+		)
+		if force_crit:
+			cc = 1.0
+			actor["_first_strike_done"] = true
 		var result := CombatMath.resolve_damage(
-			power * bonus_mult * chain_mult,
-			atk,
-			target_def,
-			float(actor.get("crit_chance", 0.0)),
-			_rng,
-			pierce
+			power * bonus_mult * chain_mult, atk, target_def, cc, _rng, pierce
 		)
 		var actual := _land_hit(actor, target, result, tag, target_type, is_physical)
 		if String(target["id"]) == chain_first_target and actual > 0:
@@ -940,6 +976,8 @@ func _outgoing_atk(actor: Dictionary, is_physical: bool) -> float:
 	var atk := base_atk * float(actor.get("atk_multiplier", 1.0))
 	if has_status(actor, "overdrive"):
 		atk *= 1.25  ## spec §6.3, v0: Sovereign's Grace overdrive
+	if _has_set_effect(actor, "overdrive_on_low") and _hp_fraction(actor) < 0.25:
+		atk *= 1.0 + _set_effect_value(actor, "overdrive_on_low") / 100.0  ## spec §10.3, v0
 	return atk
 
 
@@ -989,7 +1027,9 @@ func _land_hit(
 		var bulwark := 1.0
 		if is_physical and String(target.get("kit", "")) == "warden":
 			bulwark = float(BossKits.BOSS_KITS["warden"]["break_phys_mult"])  ## §4.2 Bulwark
-		_add_break_fill(target, (dmg_fill + flat_fill) * bulwark)
+		## spec §10.3: attacker's break_contribution armour-set effect (a fraction).
+		var set_break := 1.0 + _set_effect_value(actor, "break_contribution")
+		_add_break_fill(target, (dmg_fill + flat_fill) * bulwark * set_break)
 	var tmax: int = maxi(1, int(target.get("max_hp", 1)))
 	_add_monarch_gauge(
 		clampf(
@@ -1018,7 +1058,9 @@ func _apply_heal(actor: Dictionary, move: Dictionary, target_id: String) -> Arra
 	var targets := _resolve_ally_targets(actor, move, target_id)
 	if targets.is_empty():
 		return []
-	var heal_amount := int(round(float(move.get("power", 1.0)) * actor["matk"]))
+	## spec §10.3: healer's `healing` armour-set effect (a percent).
+	var heal_scale := 1.0 + _set_effect_value(actor, "healing") / 100.0
+	var heal_amount := int(round(float(move.get("power", 1.0)) * actor["matk"] * heal_scale))
 	var events := []
 	for target: Dictionary in targets:
 		var before: int = target["hp"]
@@ -1142,6 +1184,25 @@ func _single_target(pool: Array) -> Dictionary:
 
 func has_status(c: Dictionary, name: String) -> bool:
 	return int(c.get("statuses", {}).get(name, 0)) > 0
+
+
+## Spec §10.3: sum of `value` across `actor`'s armour-set effects with
+## `effect == effect_id` (0.0 if none). Each hook decides percent vs fraction.
+func _set_effect_value(actor: Dictionary, effect_id: String) -> float:
+	var total := 0.0
+	for e in actor.get("set_effects", []):
+		if String(e.get("effect", "")) == effect_id:
+			total += float(e.get("value", 0.0))
+	return total
+
+
+## Spec §10.3: whether `actor` carries any armour-set effect with `effect ==
+## effect_id` -- for the value-less / presence-gated hooks.
+func _has_set_effect(actor: Dictionary, effect_id: String) -> bool:
+	for e in actor.get("set_effects", []):
+		if String(e.get("effect", "")) == effect_id:
+			return true
+	return false
 
 
 ## Central multiplier on damage ARRIVING at `target` (spec §5.3 broken,
