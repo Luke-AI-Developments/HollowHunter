@@ -178,10 +178,14 @@ func _build_enemy_nodes() -> void:
 		col.custom_minimum_size = Vector2(col_w, 0)
 		x += col_w + gap
 
+		# All internal stack offsets / insets / heights below are v0 layout
+		# hypotheses (sub-project C retunes): cap h 26, hpbar y 30, brkbar y 48,
+		# pics y 62, the 10px side inset, plat h 24, telegraph offset (40, 2),
+		# pips y-gap 8 and h 44.
 		var cap := Label.new()
 		cap.name = "cap"
 		cap.position = Vector2(0, 0)
-		cap.size = Vector2(col_w, 26)
+		cap.size = Vector2(col_w, 26)  ## v0
 		cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(cap)
@@ -189,32 +193,33 @@ func _build_enemy_nodes() -> void:
 		var hpbar := StatBar.new()
 		hpbar.name = "hpbar"
 		hpbar.set_palette("hp")
-		hpbar.position = Vector2(10, 30)
-		hpbar.custom_minimum_size = Vector2(col_w - 20, 14)
-		hpbar.size = Vector2(col_w - 20, 14)
+		hpbar.position = Vector2(10, 30)  ## v0
+		hpbar.custom_minimum_size = Vector2(col_w - 20, 14)  ## v0
+		hpbar.size = Vector2(col_w - 20, 14)  ## v0
 		col.add_child(hpbar)
 
 		var brkbar := StatBar.new()
 		brkbar.name = "brkbar"
 		brkbar.set_palette("break")
-		brkbar.position = Vector2(10, 48)
-		brkbar.custom_minimum_size = Vector2(col_w - 20, 8)
-		brkbar.size = Vector2(col_w - 20, 8)
+		brkbar.position = Vector2(10, 48)  ## v0
+		brkbar.custom_minimum_size = Vector2(col_w - 20, 8)  ## v0
+		brkbar.size = Vector2(col_w - 20, 8)  ## v0
 		brkbar.visible = bool(e.get("is_boss")) and e.has("break_max")
 		col.add_child(brkbar)
 
 		var pics := Control.new()
 		pics.name = "pics"
-		pics.position = Vector2(0, 62)
+		pics.position = Vector2(0, 62)  ## v0
 		pics.custom_minimum_size = Vector2(col_w, col_w)
+		pics.size = Vector2(col_w, col_w)
 		col.add_child(pics)
 
 		var plat := ColorRect.new()
 		plat.name = "plat"
 		plat.color = Color(0, 0, 0, 0.5)  ## v0
 		plat.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		plat.position = Vector2(0, col_w - 24)
-		plat.size = Vector2(col_w, 24)
+		plat.position = Vector2(0, col_w - 24)  ## v0
+		plat.size = Vector2(col_w, 24)  ## v0
 		pics.add_child(plat)
 
 		var pic := TextureRect.new()
@@ -227,12 +232,15 @@ func _build_enemy_nodes() -> void:
 		pic.gui_input.connect(_on_enemy_pic_input.bind(i))
 		pics.add_child(pic)
 
+		# v0 placeholder: an inert outline node. Targeting/focus feedback is
+		# shown by tinting `pic.modulate` in `_refresh_enemy_slots`; the ring
+		# stays alpha 0 until a later task drives it.
 		var ring := ColorRect.new()
 		ring.name = "ring"
 		ring.color = Color(0.498, 0.941, 1, 0)  ## v0
 		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ring.position = Vector2(-3, -3)
-		ring.size = Vector2(col_w + 6, col_w + 6)
+		ring.position = Vector2(-3, -3)  ## v0
+		ring.size = Vector2(col_w + 6, col_w + 6)  ## v0
 		pics.add_child(ring)
 
 		var telegraph := Label.new()
@@ -240,14 +248,14 @@ func _build_enemy_nodes() -> void:
 		telegraph.text = "⚠"
 		telegraph.add_theme_color_override("font_color", Color(1, 0.66, 0.3))  ## v0
 		telegraph.add_theme_font_size_override("font_size", 32)  ## v0
-		telegraph.position = Vector2(col_w - 40, 2)
+		telegraph.position = Vector2(col_w - 40, 2)  ## v0
 		telegraph.visible = false
 		pics.add_child(telegraph)
 
 		var pips := Label.new()
 		pips.name = "pips"
-		pips.position = Vector2(0, 62 + col_w + 8)
-		pips.size = Vector2(col_w, 44)
+		pips.position = Vector2(0, 62 + col_w + 8)  ## v0
+		pips.size = Vector2(col_w, 44)  ## v0
 		pips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		pips.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(pips)
