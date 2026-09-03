@@ -40,6 +40,8 @@ var _party_portraits: Dictionary = {}  ## combatant id -> Texture2D, set by star
 ## combatant dict) -- core/battle.gd itself carries no art data, stays pure.
 var _log_cursor: int = 0  ## Task 6 ticker roll-in reset point; declared now for class-var stability
 var _active_id: String = ""  ## Task 3 active-combatant highlight; declared now
+var _gauge_was_full: bool = false  ## Task 5: edge-track so gauge_bar.flash() fires once per fill
+var _ult_tween: Tween = null  ## Task 5: looped pulse on ultimate_button while it's swapped in
 
 @onready var title_label: Label = $TitleLabel
 @onready var arena: Control = $Arena
@@ -82,6 +84,8 @@ func _ready() -> void:
 	focus_button.pressed.connect(_on_focus_pressed)
 	defend_button.pressed.connect(_on_defend_pressed)
 	gauge_bar.set_palette("gauge")
+	advance_timer.wait_time = ADVANCE_DELAY
+	ultimate_button.pivot_offset = ultimate_button.size / 2.0  ## v0: centre for the scale pulse
 
 
 ## Starts a fresh fight. `party`/`enemies` are Battle combatant dicts
@@ -104,6 +108,7 @@ func start_battle(
 	_battle = Battle.new(party, enemies, moves, auto, null, initial_gauge)
 	_pending_move = {}
 	_focus_arm = false
+	_gauge_was_full = false
 	_log_cursor = _battle.log.size()
 	_active_id = ""
 	result_label.visible = false
@@ -121,6 +126,7 @@ func start_battle(
 	_build_turn_chip_nodes()
 	visible = true
 	auto_button.button_pressed = auto
+	auto_button.text = "Auto-battle: ON" if auto else "Auto-battle: OFF"
 	title_label.text = "Battle"
 	_advance()
 
@@ -523,37 +529,60 @@ func _refresh_ticker() -> void:
 ## still on cooldown (§16b: "name + cooldown state"). Otherwise shows a
 ## generic "Resolving..." placeholder (§16b's "no dead air").
 func _refresh_action_bar() -> void:
+	var was_ult_visible := ultimate_button.visible
 	ultimate_button.visible = false
 	# Gauge readout updates even while resolving / target-picking / under Auto.
 	gauge_label.text = "MONARCH GAUGE %d / 100" % int(round(_battle.monarch_gauge))
 	gauge_bar.set_values(_battle.monarch_gauge, 100.0)
+	# Flash once per fill: only on the not-full -> full edge, not every refresh.
+	if _battle.can_use_ultimate() and not _gauge_was_full:
+		gauge_bar.flash()
+	_gauge_was_full = _battle.can_use_ultimate()
 	chain_pill.visible = _battle.chain_count > 0
 	if _battle.chain_count > 0:
 		chain_pill.text = "CHAIN x%.1f" % (1.0 + Battle.CHAIN_DAMAGE_STEP * _battle.chain_count)
 	var focus_name := _name_for(_battle.focus_target_id) if _battle.focus_target_id != "" else ""
 	focus_button.text = (
-		"Focus: %s" % focus_name
+		"FOCUS: %s" % focus_name
 		if focus_name != ""
-		else ("Focus: tap an enemy" if _focus_arm else "Focus: none")
+		else ("FOCUS: tap an enemy" if _focus_arm else "FOCUS")
 	)
+
 	if not _pending_move.is_empty():
+		for b in action_buttons:
+			b.visible = false
+		waiting_label.visible = true
+		waiting_label.text = "Choose a target for %s" % _pending_move["name"]
+		_update_ultimate_pulse(was_ult_visible, false)
 		return
 
 	if not _awaiting_player_input:
 		waiting_label.visible = true
-		waiting_label.text = "Resolving..."
+		waiting_label.text = (
+			"◈ %s is acting..." % _name_for(_active_id) if _active_id != "" else "Resolving..."
+		)
 		for b in action_buttons:
 			b.visible = false
+		focus_button.visible = false
+		defend_button.visible = false
+		_update_ultimate_pulse(was_ult_visible, false)
 		return
 
 	waiting_label.visible = false
+	focus_button.visible = true
+	defend_button.visible = true
 	var player: Dictionary = _battle.party[0]
 	_current_player_moves = Content.unlocked_moves(
 		_moves, String(player["class"]), int(player["level"])
 	)
 	var cooldowns: Dictionary = player.get("cooldowns", {})
+	var can_ult := _awaiting_player_input and _battle.can_use_ultimate()
 	for i in action_buttons.size():
 		var b := action_buttons[i]
+		# Top row (0,1) yields its y-band to the wide Ultimate button when it's up.
+		if can_ult and i < 2:
+			b.visible = false
+			continue
 		if i >= _current_player_moves.size():
 			b.visible = false
 			continue
@@ -563,10 +592,34 @@ func _refresh_action_bar() -> void:
 		b.disabled = cd > 0
 		b.text = "%s%s" % [move["name"], (" (CD %d)" % cd) if cd > 0 else ""]
 
-	var can_ult := _awaiting_player_input and _battle.can_use_ultimate()
 	ultimate_button.visible = can_ult
 	if can_ult:
 		ultimate_button.text = "★ %s ★" % _battle.ultimate_name()
+	_update_ultimate_pulse(was_ult_visible, can_ult)
+
+
+## Task 5: drive the looped "ready" pulse on the gold Ultimate button off its
+## visibility edges -- start a fresh looped Tween on the hidden->visible edge,
+## kill it and hard-reset scale/modulate on the visible->hidden edge. Guarded
+## by `_ult_tween` so a mid-cycle refresh at steady visibility is a no-op.
+func _update_ultimate_pulse(was_visible: bool, now_visible: bool) -> void:
+	if now_visible and not was_visible:
+		if _ult_tween != null:
+			_ult_tween.kill()
+		_ult_tween = ultimate_button.create_tween().set_loops()
+		_ult_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_ult_tween.tween_property(ultimate_button, "scale", Vector2(1.04, 1.04), 0.7)  ## v0
+		_ult_tween.parallel().tween_property(
+			ultimate_button, "modulate", Color(1.04, 1.04, 1.04), 0.7
+		)  ## v0
+		_ult_tween.tween_property(ultimate_button, "scale", Vector2.ONE, 0.7)  ## v0
+		_ult_tween.parallel().tween_property(ultimate_button, "modulate", Color.WHITE, 0.7)  ## v0
+	elif was_visible and not now_visible:
+		if _ult_tween != null:
+			_ult_tween.kill()
+			_ult_tween = null
+		ultimate_button.scale = Vector2.ONE
+		ultimate_button.modulate = Color.WHITE
 
 
 func _name_for(id: String) -> String:
