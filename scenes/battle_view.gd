@@ -306,6 +306,7 @@ func _build_enemy_nodes() -> void:
 		pic.size = Vector2(col_w, col_w)
 		pic.custom_minimum_size = Vector2(col_w, col_w)
 		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		pic.mouse_filter = Control.MOUSE_FILTER_STOP
 		pic.gui_input.connect(_on_enemy_pic_input.bind(i))
 		pics.add_child(pic)
@@ -422,6 +423,7 @@ func _build_party_nodes() -> void:
 		thumb.size = Vector2(60, 60)
 		thumb.custom_minimum_size = Vector2(60, 60)
 		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		if String(c["id"]) != "player":
 			thumb.material = ArtPaths.shadow_material()
 		card.add_child(thumb)
@@ -438,6 +440,7 @@ func _build_party_nodes() -> void:
 		cls.size = Vector2(24, 24)
 		cls.custom_minimum_size = Vector2(24, 24)
 		cls.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		cls.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		var icon_path := "res://art/ui/ui_class_%s.webp" % String(c["class"]).to_lower()
 		if ResourceLoader.exists(icon_path):
 			cls.texture = load(icon_path)
@@ -546,6 +549,7 @@ func _build_turn_chip_nodes() -> void:
 		pic.size = Vector2(60, 60)
 		pic.custom_minimum_size = Vector2(60, 60)
 		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		chip.add_child(pic)
 		turn_strip.add_child(chip)
 
