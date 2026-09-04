@@ -665,7 +665,7 @@ func _start_gate_battle(
 	var role := String(mdef.get("role", "bruiser"))
 	var atk_type := Content.monster_atk_type(mdef)
 	var kit := Content.monster_kit(mdef)
-	var multiphase := gate["rank"] in ["A", "S"]
+	var multiphase: bool = gate["rank"] in ["A", "S"]
 	var enemies := [
 		Battle.make_enemy_combatant(
 			gate["monster_id"],
