@@ -264,7 +264,8 @@ func _build_enemy_nodes() -> void:
 		cap.name = "cap"
 		cap.position = Vector2(0, 0)
 		cap.size = Vector2(col_w, 26)  ## v0
-		cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cap.clip_text = true
+		cap.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(cap)
 
