@@ -23,8 +23,6 @@ signal battle_finished(won: bool)
 
 const LOG_LINES_SHOWN := 3
 const MAX_ENEMY_SLOTS := 4
-const MAX_PARTY_SLOTS := 4
-const MAX_ACTION_BUTTONS := 6
 const ADVANCE_DELAY := 0.6  ## v0
 
 var _battle: Battle
@@ -47,6 +45,8 @@ var _last_consumed: Array = []  ## Task 6: raw dicts _refresh_ticker just walked
 var _num_pool: Array[Label] = []  ## Task 7: pooled floating damage-number Labels under $Stage
 var _num_next: int = 0  ## Task 7: round-robin cursor into _num_pool
 var _banner_tween: Tween = null  ## Task 7 review: kill an in-flight banner tween before a new one
+var _shake_tweens: Dictionary = {}  ## final review I2: Control -> live shake Tween, so an
+## overlapping shake on the same node kills the old one instead of stranding it mid-offset
 
 @onready var title_label: Label = $TitleLabel
 @onready var arena: Control = $Arena
@@ -91,6 +91,12 @@ func _ready() -> void:
 	gauge_bar.set_palette("gauge")
 	advance_timer.wait_time = ADVANCE_DELAY
 	ultimate_button.pivot_offset = ultimate_button.size / 2.0  ## v0: centre for the scale pulse
+	# final review I3: $Stage (BattlePanel child index 4) sits before PartyRow/Command in
+	# the .tscn, so floating damage numbers and the banner painted underneath the ~98%-
+	# opaque party/command panels. Raise both above every other band via z_index instead
+	# of reordering the .tscn (M1's Vignette full-screen tint needs the same treatment).
+	$Stage.z_index = 10  ## v0
+	vignette.z_index = 20  ## v0
 
 
 ## Starts a fresh fight. `party`/`enemies` are Battle combatant dicts
@@ -112,6 +118,8 @@ func start_battle(
 	_party_portraits = party_portraits
 	_battle = Battle.new(party, enemies, moves, auto, null, initial_gauge)
 	_pending_move = {}
+	_awaiting_player_input = false
+	_current_player_moves = []
 	_focus_arm = false
 	_gauge_was_full = false
 	_log_cursor = _battle.log.size()
@@ -178,23 +186,70 @@ func _refresh_all() -> void:
 ## status pips. Targeting/focus/defeated feedback is done by tinting
 ## `pic.modulate` (see `_refresh_enemy_slots`), not the ring, for v0.
 ## Every colour/size here is a v0 hypothesis (sub-project C tunes them).
+## final review I4: `_battle.enemies` grows unbounded over a fight (dead Brood Spawn
+## adds are never removed, even though only a capped number are ever alive at once), so
+## building one column per array entry can overflow the 1040px arena. Cap to
+## MAX_ENEMY_SLOTS, boss always included (found by `is_boss`, not by array position),
+## then living adds before dead ones fill the rest -- otherwise a dead add sitting
+## earlier in the array could push a live one off-screen and untappable. Column names
+## stay "E<i>" with `i` = the real `_battle.enemies` index (not a sequential 0..k), so
+## every other `arena.get_node_or_null("E%d" % i)` site (`_refresh_enemy_slots`,
+## `_enemy_bar_flash`, `_anchor_for`, `_on_enemy_pic_input`'s bound index) keeps working
+## unchanged -- they already tolerate a missing column via their null checks.
+func _visible_enemy_indices() -> Array[int]:
+	var all_idx: Array[int] = []
+	for i in _battle.enemies.size():
+		all_idx.append(i)
+	if all_idx.size() <= MAX_ENEMY_SLOTS:
+		return all_idx
+	var boss_i := -1
+	for i in all_idx:
+		if bool(_battle.enemies[i].get("is_boss", false)):
+			boss_i = i
+			break
+	var living: Array[int] = []
+	var dead: Array[int] = []
+	for i in all_idx:
+		if i == boss_i:
+			continue
+		if int(_battle.enemies[i]["hp"]) > 0:
+			living.append(i)
+		else:
+			dead.append(i)
+	var out: Array[int] = []
+	if boss_i != -1:
+		out.append(boss_i)
+	for i in living:
+		if out.size() >= MAX_ENEMY_SLOTS:
+			break
+		out.append(i)
+	for i in dead:
+		if out.size() >= MAX_ENEMY_SLOTS:
+			break
+		out.append(i)
+	out.sort()
+	return out
+
+
 func _build_enemy_nodes() -> void:
 	for c in arena.get_children():
 		arena.remove_child(c)
 		c.queue_free()
-	var n := _battle.enemies.size()
+	var indices := _visible_enemy_indices()
+	var n := indices.size()
 	var gap := 20.0  ## v0
 	var widths: Array[float] = []
 	var total := 0.0
-	for i in n:
-		var w := 300.0 if _battle.enemies[i].get("is_boss") else 180.0  ## v0
+	for idx in indices:
+		var w := 300.0 if _battle.enemies[idx].get("is_boss") else 180.0  ## v0
 		widths.append(w)
 		total += w
 	total += gap * maxi(n - 1, 0)
 	var x := (1040.0 - total) / 2.0
-	for i in n:
+	for k in n:
+		var i := indices[k]
 		var e: Dictionary = _battle.enemies[i]
-		var col_w: float = widths[i]
+		var col_w: float = widths[k]
 		var col := Control.new()
 		col.name = "E%d" % i
 		col.position = Vector2(x, 0)
@@ -312,11 +367,11 @@ func _refresh_enemy_slots() -> void:
 		pic.texture = ArtPaths.monster_portrait(String(e["id"]))
 		var focused := String(e["id"]) == _battle.focus_target_id
 		if not alive:
-			pic.modulate = Color(0.35, 0.35, 0.4)
+			pic.modulate = Color(0.35, 0.35, 0.4)  ## v0
 		elif focused:
-			pic.modulate = Color(0.7, 1.0, 1.0)
+			pic.modulate = Color(0.7, 1.0, 1.0)  ## v0
 		elif targeting:
-			pic.modulate = Color(0.85, 0.95, 1.0)
+			pic.modulate = Color(0.85, 0.95, 1.0)  ## v0
 		else:
 			pic.modulate = Color.WHITE
 		var tele: Label = col.get_node("pics/telegraph")
@@ -425,7 +480,7 @@ func _refresh_party_slots() -> void:
 		if card == null:
 			continue
 		var active := String(c["id"]) == _active_id
-		card.self_modulate = Color(1.25, 1.25, 1.3) if active else Color.WHITE
+		card.self_modulate = Color(1.25, 1.25, 1.3) if active else Color.WHITE  ## v0
 		var nm: Label = card.get_node("name")
 		nm.text = ("▶ " if active else "") + String(c["name"])
 		var thumb: TextureRect = card.get_node("thumb")
@@ -435,7 +490,7 @@ func _refresh_party_slots() -> void:
 		var hpnum: Label = card.get_node("hpnum")
 		hpnum.text = "%d / %d" % [int(c["hp"]), int(c["max_hp"])]
 		var down := int(c["hp"]) <= 0
-		thumb.modulate = Color(0.35, 0.35, 0.4) if down else Color.WHITE
+		thumb.modulate = Color(0.35, 0.35, 0.4) if down else Color.WHITE  ## v0
 		var cds: Label = card.get_node("cds")
 		var on_cd := 0
 		for v in c.get("cooldowns", {}).values():
@@ -508,7 +563,7 @@ func _refresh_turn_order() -> void:
 		var id := String(q[i])
 		var is_enemy := _is_enemy_id(id)
 		var ring: ColorRect = chip.get_node("ring")
-		ring.color = Color(0.85, 0.3, 0.3, 0.9) if is_enemy else Color(0.498, 0.941, 1, 0.9)
+		ring.color = Color(0.85, 0.3, 0.3, 0.9) if is_enemy else Color(0.498, 0.941, 1, 0.9)  ## v0
 		var pic: TextureRect = chip.get_node("pic")
 		pic.texture = ArtPaths.monster_portrait(id) if is_enemy else _party_portraits.get(id, null)
 
@@ -775,6 +830,7 @@ func _describe_event(e: Dictionary) -> String:
 func _build_number_pool() -> void:
 	for old_lbl in _num_pool:
 		if is_instance_valid(old_lbl):
+			$Stage.remove_child(old_lbl)
 			old_lbl.queue_free()
 	_num_pool.clear()
 	_num_next = 0
@@ -804,10 +860,17 @@ func _pop_number(anchor: Control, text: String, col: Color, big: bool) -> void:
 	lbl.position = origin
 	lbl.modulate = Color(1, 1, 1, 1)
 	lbl.visible = true
-	var t := create_tween().set_parallel(true)
+	# final review I1: bind to the Label, not BattleView, so a pool rebuild
+	# (_build_number_pool, M3) auto-kills any in-flight rise/fade instead of it later
+	# touching a freed instance.
+	var t := lbl.create_tween().set_parallel(true)
 	t.tween_property(lbl, "position:y", origin.y - (60.0 if big else 40.0), 0.7)  ## v0
 	t.tween_property(lbl, "modulate:a", 0.0, 0.7)  ## v0
-	t.chain().tween_callback(func() -> void: lbl.visible = false)
+	t.chain().tween_callback(
+		func() -> void:
+			if is_instance_valid(lbl):
+				lbl.visible = false
+	)
 
 
 ## Task 7: replay this tick's freshly-consumed _battle.log slice (Task 6's
@@ -881,17 +944,35 @@ func _heal_fx(id: String, amt: int) -> void:
 
 
 ## Task 7: nudge `node` left / right around its resting x and settle back.
-## Restores the original x on finish so a mid-shake refresh can't strand it.
+## final review I1/I2: bound to `node`'s own tween (not BattleView's) so a freed target
+## (I1 -- the spawn arm rebuilds every enemy column mid-batch) auto-kills this instead of
+## its trailing callback touching a dead instance. The rest x is stored as metadata the
+## first time this node shakes and always shaken relative to THAT value (never a mid-shake
+## snapshot), and any previous shake tween on this node is killed and the node restored to
+## rest before the new one starts -- so two overlapping shakes on one target (e.g. the
+## Assassin Ultimate's multi-hit combo) can't strand it at a mid-shake offset.
 func _shake(node: Control, px: float) -> void:
 	if node == null:
 		return
-	var x0 := node.position.x
-	var t := create_tween()
+	if not node.has_meta("shake_rest_x"):
+		node.set_meta("shake_rest_x", node.position.x)
+	var x0: float = node.get_meta("shake_rest_x")
+	if _shake_tweens.has(node):
+		var prev: Tween = _shake_tweens[node]
+		if prev != null and prev.is_valid():
+			prev.kill()
+	node.position.x = x0
+	var t := node.create_tween()
+	_shake_tweens[node] = t
 	t.tween_property(node, "position:x", x0 + px, 0.06)  ## v0
 	t.tween_property(node, "position:x", x0 - px * 0.5, 0.07)  ## v0
 	t.tween_property(node, "position:x", x0 + px * 0.25, 0.06)  ## v0
 	t.tween_property(node, "position:x", x0, 0.06)  ## v0
-	t.chain().tween_callback(func() -> void: node.position.x = x0)
+	t.chain().tween_callback(
+		func() -> void:
+			if is_instance_valid(node):
+				node.position.x = x0
+	)
 
 
 ## Task 7: white hit-spark on `node` -- routed through _tint_pulse so it
@@ -902,13 +983,20 @@ func _white_flash(node: Control) -> void:
 
 ## Task 7: snap `node.modulate` to `col`, then tween it back to Color.WHITE
 ## over ~0.2 s (the next _refresh_* pass re-applies any targeting tint).
+## final review I1: bound to `node`'s own tween so a freed target (the spawn arm rebuilds
+## every enemy column mid-batch) auto-kills this instead of its trailing callback touching
+## a dead instance; the callback also double-guards with is_instance_valid.
 func _tint_pulse(node: Control, col: Color) -> void:
 	if node == null:
 		return
 	node.modulate = col
-	var t := create_tween()
+	var t := node.create_tween()
 	t.tween_property(node, "modulate", Color.WHITE, 0.2)  ## v0
-	t.chain().tween_callback(func() -> void: node.modulate = Color.WHITE)
+	t.chain().tween_callback(
+		func() -> void:
+			if is_instance_valid(node):
+				node.modulate = Color.WHITE
+	)
 
 
 ## Task 7: flash the centre banner -- set copy + colour, pop scale
@@ -1120,6 +1208,11 @@ func _show_results() -> void:
 	vignette.visible = false
 	banner.visible = false
 	_focus_arm = false
+	if _ult_tween != null and _ult_tween.is_valid():
+		_ult_tween.kill()
+		_ult_tween = null
+	ultimate_button.scale = Vector2.ONE
+	ultimate_button.modulate = Color.WHITE
 	var win_color := Color(0.5, 0.95, 0.6)  ## v0
 	var lose_color := Color(0.95, 0.4, 0.35)  ## v0
 	result_label.text = "VICTORY!" if _battle.won else "DEFEAT"
