@@ -402,8 +402,9 @@ func _enemy_pips(e: Dictionary) -> String:
 
 ## Task 3: the real party row band. One `Panel` card per `_battle.party`
 ## member named `P<i>` (index-matched to `_battle.party`), each stacking:
-## shader-recoloured shadow thumb (the hunter's preset portrait stays raw --
-## no material) / name caption (gets a `▶` prefix + brightened `self_modulate`
+## shader-recoloured shadow thumb (the hunter's preset portrait instead gets
+## `portrait_material()` -- knockout only, no recolour) / name caption (gets
+## a `▶` prefix + brightened `self_modulate`
 ## while this unit is the acting one, per `_active_id`) / class icon / HP
 ## StatBar + number / cooldown dots / status pips. Card size and the thumb /
 ## icon dimensions are the brief's; every internal offset/height is a v0
