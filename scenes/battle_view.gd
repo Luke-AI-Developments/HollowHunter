@@ -231,10 +231,25 @@ func _visible_enemy_indices() -> Array[int]:
 	return out
 
 
+func _ensure_cave_backdrop() -> void:
+	var existing := arena.get_node_or_null("CaveBackdrop")
+	if existing != null:
+		return
+	var backdrop := CaveBackdrop.new()
+	backdrop.name = "CaveBackdrop"
+	backdrop.position = Vector2.ZERO
+	arena.add_child(backdrop)
+	arena.move_child(backdrop, 0)
+	backdrop.set_band_size(arena.size)
+
+
 func _build_enemy_nodes() -> void:
 	for c in arena.get_children():
+		if c.name == "CaveBackdrop":
+			continue
 		arena.remove_child(c)
 		c.queue_free()
+	_ensure_cave_backdrop()
 	var indices := _visible_enemy_indices()
 	var n := indices.size()
 	var gap := 20.0  ## v0
