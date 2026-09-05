@@ -1264,6 +1264,18 @@ func _on_action_button_pressed(index: int) -> void:
 ## engine still auto-picks the real target exactly as _resolve_and_continue
 ## always has; this only delays WHEN the visual + resolve happen.
 func _breathe_targets_then_resolve(move: Dictionary) -> void:
+	# Task 5 review: lock the command UI BEFORE the cosmetic await, mirroring
+	# _refresh_action_bar's "resolving" state -- otherwise a second tap during the
+	# 0.35s beat could drive resolve_player_action/defend/ultimate out of turn
+	# (core/battle.gd has no player-turn guard; the view is the gate).
+	_awaiting_player_input = false
+	for b in action_buttons:
+		b.visible = false
+	ultimate_button.visible = false
+	focus_button.visible = false
+	defend_button.visible = false
+	waiting_label.visible = true
+	waiting_label.text = "Resolving..."
 	var target_type := String(move.get("target_type", ""))
 	var nodes: Array[Control] = []
 	match target_type:
