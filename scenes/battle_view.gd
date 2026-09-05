@@ -25,6 +25,21 @@ const LOG_LINES_SHOWN := 3
 const MAX_ENEMY_SLOTS := 4
 const ADVANCE_DELAY := 0.6  ## v0
 
+## Battle VFX Polish §3: move_type -> (style, colour). "bolt" travels
+## caster->target before the impact fx fire; "pulse" appears directly on the
+## target with no travel (a heal/buff flying at an ally like a weapon reads
+## wrong). Every colour here is a new v0 choice.
+const MOVE_VFX := {
+	"physical": {"style": "bolt", "color": Color(0.9, 0.9, 0.85)},  ## v0: pale steel
+	"magic": {"style": "bolt", "color": Color(0.4, 0.85, 1.0)},  ## v0: cyan
+	"heal": {"style": "pulse", "color": Color(0.5, 0.95, 0.6)},  ## v0: green
+	"buff": {"style": "pulse", "color": Color(1.0, 0.85, 0.4)},  ## v0: gold
+	"cleanse": {"style": "pulse", "color": Color(0.9, 0.95, 1.0)},  ## v0: pale white
+	"revive": {"style": "pulse", "color": Color(1.0, 0.85, 0.4)},  ## v0: gold
+}
+const _BOLT_FLIGHT_TIME := 0.35  ## v0
+const _PULSE_TIME := 0.4  ## v0
+
 var _battle: Battle
 var _moves: Array = []
 var _current_player_moves: Array = []  ## this turn's unlocked moves, matched to action_buttons
@@ -47,6 +62,8 @@ var _num_next: int = 0  ## Task 7: round-robin cursor into _num_pool
 var _banner_tween: Tween = null  ## Task 7 review: kill an in-flight banner tween before a new one
 var _shake_tweens: Dictionary = {}  ## final review I2: Control -> live shake Tween, so an
 ## overlapping shake on the same node kills the old one instead of stranding it mid-offset
+var _vfx_pool: Array[Control] = []  ## Battle VFX Polish §3: pooled bolt/pulse nodes under $Stage
+var _vfx_next: int = 0  ## round-robin cursor into _vfx_pool, mirrors _num_pool/_num_next
 
 @onready var title_label: Label = $TitleLabel
 @onready var arena: Control = $Arena
@@ -141,6 +158,7 @@ func start_battle(
 	_build_party_nodes()
 	_build_turn_chip_nodes()
 	_build_number_pool()
+	_build_vfx_pool()
 	visible = true
 	auto_button.button_pressed = auto
 	auto_button.text = "Auto-battle: ON" if auto else "Auto-battle: OFF"
@@ -902,6 +920,131 @@ func _pop_number(anchor: Control, text: String, col: Color, big: bool) -> void:
 	)
 
 
+## Battle VFX Polish §3: pure move_type -> VFX style. Unknown/absent types
+## (a DoT tick with no move behind it, or a future move_type this table
+## hasn't seen yet) default to "pulse" -- the less visually aggressive choice.
+static func _vfx_style_for_move_type(move_type: String) -> String:
+	return String(MOVE_VFX.get(move_type, {}).get("style", "pulse"))
+
+
+## Battle VFX Polish §3: resolve which MOVE_VFX entry an event should use.
+## Player-chosen moves carry `move_id` (Task 3); Ultimates and raw enemy
+## attacks carry `atk_type` instead (no moves.json entry exists for either);
+## passive per-turn ticks (poison_tick/regen_tick/lifesteal) carry neither --
+## poison defaults to physical, the other two default to heal, matching what
+## they visually are.
+func _move_vfx_for_event(ev: Dictionary) -> Dictionary:
+	var move_id := String(ev.get("move_id", ""))
+	var move_type := ""
+	if move_id != "":
+		move_type = String(Content.move_by_id(_moves, move_id).get("move_type", ""))
+	if move_type == "":
+		move_type = String(ev.get("atk_type", ""))
+	if move_type == "":
+		match String(ev.get("type", "")):
+			"poison_tick":
+				move_type = "physical"
+			"regen_tick", "lifesteal":
+				move_type = "heal"
+			_:
+				move_type = "physical"
+	return MOVE_VFX.get(move_type, MOVE_VFX["physical"])
+
+
+## Battle VFX Polish §3: 6 pooled Controls under $Stage, each capable of being
+## either a "bolt" (a small filled circle that tweens position caster->target)
+## or a "pulse" (a small ring that scales/fades in place on the target) --
+## the same node is reused for both, only its _draw() colour/state differs
+## per use. Pooled + round-robin, mirroring _num_pool/_num_next exactly.
+func _build_vfx_pool() -> void:
+	for old in _vfx_pool:
+		if is_instance_valid(old):
+			$Stage.remove_child(old)
+			old.queue_free()
+	_vfx_pool.clear()
+	_vfx_next = 0
+	for i in 6:  ## v0: enough for a 4-target AoE with headroom
+		var node := Control.new()
+		node.name = "VfxSlot%d" % i
+		node.visible = false
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		node.size = Vector2(24, 24)  ## v0
+		node.set_meta("radius", 8.0)  ## v0, read by the shared _draw below
+		node.set_meta("draw_color", Color.WHITE)
+		node.draw.connect(_draw_vfx_node.bind(node))
+		$Stage.add_child(node)
+		_vfx_pool.append(node)
+
+
+func _draw_vfx_node(node: Control) -> void:
+	var radius: float = node.get_meta("radius", 8.0)
+	var col: Color = node.get_meta("draw_color", Color.WHITE)
+	node.draw_circle(Vector2(12, 12), radius, col)  ## v0: centred in the 24x24 node
+
+
+## Battle VFX Polish §3: fires a "bolt" (travels actor_id's anchor -> target_id's
+## anchor) or a "pulse" (appears in place on target_id's anchor) using the
+## given style/colour, then calls on_arrive when the animation completes --
+## the caller binds on_arrive to the existing _hit_fx/_heal_fx call so the
+## damage number / shake / flash / tint only fire once the VFX visually
+## lands. Purely cosmetic timing: core/battle.gd already resolved the whole
+## turn synchronously before this ever runs.
+func _play_move_vfx(
+	style: String, col: Color, actor_id: String, target_id: String, on_arrive: Callable
+) -> void:
+	var target_anchor := _anchor_for(target_id)
+	if _vfx_pool.is_empty() or target_anchor == null:
+		on_arrive.call()
+		return
+	var stage: Control = $Stage
+	var node := _vfx_pool[_vfx_next]
+	_vfx_next = (_vfx_next + 1) % _vfx_pool.size()
+	node.set_meta("draw_color", col)
+	var target_pos := (
+		target_anchor.get_global_position()
+		+ target_anchor.size * 0.5
+		- stage.get_global_position()
+		- node.size * 0.5
+	)
+	node.visible = true
+	node.modulate = Color(1, 1, 1, 1)
+	node.scale = Vector2.ONE
+	if style == "bolt":
+		var actor_anchor := _anchor_for(actor_id)
+		var start_pos := target_pos
+		if actor_anchor != null:
+			start_pos = (
+				actor_anchor.get_global_position()
+				+ actor_anchor.size * 0.5
+				- stage.get_global_position()
+				- node.size * 0.5
+			)
+		node.position = start_pos
+		node.queue_redraw()
+		var t := node.create_tween()
+		t.tween_property(node, "position", target_pos, _BOLT_FLIGHT_TIME)
+		t.tween_callback(
+			func() -> void:
+				node.visible = false
+				on_arrive.call()
+		)
+	else:  # "pulse"
+		node.position = target_pos
+		node.scale = Vector2(0.3, 0.3)
+		node.modulate.a = 0.0
+		node.queue_redraw()
+		var t := node.create_tween()
+		t.set_parallel(true)
+		t.tween_property(node, "scale", Vector2(1.4, 1.4), _PULSE_TIME)
+		t.tween_property(node, "modulate:a", 1.0, _PULSE_TIME * 0.4)
+		t.chain().tween_property(node, "modulate:a", 0.0, _PULSE_TIME * 0.6)
+		t.chain().tween_callback(
+			func() -> void:
+				node.visible = false
+				on_arrive.call()
+		)
+
+
 ## Task 7: replay this tick's freshly-consumed _battle.log slice (Task 6's
 ## _last_consumed) as cosmetic beats -- floating numbers, shake, white flash,
 ## centre banner, red vignette, Ultimate gold tint. Reads nothing back and
@@ -910,18 +1053,40 @@ func _play_new_events(events: Array) -> void:
 	for ev: Dictionary in events:
 		match String(ev.get("type", "")):
 			"damage", "poison_tick":
-				_hit_fx(
-					String(ev.get("target_id", "")),
-					int(ev.get("damage", 0)),
-					bool(ev.get("crit", false)),
-					false
+				var target_id := String(ev.get("target_id", ""))
+				var dmg := int(ev.get("damage", 0))
+				var crit := bool(ev.get("crit", false))
+				var vfx := _move_vfx_for_event(ev)
+				_play_move_vfx(
+					String(vfx["style"]),
+					vfx["color"],
+					String(ev.get("actor_id", "")),
+					target_id,
+					func() -> void: _hit_fx(target_id, dmg, crit, false)
 				)
 			"enemy_attack":
+				var target_id := String(ev.get("target_id", ""))
+				var dmg := int(ev.get("damage", 0))
 				var big := bool(ev.get("big_hit", false))
-				_hit_fx(String(ev.get("target_id", "")), int(ev.get("damage", 0)), big, big)
+				var vfx := _move_vfx_for_event(ev)
+				_play_move_vfx(
+					String(vfx["style"]),
+					vfx["color"],
+					String(ev.get("actor_id", "")),
+					target_id,
+					func() -> void: _hit_fx(target_id, dmg, big, big)
+				)
 			"heal", "regen_tick", "devour_heal", "leech_heal", "lifesteal":
 				var who := String(ev.get("target_id", ev.get("actor_id", "")))
-				_heal_fx(who, int(ev.get("amount", 0)))
+				var amt := int(ev.get("amount", 0))
+				var vfx := _move_vfx_for_event(ev)
+				_play_move_vfx(
+					String(vfx["style"]),
+					vfx["color"],
+					String(ev.get("actor_id", who)),
+					who,
+					func() -> void: _heal_fx(who, amt)
+				)
 			"break":
 				_banner_fx("BREAK!", Color(1, 0.7, 0.3))  ## v0: amber
 				_enemy_bar_flash(String(ev.get("target_id", "")))
