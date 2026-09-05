@@ -308,6 +308,7 @@ func _build_enemy_nodes() -> void:
 		pic.custom_minimum_size = Vector2(col_w, col_w)
 		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.material = ArtPaths.portrait_material()
 		pic.mouse_filter = Control.MOUSE_FILTER_STOP
 		pic.gui_input.connect(_on_enemy_pic_input.bind(i))
 		pics.add_child(pic)
@@ -427,6 +428,8 @@ func _build_party_nodes() -> void:
 		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		if String(c["id"]) != "player":
 			thumb.material = ArtPaths.shadow_material()
+		else:
+			thumb.material = ArtPaths.portrait_material()
 		card.add_child(thumb)
 
 		var nm := Label.new()
@@ -442,6 +445,7 @@ func _build_party_nodes() -> void:
 		cls.custom_minimum_size = Vector2(24, 24)
 		cls.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		cls.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		cls.material = ArtPaths.portrait_material()
 		var icon_path := "res://art/ui/ui_class_%s.webp" % String(c["class"]).to_lower()
 		if ResourceLoader.exists(icon_path):
 			cls.texture = load(icon_path)
@@ -571,6 +575,10 @@ func _refresh_turn_order() -> void:
 		ring.color = Color(0.85, 0.3, 0.3, 0.9) if is_enemy else Color(0.498, 0.941, 1, 0.9)  ## v0
 		var pic: TextureRect = chip.get_node("pic")
 		pic.texture = ArtPaths.monster_portrait(id) if is_enemy else _party_portraits.get(id, null)
+		if is_enemy or id == "player":
+			pic.material = ArtPaths.portrait_material()
+		else:
+			pic.material = ArtPaths.shadow_material()
 
 
 func _is_enemy_id(id: String) -> bool:

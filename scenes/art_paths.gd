@@ -14,6 +14,7 @@ class_name ArtPaths
 const PRESET_IDS := ["f1", "f2", "f3", "f4", "f5", "f6", "m1", "m2", "m3", "m4", "m5", "m6"]
 
 const _SHADOW_MATERIAL := preload("res://shaders/shadow_recolor.tres")
+const _PORTRAIT_MATERIAL := preload("res://shaders/portrait_knockout.tres")
 
 
 static func monster_portrait(monster_id: String) -> Texture2D:
@@ -51,3 +52,12 @@ static func map_marker(marker_id: String) -> Texture2D:
 ## gate monster art (stays raw) or hunter preset portraits.
 static func shadow_material() -> ShaderMaterial:
 	return _SHADOW_MATERIAL
+
+
+## Battle VFX Polish §1: the shared ShaderMaterial that knocks out a raw
+## portrait's near-white background WITHOUT recolouring it -- for art that
+## must keep its real colours: raw gate-monster portraits and hunter preset
+## portraits. NOT for owned-shadow art, which keeps the full `shadow_material()`
+## recolour (that shader already knocks out its own background too).
+static func portrait_material() -> ShaderMaterial:
+	return _PORTRAIT_MATERIAL
