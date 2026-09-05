@@ -592,7 +592,14 @@ func deal_ultimate_damage(
 	# ultimate's TOTAL per-damage break rate (spec §6.3), applied inside _land_hit
 	# so it does NOT compound with the telegraph auto-bump on a telegraph turn.
 	return _land_hit(
-		hunter, target, result, "", "", is_physical, {"ultimate": true}, break_fill_mult
+		hunter,
+		target,
+		result,
+		"",
+		"",
+		is_physical,
+		{"ultimate": true, "atk_type": atk_type},
+		break_fill_mult
 	)
 
 
@@ -707,6 +714,7 @@ func boss_strike(boss: Dictionary, target: Dictionary, power: float, apply_burn 
 				"target_id": target["id"],
 				"damage": actual,
 				"big_hit": power >= BOSS_BIG_HIT_MULTIPLIER,
+				"atk_type": String(boss.get("atk_type", "physical")),
 			}
 		)
 	)
@@ -782,6 +790,7 @@ func _resolve_enemy_turn(actor: Dictionary) -> Dictionary:
 				"target_id": target["id"],
 				"damage": actual,
 				"big_hit": is_big_hit,
+				"atk_type": String(actor.get("atk_type", "physical")),
 			}
 		)
 	)
@@ -932,7 +941,9 @@ func _apply_attack(actor: Dictionary, move: Dictionary, target_id: String = "") 
 		var result := CombatMath.resolve_damage(
 			power * bonus_mult * chain_mult, atk, target_def, cc, _rng, pierce
 		)
-		var actual := _land_hit(actor, target, result, tag, target_type, is_physical)
+		var actual := _land_hit(
+			actor, target, result, tag, target_type, is_physical, {"move_id": move["id"]}
+		)
 		if String(target["id"]) == chain_first_target and actual > 0:
 			chain_first_target_hit = true
 		if (
@@ -1090,6 +1101,7 @@ func _apply_heal(actor: Dictionary, move: Dictionary, target_id: String) -> Arra
 					"actor_id": actor["id"],
 					"target_id": target["id"],
 					"amount": target["hp"] - before,
+					"move_id": move["id"],
 				}
 			)
 		)
@@ -1118,8 +1130,17 @@ func _apply_buff(actor: Dictionary, move: Dictionary, target_id: String) -> Arra
 		else:  # self_defense_buff, team_defense_buff, ally_defense_buff
 			target["def_multiplier"] = 1.0 + power
 			target["def_mod_turns"] = BUFF_DEBUFF_DURATION_TURNS
-		events.append(
-			{"type": "buff", "actor_id": actor["id"], "target_id": target["id"], "tag": tag}
+		(
+			events
+			. append(
+				{
+					"type": "buff",
+					"actor_id": actor["id"],
+					"target_id": target["id"],
+					"tag": tag,
+					"move_id": move["id"],
+				}
+			)
 		)
 	_resolve_applied_status(move, targets)
 	return events
@@ -1155,7 +1176,7 @@ func _apply_revive(_actor: Dictionary, move: Dictionary, target_id: String) -> A
 	t["hp"] = maxi(1, int(round(float(t["max_hp"]) * float(move.get("power", 0.5)))))
 	if not turn_queue.has(t["id"]):
 		turn_queue.append(t["id"])
-	return [{"type": "revive", "target_id": t["id"], "hp": t["hp"]}]
+	return [{"type": "revive", "target_id": t["id"], "hp": t["hp"], "move_id": move["id"]}]
 
 
 func _apply_taunt(actor: Dictionary) -> Array:
@@ -1174,7 +1195,14 @@ func _apply_cleanse(actor: Dictionary, move: Dictionary, target_id: String) -> A
 			target["def_mod_turns"] = 0
 		target["poison_turns"] = 0
 		target["poison_damage"] = 0
-	return [{"type": "cleanse", "actor_id": actor["id"], "target_id": targets[0]["id"]}]
+	return [
+		{
+			"type": "cleanse",
+			"actor_id": actor["id"],
+			"target_id": targets[0]["id"],
+			"move_id": move["id"],
+		}
+	]
 
 
 ## Resolves who a heal/buff/cleanse move actually lands on: self, the
@@ -1258,134 +1286,32 @@ func clear_focus_target() -> void:
 	FocusChain.clear_focus(self)
 
 
-## Adds `amount` (may be negative-safe: it is clamped) to a boss's break
-## bar (spec §5.2). No-op for a non-boss, a boss with no bar, or a boss
-## that is already broken (it refills from 0 only after the stagger ends).
+## Break-bar fill/stagger, boss telegraph cadence, phase transitions, and the
+## Monarch Gauge (spec §5 / §6.1 / §3.5) -- thin wrappers over BreakBar (the
+## logic itself lives in core/break_bar.gd to keep this file under the
+## file-length lint).
 func _add_break_fill(boss: Dictionary, amount: float) -> void:
-	if not boss.get("is_boss", false) or not boss.has("break_max"):
-		return
-	if int(boss.get("broken_turns", 0)) > 0:
-		return
-	var bmax: float = boss["break_max"]
-	var before: float = boss["break_current"]
-	var raw := before + amount  ## pre-clamp total, so an overshoot is measurable (spec §5.3)
-	boss["break_current"] = clampf(raw, 0.0, bmax)
-	(
-		log
-		. append(
-			{
-				"type": "break_fill",
-				"target_id": boss["id"],
-				"amount": int(round(boss["break_current"] - before)),
-				"current": int(round(boss["break_current"])),
-				"max": int(round(bmax)),
-			}
-		)
-	)
-	_maybe_break(boss, raw)
+	BreakBar.add_break_fill(self, boss, amount)
 
 
-## Spec §5.3: when a boss's bar is full, stagger it. Idempotent while the
-## boss is already broken (broken_turns > 0 blocks re-entry, and
-## _add_break_fill won't have filled it anyway). `raw_fill` is the pre-clamp
-## bar total from _add_break_fill -- the overshoot the clamp on break_current
-## would otherwise erase (spec §5.3's ">=50% overfill -> 2-turn stagger");
-## defaults to reading break_current for the direct-poke callers (tests).
 func _maybe_break(boss: Dictionary, raw_fill: float = -1.0) -> void:
-	if int(boss.get("broken_turns", 0)) > 0:
-		return
-	var bmax: float = boss.get("break_max", 0.0)
-	if bmax <= 0.0 or float(boss.get("break_current", 0.0)) < bmax:
-		return
-	var reached: float = raw_fill if raw_fill >= 0.0 else float(boss.get("break_current", 0.0))
-	var overfill := (reached - bmax) / bmax
-	var stun_turns := (
-		BREAK_STUN_TURNS_LONG if overfill >= BREAK_OVERFILL_LONG_STUN else BREAK_STUN_TURNS_SHORT
-	)
-	boss["broken_turns"] = stun_turns
-	boss["turns_until_big_hit"] = _boss_telegraph_interval(boss)  # cancel any pending telegraph
-	var statuses: Dictionary = boss["statuses"]
-	statuses["stun"] = maxi(int(statuses.get("stun", 0)), BREAK_STUN_TURNS_SHORT)
-	boss["break_count"] = int(boss["break_count"]) + 1
-	boss["break_max"] = bmax * BREAK_REFILL_MULT
-	boss["break_current"] = 0.0
-	(
-		log
-		. append(
-			{
-				"type": "break",
-				"target_id": boss["id"],
-				"break_count": boss["break_count"],
-				"stun_turns": stun_turns,
-				"new_break_max": int(round(boss["break_max"])),
-			}
-		)
-	)
-	_add_monarch_gauge(MONARCH_GAUGE_ON_BREAK)
-	# §4.6 Undying: a Revenant Broken while its Death Window is open dies now,
-	# regardless of whether its own turn ever comes up again.
-	if boss.get("death_window", false):
-		boss["hp"] = 0
-		boss["death_window"] = false
-		log.append({"type": "undying_shatter", "actor_id": boss["id"]})
+	BreakBar.maybe_break(self, boss, raw_fill)
 
 
-## Telegraph cadence (turns between big hits) for this boss. A kitted boss
-## reads its kit's `telegraph_interval` (or `phase2_telegraph_interval` once
-## in phase 2, spec §3.5); a non-kit boss keeps the phase-agnostic default.
 func _boss_telegraph_interval(boss: Dictionary) -> int:
-	var kit := String(boss.get("kit", ""))
-	if kit != "" and BossKits.BOSS_KITS.has(kit):
-		var t: Dictionary = BossKits.BOSS_KITS[kit]
-		return int(
-			(
-				t["phase2_telegraph_interval"]
-				if int(boss.get("phase", 1)) == 2
-				else t["telegraph_interval"]
-			)
-		)
-	return BOSS_BIG_HIT_INTERVAL
+	return BreakBar.telegraph_interval(self, boss)
 
 
-## Spec §3.5: a multi-phase boss crossing 50% HP downward enters phase 2 --
-## flips the flag and logs. The kit's on-phase effect is fired by the kit
-## dispatch (Tasks 3-6); the tightened telegraph cadence is read off `phase`
-## in _resolve_enemy_turn. No-op for a single-phase boss, one already in
-## phase 2, a dead boss, or one still above 50% HP.
 func _check_phase_transition(boss: Dictionary) -> void:
-	if not boss.get("is_multiphase", false):
-		return
-	if int(boss.get("phase", 1)) != 1 or boss.get("hp", 0) <= 0:
-		return
-	if _hp_fraction(boss) > 0.5:
-		return
-	boss["phase"] = 2
-	log.append({"type": "phase", "actor_id": boss["id"], "phase": 2})
-	BossKits.on_phase(self, boss)
+	BreakBar.check_phase_transition(self, boss)
 
 
-## Spec §6.1. Offence-weighted party gauge fill. Emits a `gauge` event
-## only on a real change so the log/HUD can react.
 func _add_monarch_gauge(amount: float) -> void:
-	if is_zero_approx(amount):
-		return
-	var before := monarch_gauge
-	monarch_gauge = clampf(monarch_gauge + amount, 0.0, MONARCH_GAUGE_MAX)
-	if not is_equal_approx(before, monarch_gauge):
-		(
-			log
-			. append(
-				{
-					"type": "gauge",
-					"amount": int(round(monarch_gauge - before)),
-					"current": int(round(monarch_gauge)),
-				}
-			)
-		)
+	BreakBar.add_monarch_gauge(self, amount)
 
 
 func can_use_ultimate() -> bool:
-	return monarch_gauge >= MONARCH_GAUGE_MAX
+	return BreakBar.can_use_ultimate(self)
 
 
 func _enemy_target() -> Dictionary:
