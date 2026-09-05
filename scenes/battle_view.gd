@@ -2,10 +2,9 @@ class_name BattleView
 extends Node2D
 ## Thin view script for ONE fight (§16b): owns no game rules, just drives a
 ## core/battle.gd Battle and renders its state into six stacked bands (title /
-## arena / turn strip / stage ticker / party row / command). Sequencing a
-## gate's sub-battles is the caller's job (step 5). Portrait art loads via
-## ArtPaths where it exists, else null (name + drawn HP bar). ADVANCE_DELAY
-## (turn pacing, "no dead air") and LOG_LINES_SHOWN are v0.
+## arena / turn strip / stage ticker / party row / command). Sequencing a gate's
+## sub-battles is the caller's job (step 5). Portrait art loads via ArtPaths where
+## it exists, else null. ADVANCE_DELAY (pacing) and LOG_LINES_SHOWN are v0.
 
 signal battle_finished(won: bool)
 
@@ -98,10 +97,8 @@ func _ready() -> void:
 	gauge_bar.set_palette("gauge")
 	advance_timer.wait_time = ADVANCE_DELAY
 	ultimate_button.pivot_offset = ultimate_button.size / 2.0  ## v0: centre for the scale pulse
-	# final review I3: $Stage (BattlePanel child index 4) sits before PartyRow/Command in
-	# the .tscn, so floating damage numbers and the banner painted underneath the ~98%-
-	# opaque party/command panels. Raise both above every other band via z_index instead
-	# of reordering the .tscn (M1's Vignette full-screen tint needs the same treatment).
+	# final review I3: $Stage sits before PartyRow/Command in the .tscn, so numbers +
+	# banner painted under the near-opaque panels. Raise via z_index, not .tscn reorder.
 	$Stage.z_index = 10  ## v0
 	vignette.z_index = 20  ## v0
 
@@ -191,10 +188,9 @@ func _refresh_all() -> void:
 ## grunts 180). Column stack: caption / HP / break capsule (boss) / portrait
 ## block / status pips. Targeting/focus/defeat feedback tints `pic.modulate`
 ## (see `_refresh_enemy_slots`). All colours/sizes are v0 (sub-project C).
-## `_battle.enemies` grows unbounded (dead adds are never removed), so this
-## helper caps the visible columns to MAX_ENEMY_SLOTS: boss always (found by
-## `is_boss`, not array position), then living adds before dead. `i` stays
-## the real array index so every other `E%d` lookup keeps working via its null check.
+## `_battle.enemies` grows unbounded (dead adds are never removed), so this caps
+## the visible columns to MAX_ENEMY_SLOTS: boss always (by `is_boss`), then living
+## adds before dead. `i` stays the real array index so every `E%d` lookup still works.
 func _visible_enemy_indices() -> Array[int]:
 	var all_idx: Array[int] = []
 	for i in _battle.enemies.size():
@@ -597,9 +593,9 @@ func _is_enemy_id(id: String) -> bool:
 	return false
 
 
-## Task 6: the rolling ticker's three stacked fading Labels (oldest L0 ->
-## newest L2), built under $Stage at runtime so the old $Stage/TickerLabel
-## stays untouched (just hidden). Safe to re-call -- prior L0..L2 are freed.
+## Task 6: the rolling ticker's three stacked fading Labels (oldest L0 -> newest
+## L2), built under $Stage so the old $Stage/TickerLabel stays hidden but
+## untouched. Safe to re-call -- prior L0..L2 are freed.
 func _build_stage_nodes() -> void:
 	ticker_label.visible = false
 	var alphas := [0.3, 0.55, 1.0]  ## v0: oldest dim -> newest bright
@@ -663,6 +659,10 @@ func _refresh_ticker() -> void:
 func _refresh_action_bar() -> void:
 	var was_ult_visible := ultimate_button.visible
 	ultimate_button.visible = false
+	# final review I1: SKIP/AUTO have no .tscn/refresh visibility logic (always on);
+	# the pre-resolve lock hides them, so restore on every repaint (never runs mid-beat).
+	skip_button.visible = true
+	auto_button.visible = true
 	# Gauge readout updates even while resolving / target-picking / under Auto.
 	gauge_label.text = "MONARCH GAUGE %d / 100" % int(round(_battle.monarch_gauge))
 	gauge_bar.set_values(_battle.monarch_gauge, 100.0)
@@ -731,9 +731,8 @@ func _refresh_action_bar() -> void:
 
 
 ## Task 5: drive the looped "ready" pulse on the gold Ultimate button off its
-## visibility edges -- start a fresh looped Tween on the hidden->visible edge,
-## kill it and hard-reset scale/modulate on the visible->hidden edge. Guarded
-## by `_ult_tween` so a mid-cycle refresh at steady visibility is a no-op.
+## visibility edges -- start a looped Tween on hidden->visible, kill it and
+## hard-reset scale/modulate on visible->hidden. `_ult_tween` guards a steady no-op.
 func _update_ultimate_pulse(was_visible: bool, now_visible: bool) -> void:
 	if now_visible and not was_visible:
 		if _ult_tween != null:
@@ -882,19 +881,18 @@ func _pop_number(anchor: Control, text: String, col: Color, big: bool) -> void:
 	)
 
 
-## Battle VFX Polish §3: pure move_type -> VFX style. Unknown/absent types
-## (a DoT tick with no move behind it, or a future move_type this table
-## hasn't seen yet) default to "pulse" -- the less visually aggressive choice.
+## Battle VFX Polish §3: pure move_type -> VFX style. Unknown/absent types fall
+## to physical's style ("bolt") -- same fallback _move_vfx_for_event uses, so the
+## helper and the production path can't disagree (final review M2).
 static func _vfx_style_for_move_type(move_type: String) -> String:
-	return String(MOVE_VFX.get(move_type, {}).get("style", "pulse"))
+	return String(MOVE_VFX.get(move_type, MOVE_VFX["physical"]).get("style", "bolt"))
 
 
-## Battle VFX Polish §3: resolve which MOVE_VFX entry an event should use.
-## Player-chosen moves carry `move_id` (Task 3); Ultimates and raw enemy
-## attacks carry `atk_type` instead (no moves.json entry exists for either);
-## passive per-turn ticks (poison_tick/regen_tick/lifesteal) carry neither --
-## poison defaults to physical, the other two default to heal, matching what
-## they visually are.
+## Battle VFX Polish §3: resolve the {style, color} an event renders with.
+## Player moves carry `move_id`; Ultimates / raw enemy hits carry `atk_type`;
+## passive heals/ticks (poison_tick, regen_tick, lifesteal, devour_heal,
+## leech_heal) carry neither -- poison -> physical bolt, heals -> green pulse.
+## Style via _vfx_style_for_move_type so this path + the pure helper agree (M2).
 func _move_vfx_for_event(ev: Dictionary) -> Dictionary:
 	var move_id := String(ev.get("move_id", ""))
 	var move_type := ""
@@ -906,18 +904,18 @@ func _move_vfx_for_event(ev: Dictionary) -> Dictionary:
 		match String(ev.get("type", "")):
 			"poison_tick":
 				move_type = "physical"
-			"regen_tick", "lifesteal":
+			"regen_tick", "lifesteal", "devour_heal", "leech_heal":
 				move_type = "heal"
 			_:
 				move_type = "physical"
-	return MOVE_VFX.get(move_type, MOVE_VFX["physical"])
+	var entry: Dictionary = MOVE_VFX.get(move_type, MOVE_VFX["physical"])
+	return {"style": _vfx_style_for_move_type(move_type), "color": entry["color"]}
 
 
-## Battle VFX Polish §3: 6 pooled Controls under $Stage, each capable of being
-## either a "bolt" (a small filled circle that tweens position caster->target)
-## or a "pulse" (a small ring that scales/fades in place on the target) --
-## the same node is reused for both, only its _draw() colour/state differs
-## per use. Pooled + round-robin, mirroring _num_pool/_num_next exactly.
+## Battle VFX Polish §3: 6 pooled Controls under $Stage, each usable as a "bolt"
+## (filled circle that tweens position caster->target) or a "pulse" (scales/fades
+## in place on the target) -- same node, only its _draw() state differs per use.
+## Pooled + round-robin, mirroring _num_pool/_num_next exactly.
 func _build_vfx_pool() -> void:
 	for old in _vfx_pool:
 		if is_instance_valid(old):
@@ -931,11 +929,15 @@ func _build_vfx_pool() -> void:
 		node.visible = false
 		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		node.size = Vector2(24, 24)  ## v0
+		node.pivot_offset = node.size * 0.5  ## final review M3: pulse scales from centre
 		node.set_meta("radius", 8.0)  ## v0, read by the shared _draw below
 		node.set_meta("draw_color", Color.WHITE)
 		node.draw.connect(_draw_vfx_node.bind(node))
 		$Stage.add_child(node)
 		_vfx_pool.append(node)
+	# final review M4: these 6 nodes append AFTER _build_number_pool's banner-raise,
+	# so re-raise the banner or bolts/pulses draw over BREAK! / PHASE 2.
+	$Stage.move_child($Stage/Banner, $Stage.get_child_count() - 1)
 
 
 func _draw_vfx_node(node: Control) -> void:
@@ -995,11 +997,13 @@ func _play_move_vfx(
 		node.scale = Vector2(0.3, 0.3)  ## v0
 		node.modulate.a = 0.0
 		node.queue_redraw()
+		# final review I2: alpha in/out is one delayed sub-sequence INSIDE the parallel
+		# step (not a chained step), so on_arrive chains at ~_PULSE_TIME, not ~0.64s.
 		var t := node.create_tween()
 		t.set_parallel(true)
 		t.tween_property(node, "scale", Vector2(1.4, 1.4), _PULSE_TIME)  ## v0
 		t.tween_property(node, "modulate:a", 1.0, _PULSE_TIME * 0.4)  ## v0
-		t.chain().tween_property(node, "modulate:a", 0.0, _PULSE_TIME * 0.6)  ## v0
+		t.tween_property(node, "modulate:a", 0.0, _PULSE_TIME * 0.6).set_delay(_PULSE_TIME * 0.4)  ## v0
 		t.chain().tween_callback(
 			func() -> void:
 				node.visible = false
@@ -1104,7 +1108,8 @@ func _heal_fx(id: String, amt: int) -> void:
 ## Idempotent: turning on a node that's already breathing is a no-op; turning
 ## off a node that isn't breathing just guarantees full alpha.
 func _set_breathing(node: Control, on: bool) -> void:
-	if node == null:
+	if not is_instance_valid(node):  ## final review I1: a freed node is NOT `== null`
+		_breathe_tweens.erase(node)  # drop the stale key instead of crashing on it
 		return
 	if not on:
 		if _breathe_tweens.has(node):
@@ -1269,11 +1274,14 @@ func _breathe_targets_then_resolve(move: Dictionary) -> void:
 	# 0.35s beat could drive resolve_player_action/defend/ultimate out of turn
 	# (core/battle.gd has no player-turn guard; the view is the gate).
 	_awaiting_player_input = false
+	var battle_at_start := _battle  ## final review I1: guard a battle swap/finish during the await
 	for b in action_buttons:
 		b.visible = false
 	ultimate_button.visible = false
 	focus_button.visible = false
 	defend_button.visible = false
+	skip_button.visible = false
+	auto_button.visible = false
 	waiting_label.visible = true
 	waiting_label.text = "Resolving..."
 	var target_type := String(move.get("target_type", ""))
@@ -1306,6 +1314,8 @@ func _breathe_targets_then_resolve(move: Dictionary) -> void:
 	await timer.timeout
 	for node in nodes:
 		_set_breathing(node, false)
+	if _battle != battle_at_start or _battle == null or _battle.is_over:
+		return  # final review I1: battle finished / swapped during the beat -- don't resolve
 	_resolve_and_continue(move["id"], "")
 
 

@@ -12,5 +12,7 @@ func test_support_types_are_pulse() -> void:
 		assert_eq(BattleView._vfx_style_for_move_type(t), "pulse", t)
 
 
-func test_unknown_type_defaults_to_pulse() -> void:
-	assert_eq(BattleView._vfx_style_for_move_type("something_new"), "pulse")
+func test_unknown_type_defaults_to_bolt() -> void:
+	# final review M2: matches _move_vfx_for_event's MOVE_VFX["physical"] fallback --
+	# both call paths now agree on the unknown-type default.
+	assert_eq(BattleView._vfx_style_for_move_type("something_new"), "bolt")
