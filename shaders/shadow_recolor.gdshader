@@ -36,5 +36,10 @@ void fragment() {
 	float is_white = smoothstep(bg_knockout - bg_softness, bg_knockout + bg_softness, whiteness);
 	float is_low_sat = 1.0 - smoothstep(bg_desat_max, bg_desat_max * 2.0, sat);
 	float knock = is_white * is_low_sat;
-	COLOR = vec4(out_rgb, src.a * (1.0 - knock));
+	// Carry alpha through the input COLOR (not the fresh src) so the node's
+	// modulate:a tweens -- the target "breathe" -- fade the recoloured portrait:
+	// canvas_item shaders have no MODULATE built-in, but Godot bakes
+	// modulate * self_modulate into the input COLOR. rgb (the recolour) is
+	// unchanged; COLOR.a == src.a at rest, so this is identity when not breathing.
+	COLOR = vec4(out_rgb, COLOR.a * (1.0 - knock));
 }

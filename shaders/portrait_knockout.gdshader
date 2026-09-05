@@ -22,5 +22,9 @@ void fragment() {
 	float is_white = smoothstep(bg_knockout - bg_softness, bg_knockout + bg_softness, whiteness);
 	float is_low_sat = 1.0 - smoothstep(bg_desat_max, bg_desat_max * 2.0, sat);
 	float knock = is_white * is_low_sat;
-	COLOR = vec4(src.rgb, src.a * (1.0 - knock));
+	// Read rgb/a from the input COLOR (not the fresh src) so the node's modulate
+	// tweens -- breathe / _tint_pulse / _white_flash -- take effect: canvas_item
+	// shaders have no MODULATE built-in, but Godot bakes modulate * self_modulate
+	// into the input COLOR (= that tint * texture(TEXTURE, UV)). Identity at rest.
+	COLOR = vec4(COLOR.rgb, COLOR.a * (1.0 - knock));
 }

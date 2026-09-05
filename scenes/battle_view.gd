@@ -1,23 +1,11 @@
 class_name BattleView
 extends Node2D
-## Phase 3/step 4 (§16b), rebuilt as a classic-JRPG band layout, driven by
-## the same `core/battle.gd` state. Thin view script: owns no game rules,
-## just drives a core/battle.gd Battle instance and renders its state into
-## six stacked bands (title / arena / turn strip / stage ticker / party row
-## / command panel). One BattleView node handles ONE fight at a time
-## ("one Battle instance = one fight" per battle.gd's own doc comment) --
-## a gate's "up to 3 sequential sub-battles" (trash/trash/boss, §16b) is
-## the CALLER's job (step 5) to sequence via repeated start_battle()
-## calls, not something this component does internally.
-##
-## Placeholder-art convention, same as every other screen built this
-## project: real portrait art is loaded through ArtPaths where it exists
-## and simply falls back to null (name + a drawn HP bar) where it does not.
-##
-## Invented v0, flagged: ADVANCE_DELAY (pacing between automatically-
-## resolved turns so the player can read the ticker before the next one
-## fires -- the doc never gives a number, just "no dead air").
-## LOG_LINES_SHOWN (how much history stays visible in the ticker).
+## Thin view script for ONE fight (§16b): owns no game rules, just drives a
+## core/battle.gd Battle and renders its state into six stacked bands (title /
+## arena / turn strip / stage ticker / party row / command). Sequencing a
+## gate's sub-battles is the caller's job (step 5). Portrait art loads via
+## ArtPaths where it exists, else null (name + drawn HP bar). ADVANCE_DELAY
+## (turn pacing, "no dead air") and LOG_LINES_SHOWN are v0.
 
 signal battle_finished(won: bool)
 
@@ -62,6 +50,8 @@ var _num_next: int = 0  ## Task 7: round-robin cursor into _num_pool
 var _banner_tween: Tween = null  ## Task 7 review: kill an in-flight banner tween before a new one
 var _shake_tweens: Dictionary = {}  ## final review I2: Control -> live shake Tween, so an
 ## overlapping shake on the same node kills the old one instead of stranding it mid-offset
+var _breathe_tweens: Dictionary = {}  ## Battle VFX Polish §4: Control -> live breathing Tween,
+## mirrors _shake_tweens -- guards against stacking a second loop on an already-breathing node
 var _vfx_pool: Array[Control] = []  ## Battle VFX Polish §3: pooled bolt/pulse nodes under $Stage
 var _vfx_next: int = 0  ## round-robin cursor into _vfx_pool, mirrors _num_pool/_num_next
 
@@ -195,25 +185,16 @@ func _refresh_all() -> void:
 	_play_new_events(_last_consumed)
 
 
-## Task 2: the real enemy arena band. One `Control` column per enemy named
+## Task 2: the enemy arena band -- one `Control` column per enemy named
 ## `E<i>` (index-matched to `_battle.enemies`, so targeting stays by index),
-## laid out as a horizontally-centred strip across the 1040-wide arena -- a
-## boss column is 300 wide, grunts 180. Each column stacks, top->bottom:
-## name caption / HP capsule / break capsule (bosses only) / portrait block
-## (dim platform + portrait + telegraph badge + unused targeting ring) /
-## status pips. Targeting/focus/defeated feedback is done by tinting
-## `pic.modulate` (see `_refresh_enemy_slots`), not the ring, for v0.
-## Every colour/size here is a v0 hypothesis (sub-project C tunes them).
-## final review I4: `_battle.enemies` grows unbounded over a fight (dead Brood Spawn
-## adds are never removed, even though only a capped number are ever alive at once), so
-## building one column per array entry can overflow the 1040px arena. Cap to
-## MAX_ENEMY_SLOTS, boss always included (found by `is_boss`, not by array position),
-## then living adds before dead ones fill the rest -- otherwise a dead add sitting
-## earlier in the array could push a live one off-screen and untappable. Column names
-## stay "E<i>" with `i` = the real `_battle.enemies` index (not a sequential 0..k), so
-## every other `arena.get_node_or_null("E%d" % i)` site (`_refresh_enemy_slots`,
-## `_enemy_bar_flash`, `_anchor_for`, `_on_enemy_pic_input`'s bound index) keeps working
-## unchanged -- they already tolerate a missing column via their null checks.
+## a horizontally-centred strip across the 1040-wide arena (boss 300 wide,
+## grunts 180). Column stack: caption / HP / break capsule (boss) / portrait
+## block / status pips. Targeting/focus/defeat feedback tints `pic.modulate`
+## (see `_refresh_enemy_slots`). All colours/sizes are v0 (sub-project C).
+## `_battle.enemies` grows unbounded (dead adds are never removed), so this
+## helper caps the visible columns to MAX_ENEMY_SLOTS: boss always (found by
+## `is_boss`, not array position), then living adds before dead. `i` stays
+## the real array index so every other `E%d` lookup keeps working via its null check.
 func _visible_enemy_indices() -> Array[int]:
 	var all_idx: Array[int] = []
 	for i in _battle.enemies.size():
@@ -403,12 +384,16 @@ func _refresh_enemy_slots() -> void:
 		pic.texture = ArtPaths.monster_portrait(String(e["id"]))
 		var focused := String(e["id"]) == _battle.focus_target_id
 		if not alive:
+			_set_breathing(pic, false)
 			pic.modulate = Color(0.35, 0.35, 0.4)  ## v0
 		elif focused:
+			_set_breathing(pic, false)
 			pic.modulate = Color(0.7, 1.0, 1.0)  ## v0
 		elif targeting:
-			pic.modulate = Color(0.85, 0.95, 1.0)  ## v0
+			pic.modulate = Color.WHITE
+			_set_breathing(pic, true)
 		else:
+			_set_breathing(pic, false)
 			pic.modulate = Color.WHITE
 		var tele: Label = col.get_node("pics/telegraph")
 		tele.visible = alive and _battle.is_boss_next_hit_big(String(e["id"]))
@@ -433,16 +418,11 @@ func _enemy_pips(e: Dictionary) -> String:
 	return "  ".join(out)
 
 
-## Task 3: the real party row band. One `Panel` card per `_battle.party`
-## member named `P<i>` (index-matched to `_battle.party`), each stacking:
-## shader-recoloured shadow thumb (the hunter's preset portrait instead gets
-## `portrait_material()` -- knockout only, no recolour) / name caption (gets
-## a `▶` prefix + brightened `self_modulate`
-## while this unit is the acting one, per `_active_id`) / class icon / HP
-## StatBar + number / cooldown dots / status pips. Card size and the thumb /
-## icon dimensions are the brief's; every internal offset/height is a v0
-## layout hypothesis (sub-project C retunes). Per-frame state is applied in
-## `_refresh_party_slots`.
+## Task 3: the party row band -- one `Panel` card per `_battle.party` member
+## named `P<i>` (index-matched), stacking: shadow thumb (hunter gets
+## `portrait_material()`, shadows `shadow_material()`) / name caption / class
+## icon / HP StatBar + number / cooldown dots / status pips. Internal
+## offsets/heights are v0 (sub-project C). Per-frame state: `_refresh_party_slots`.
 func _build_party_nodes() -> void:
 	for c in party_row.get_children():
 		party_row.remove_child(c)
@@ -552,16 +532,11 @@ func _refresh_party_slots() -> void:
 		pips.text = "  ".join(pl)
 
 
-## Task 4: the real turn-order strip. A fixed pool of 7 portrait chips is
-## built ONCE here (the strip shows at most the first 7 entries of a
-## turn_queue that CAN grow -- spawn/reinforcement turns append to it in
-## core/battle.gd), each a `C<i>` container holding a `ring`
-## ColorRect bg + a `pic` TextureRect portrait; a static `"NOW"` Label sits
-## before chip 0. `_refresh_turn_order` then only re-fills texture / ring
-## colour / visibility -- no per-`_advance` node churn. Ring tint reads
-## party (cyan) vs enemy (red) via `_is_enemy_id`; chips past the live
-## `turn_queue.size()` hide. Chip 60x60 + the two ring colours are the
-## brief's; the ring's 3px bleed / strip separation are v0 hypotheses.
+## Task 4: the turn-order strip -- a fixed pool of 7 chips built ONCE here
+## (turn_queue can grow past 7 via spawns), each a `C<i>` with a `ring` bg +
+## `pic` portrait, a static `"NOW"` Label before chip 0. `_refresh_turn_order`
+## then only re-fills texture / ring colour / visibility. Ring tint: party
+## cyan vs enemy red via `_is_enemy_id`. 3px ring bleed / separation are v0.
 func _build_turn_chip_nodes() -> void:
 	for c in turn_strip.get_children():
 		turn_strip.remove_child(c)
@@ -622,11 +597,9 @@ func _is_enemy_id(id: String) -> bool:
 	return false
 
 
-## Task 6: the rolling ticker's three stacked fading Labels, built under
-## $Stage at runtime (oldest -> newest = L0 -> L2). Runtime rather than in
-## the .tscn so the pre-rebuild $Stage/TickerLabel can stay untouched (it is
-## just hidden). Safe to call again -- Nadir floors reuse one BattleView, so
-## any prior L0/L1/L2 are freed first.
+## Task 6: the rolling ticker's three stacked fading Labels (oldest L0 ->
+## newest L2), built under $Stage at runtime so the old $Stage/TickerLabel
+## stays untouched (just hidden). Safe to re-call -- prior L0..L2 are freed.
 func _build_stage_nodes() -> void:
 	ticker_label.visible = false
 	var alphas := [0.3, 0.55, 1.0]  ## v0: oldest dim -> newest bright
@@ -659,12 +632,9 @@ static func _render_style_for(event_type: String) -> String:
 	return "line"
 
 
-## Task 6: the rolling 3-line ticker. Walks every _battle.log entry added
-## since _log_cursor (advancing it inline -- no separate bump in _advance),
-## drops "silent" telemetry, appends the _describe_event() copy for the rest,
-## keeps the last LOG_LINES_SHOWN, and renders them into L0/L1/L2 with the
-## newest on the bottom. The raw dicts it walked are stashed in
-## _last_consumed so Task 7 can replay the same slice without a second cursor.
+## Task 6: the rolling 3-line ticker. Walks every _battle.log entry since
+## _log_cursor, drops "silent" telemetry, renders the rest into L0/L1/L2
+## newest-at-bottom. The raw slice is stashed in _last_consumed for Task 7.
 func _refresh_ticker() -> void:
 	var consumed: Array = []
 	while _log_cursor < _battle.log.size():
@@ -686,15 +656,10 @@ func _refresh_ticker() -> void:
 	_last_consumed = consumed
 
 
-## Only touches the action bar/waiting label when NOT already mid-target-
-## selection (_on_action_button_pressed already set that state and
-## _refresh_enemy_slots() handles the tappable-enemy side of it -- this
-## would otherwise stomp it every time step() advances something else).
-## While it's genuinely the player's turn (_awaiting_player_input, set by
-## _advance() from step()'s own result -- not inferred): shows ALL the
-## player's unlocked moves, not just currently-usable ones, disabling any
-## still on cooldown (§16b: "name + cooldown state"). Otherwise shows a
-## generic "Resolving..." placeholder (§16b's "no dead air").
+## Leaves the action bar/waiting label alone while mid-target-selection
+## (_on_action_button_pressed owns that state). On the player's real turn
+## (_awaiting_player_input): shows ALL unlocked moves, disabling any on
+## cooldown. Otherwise a generic "Resolving..." placeholder (§16b no dead air).
 func _refresh_action_bar() -> void:
 	var was_ult_visible := ultimate_button.visible
 	ultimate_button.visible = false
@@ -867,13 +832,10 @@ func _describe_event(e: Dictionary) -> String:
 	return text
 
 
-## Task 7: eight reusable floating-number Labels parented to $Stage, hidden
-## until _pop_number lifts one. Safe to call again on a later start_battle
-## (Nadir floors reuse this view) -- any prior pool is freed first. The
-## trailing move_child is the Task 6 review fix: $Stage/L0..L2 (built by
-## _build_stage_nodes) are added after $Stage/Banner and paint over it, so
-## the banner is raised back to the top of the child order here, once every
-## sibling that could occlude it exists, so _banner_fx reads above the ticker.
+## Task 7: eight reusable floating-number Labels under $Stage, hidden until
+## _pop_number lifts one. Safe to re-call (any prior pool is freed first).
+## The trailing move_child raises $Stage/Banner back above the L0..L2 ticker
+## labels (built later) so _banner_fx reads on top.
 func _build_number_pool() -> void:
 	for old_lbl in _num_pool:
 		if is_instance_valid(old_lbl):
@@ -1030,14 +992,14 @@ func _play_move_vfx(
 		)
 	else:  # "pulse"
 		node.position = target_pos
-		node.scale = Vector2(0.3, 0.3)
+		node.scale = Vector2(0.3, 0.3)  ## v0
 		node.modulate.a = 0.0
 		node.queue_redraw()
 		var t := node.create_tween()
 		t.set_parallel(true)
-		t.tween_property(node, "scale", Vector2(1.4, 1.4), _PULSE_TIME)
-		t.tween_property(node, "modulate:a", 1.0, _PULSE_TIME * 0.4)
-		t.chain().tween_property(node, "modulate:a", 0.0, _PULSE_TIME * 0.6)
+		t.tween_property(node, "scale", Vector2(1.4, 1.4), _PULSE_TIME)  ## v0
+		t.tween_property(node, "modulate:a", 1.0, _PULSE_TIME * 0.4)  ## v0
+		t.chain().tween_property(node, "modulate:a", 0.0, _PULSE_TIME * 0.6)  ## v0
 		t.chain().tween_callback(
 			func() -> void:
 				node.visible = false
@@ -1137,14 +1099,36 @@ func _heal_fx(id: String, amt: int) -> void:
 	_tint_pulse(anchor, Color(0.5, 1.2, 0.6))  ## v0: over-bright green
 
 
+## Battle VFX Polish §4: starts (on=true) or stops (on=false) a looping alpha
+## breathe on `node` -- used while a move is choosing/confirming its targets.
+## Idempotent: turning on a node that's already breathing is a no-op; turning
+## off a node that isn't breathing just guarantees full alpha.
+func _set_breathing(node: Control, on: bool) -> void:
+	if node == null:
+		return
+	if not on:
+		if _breathe_tweens.has(node):
+			var prev: Tween = _breathe_tweens[node]
+			if prev != null and prev.is_valid():
+				prev.kill()
+			_breathe_tweens.erase(node)
+		node.modulate.a = 1.0
+		return
+	if _breathe_tweens.has(node):
+		return  # already breathing, don't stack a second loop
+	node.modulate.a = 1.0
+	var t := node.create_tween()
+	t.set_loops()
+	t.tween_property(node, "modulate:a", 0.7, 0.45).set_trans(Tween.TRANS_SINE)  ## v0
+	t.tween_property(node, "modulate:a", 1.0, 0.45).set_trans(Tween.TRANS_SINE)  ## v0
+	_breathe_tweens[node] = t
+
+
 ## Task 7: nudge `node` left / right around its resting x and settle back.
-## final review I1/I2: bound to `node`'s own tween (not BattleView's) so a freed target
-## (I1 -- the spawn arm rebuilds every enemy column mid-batch) auto-kills this instead of
-## its trailing callback touching a dead instance. The rest x is stored as metadata the
-## first time this node shakes and always shaken relative to THAT value (never a mid-shake
-## snapshot), and any previous shake tween on this node is killed and the node restored to
-## rest before the new one starts -- so two overlapping shakes on one target (e.g. the
-## Assassin Ultimate's multi-hit combo) can't strand it at a mid-shake offset.
+## Bound to `node`'s own tween so a freed target auto-kills it. Rest x is
+## stored as metadata on first shake and always used as the base; any prior
+## shake tween on the node is killed and the node restored to rest first, so
+## overlapping shakes can't strand it mid-offset.
 func _shake(node: Control, px: float) -> void:
 	if node == null:
 		return
@@ -1270,6 +1254,46 @@ func _on_action_button_pressed(index: int) -> void:
 			b.visible = false
 		return
 	_pending_move = {}
+	_breathe_targets_then_resolve(move)
+
+
+## Battle VFX Polish §4: for every target_type EXCEPT single_enemy (which
+## already waits for a real tap via _pending_move), breathe the applicable
+## portraits for a short fixed window before actually resolving -- purely
+## cosmetic pacing so the player sees who's about to be hit/helped. The
+## engine still auto-picks the real target exactly as _resolve_and_continue
+## always has; this only delays WHEN the visual + resolve happen.
+func _breathe_targets_then_resolve(move: Dictionary) -> void:
+	var target_type := String(move.get("target_type", ""))
+	var nodes: Array[Control] = []
+	match target_type:
+		"all_enemies":
+			for i in _battle.enemies.size():
+				if int(_battle.enemies[i]["hp"]) > 0:
+					var pic := arena.get_node_or_null("E%d/pics/pic" % i)
+					if pic is Control:
+						nodes.append(pic as Control)
+		"self", "lowest_hp_ally", "all_allies":
+			for i in _battle.party.size():
+				if int(_battle.party[i]["hp"]) > 0:
+					var thumb := party_row.get_node_or_null("P%d/thumb" % i)
+					if thumb is Control:
+						nodes.append(thumb as Control)
+		"downed_ally":
+			for i in _battle.party.size():
+				if int(_battle.party[i]["hp"]) <= 0:
+					var thumb := party_row.get_node_or_null("P%d/thumb" % i)
+					if thumb is Control:
+						nodes.append(thumb as Control)
+	for node in nodes:
+		_set_breathing(node, true)
+	if nodes.is_empty():
+		_resolve_and_continue(move["id"], "")
+		return
+	var timer := get_tree().create_timer(0.35)  ## v0: matches the bolt flight time
+	await timer.timeout
+	for node in nodes:
+		_set_breathing(node, false)
 	_resolve_and_continue(move["id"], "")
 
 
