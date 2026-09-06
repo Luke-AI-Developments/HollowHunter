@@ -1361,25 +1361,25 @@ text = "Battle"
 offset_left = 20.0
 offset_top = 64.0
 offset_right = 1060.0
-offset_bottom = 700.0
+offset_bottom = 880.0
 
 [node name="TurnStrip" type="HBoxContainer" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 712.0
+offset_top = 892.0
 offset_right = 1040.0
-offset_bottom = 800.0
+offset_bottom = 980.0
 theme_override_constants/separation = 10
 alignment = 1
 
 [node name="Stage" type="Control" parent="GameUI/BattlePanel"]
 offset_left = 40.0
-offset_top = 812.0
+offset_top = 992.0
 offset_right = 1040.0
-offset_bottom = 1044.0
+offset_bottom = 1200.0
 
 [node name="TickerLabel" type="Label" parent="GameUI/BattlePanel/Stage"]
 offset_right = 1000.0
-offset_bottom = 232.0
+offset_bottom = 208.0
 theme_override_font_sizes/font_size = 22
 vertical_alignment = 1
 horizontal_alignment = 1
@@ -1388,7 +1388,7 @@ autowrap_mode = 3
 [node name="Banner" type="Label" parent="GameUI/BattlePanel/Stage"]
 visible = false
 offset_right = 1000.0
-offset_bottom = 232.0
+offset_bottom = 208.0
 theme_override_font_sizes/font_size = 52
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -1403,16 +1403,16 @@ color = Color(0.8, 0.1, 0.1, 0.0)
 
 [node name="PartyRow" type="HBoxContainer" parent="GameUI/BattlePanel"]
 offset_left = 24.0
-offset_top = 1056.0
+offset_top = 1212.0
 offset_right = 1056.0
-offset_bottom = 1420.0
+offset_bottom = 1720.0
 theme_override_constants/separation = 8
 
 [node name="Command" type="Panel" parent="GameUI/BattlePanel"]
 offset_left = 24.0
-offset_top = 1440.0
+offset_top = 1740.0
 offset_right = 1056.0
-offset_bottom = 1980.0
+offset_bottom = 2400.0
 
 [node name="GaugeLabel" type="Label" parent="GameUI/BattlePanel/Command"]
 offset_left = 20.0
@@ -1537,7 +1537,7 @@ visible = false
 offset_left = 40.0
 offset_top = 1000.0
 offset_right = 1040.0
-offset_bottom = 1200.0
+offset_bottom = 1300.0
 theme_override_font_sizes/font_size = 64
 horizontal_alignment = 1
 text = ""
@@ -1545,9 +1545,9 @@ text = ""
 [node name="CloseButton" type="Button" parent="GameUI/BattlePanel"]
 visible = false
 offset_left = 340.0
-offset_top = 1260.0
+offset_top = 1340.0
 offset_right = 740.0
-offset_bottom = 1340.0
+offset_bottom = 1420.0
 theme_override_font_sizes/font_size = 26
 text = "Continue"
 

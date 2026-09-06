@@ -596,8 +596,8 @@ func _build_stage_nodes() -> void:
 			old_lab.queue_free()
 		var lab := Label.new()
 		lab.name = "L%d" % i
-		lab.position = Vector2(0, 78 * i)  ## v0: 78px per ticker line
-		lab.size = Vector2(1000, 78)  ## v0: $Stage inner width, one line's band
+		lab.position = Vector2(0, 68 * i)  ## v0: 68px per ticker line (3 fit the 208-tall Stage band)
+		lab.size = Vector2(1000, 68)  ## v0: $Stage inner width, one line's band
 		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lab.add_theme_font_size_override("font_size", 22)  ## v0
 		lab.modulate.a = alphas[i]
