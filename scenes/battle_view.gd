@@ -404,11 +404,16 @@ func _enemy_pips(e: Dictionary) -> String:
 	return "  ".join(out)
 
 
-## Task 3: the party row band -- one `Panel` card per `_battle.party` member
-## named `P<i>` (index-matched), stacking: shadow thumb (hunter gets
-## `portrait_material()`, shadows `shadow_material()`) / name caption / class
-## icon / HP StatBar + number / cooldown dots / status pips. Internal
-## offsets/heights are v0 (sub-project C). Per-frame state: `_refresh_party_slots`.
+## Task 3 (visual round 2): the party row band -- one `Panel` card per
+## `_battle.party` member named `P<i>` (index-matched). The card IS the unit's
+## portrait: a `portrait` TextureRect covers the whole card (shadow art gets
+## `shadow_material()`, the hunter `portrait_material()`), a bottom-up `scrim`
+## gradient darkens the lower half, and every readout -- `name` / `cls` class
+## icon / `hpbar` StatBar + `hpnum` / `cds` cooldown pips / `pips` status pips --
+## is overlaid on top, card-relative, over the scrim. A cyan `bd` border marks
+## the active unit. Null portrait art -> the Panel's dark fill shows through (no
+## crash). All card sizes / offsets / colours are v0 (sub-project C retunes).
+## Per-frame state: `_refresh_party_slots`.
 func _build_party_nodes() -> void:
 	for c in party_row.get_children():
 		party_row.remove_child(c)
@@ -417,35 +422,60 @@ func _build_party_nodes() -> void:
 		var c: Dictionary = _battle.party[i]
 		var card := Panel.new()
 		card.name = "P%d" % i
-		card.custom_minimum_size = Vector2(250, 360)
+		card.custom_minimum_size = Vector2(240, 500)  ## v0
+		card.clip_contents = true
 
-		var thumb := TextureRect.new()
-		thumb.name = "thumb"
-		thumb.position = Vector2(12, 12)  ## v0
-		thumb.size = Vector2(60, 60)
-		thumb.custom_minimum_size = Vector2(60, 60)
-		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		var portrait := TextureRect.new()
+		portrait.name = "portrait"
+		portrait.position = Vector2.ZERO
+		portrait.size = Vector2(240, 500)  ## v0
+		portrait.custom_minimum_size = Vector2(240, 500)  ## v0
+		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if String(c["id"]) != "player":
-			thumb.material = ArtPaths.shadow_material()
+			portrait.material = ArtPaths.shadow_material()
 		else:
-			thumb.material = ArtPaths.portrait_material()
-		card.add_child(thumb)
+			portrait.material = ArtPaths.portrait_material()
+		card.add_child(portrait)
+
+		var dark := Color(0.02, 0.04, 0.07, 0.92)  ## v0: cave-blue scrim base
+		var grad := Gradient.new()
+		grad.set_color(0, Color(dark, 0.0))
+		grad.set_color(1, dark)
+		grad.add_point(0.55, Color(dark, 0.0))  ## v0: clear until 55% of card height
+		var gtex := GradientTexture2D.new()
+		gtex.gradient = grad
+		gtex.width = 8  ## v0
+		gtex.height = 512  ## v0
+		gtex.fill_from = Vector2(0, 0)
+		gtex.fill_to = Vector2(0, 1)  ## v0: vertical fill, top -> bottom
+		var scrim := TextureRect.new()
+		scrim.name = "scrim"
+		scrim.position = Vector2.ZERO
+		scrim.size = Vector2(240, 500)  ## v0
+		scrim.stretch_mode = TextureRect.STRETCH_SCALE
+		scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		scrim.texture = gtex
+		card.add_child(scrim)
 
 		var nm := Label.new()
 		nm.name = "name"
-		nm.position = Vector2(84, 14)  ## v0
-		nm.size = Vector2(154, 24)  ## v0
+		nm.position = Vector2(10, 8)  ## v0
+		nm.size = Vector2(198, 24)  ## v0
+		nm.clip_text = true
+		nm.add_theme_font_size_override("font_size", 18)  ## v0
 		card.add_child(nm)
 
 		var cls := TextureRect.new()
 		cls.name = "cls"
-		cls.position = Vector2(84, 44)  ## v0
-		cls.size = Vector2(24, 24)
-		cls.custom_minimum_size = Vector2(24, 24)
+		cls.position = Vector2(208, 8)  ## v0: top-right corner
+		cls.size = Vector2(28, 28)  ## v0
+		cls.custom_minimum_size = Vector2(28, 28)  ## v0
 		cls.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		cls.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		cls.material = ArtPaths.portrait_material()
+		cls.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cls.material = ArtPaths.portrait_material()  ## class icons ship on a white bg
 		var icon_path := "res://art/ui/ui_class_%s.webp" % String(c["class"]).to_lower()
 		if ResourceLoader.exists(icon_path):
 			cls.texture = load(icon_path)
@@ -454,29 +484,43 @@ func _build_party_nodes() -> void:
 		var hpbar := StatBar.new()
 		hpbar.name = "hpbar"
 		hpbar.set_palette("hp")
-		hpbar.position = Vector2(12, 82)  ## v0
-		hpbar.custom_minimum_size = Vector2(226, 14)  ## v0
-		hpbar.size = Vector2(226, 14)  ## v0
+		hpbar.position = Vector2(12, 396)  ## v0: lower third, over the scrim
+		hpbar.custom_minimum_size = Vector2(216, 16)  ## v0
+		hpbar.size = Vector2(216, 16)  ## v0
 		card.add_child(hpbar)
 
 		var hpnum := Label.new()
 		hpnum.name = "hpnum"
-		hpnum.position = Vector2(12, 100)  ## v0
-		hpnum.size = Vector2(226, 20)  ## v0
+		hpnum.position = Vector2(12, 414)  ## v0
+		hpnum.size = Vector2(216, 20)  ## v0
+		hpnum.add_theme_font_size_override("font_size", 16)  ## v0
 		card.add_child(hpnum)
 
 		var cds := Label.new()
 		cds.name = "cds"
-		cds.position = Vector2(12, 126)  ## v0
-		cds.size = Vector2(226, 24)  ## v0
+		cds.position = Vector2(12, 438)  ## v0: just below the HP
+		cds.size = Vector2(216, 22)  ## v0
+		cds.add_theme_font_size_override("font_size", 16)  ## v0
 		card.add_child(cds)
 
 		var pips := Label.new()
 		pips.name = "pips"
-		pips.position = Vector2(12, 156)  ## v0
-		pips.size = Vector2(226, 192)  ## v0
+		pips.position = Vector2(12, 462)  ## v0
+		pips.size = Vector2(216, 34)  ## v0
+		pips.add_theme_font_size_override("font_size", 15)  ## v0
 		pips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.add_child(pips)
+
+		var bd := ReferenceRect.new()
+		bd.name = "bd"
+		bd.editor_only = false
+		bd.border_width = 2.0  ## v0
+		bd.border_color = Color(0.35, 0.85, 1.0)  ## v0: active-unit cyan
+		bd.position = Vector2.ZERO
+		bd.size = Vector2(240, 500)  ## v0
+		bd.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bd.visible = false
+		card.add_child(bd)
 
 		party_row.add_child(card)
 
@@ -491,14 +535,16 @@ func _refresh_party_slots() -> void:
 		card.self_modulate = Color(1.25, 1.25, 1.3) if active else Color.WHITE  ## v0
 		var nm: Label = card.get_node("name")
 		nm.text = ("▶ " if active else "") + String(c["name"])
-		var thumb: TextureRect = card.get_node("thumb")
-		thumb.texture = _party_portraits.get(String(c["id"]), null)
+		var bd: ReferenceRect = card.get_node("bd")
+		bd.visible = active
+		var portrait: TextureRect = card.get_node("portrait")
+		portrait.texture = _party_portraits.get(String(c["id"]), null)
 		var hpbar: StatBar = card.get_node("hpbar")
 		hpbar.set_values(float(c["hp"]), float(c["max_hp"]))
 		var hpnum: Label = card.get_node("hpnum")
 		hpnum.text = "%d / %d" % [int(c["hp"]), int(c["max_hp"])]
 		var down := int(c["hp"]) <= 0
-		thumb.modulate = Color(0.35, 0.35, 0.4) if down else Color.WHITE  ## v0
+		portrait.modulate = Color(0.35, 0.35, 0.4) if down else Color.WHITE  ## v0
 		var cds: Label = card.get_node("cds")
 		var on_cd := 0
 		for v in c.get("cooldowns", {}).values():
@@ -898,15 +944,15 @@ func _breathe_targets_then_resolve(move: Dictionary) -> void:
 		"self", "lowest_hp_ally", "all_allies":
 			for i in _battle.party.size():
 				if int(_battle.party[i]["hp"]) > 0:
-					var thumb := party_row.get_node_or_null("P%d/thumb" % i)
-					if thumb is Control:
-						nodes.append(thumb as Control)
+					var pnode := party_row.get_node_or_null("P%d/portrait" % i)
+					if pnode is Control:
+						nodes.append(pnode as Control)
 		"downed_ally":
 			for i in _battle.party.size():
 				if int(_battle.party[i]["hp"]) <= 0:
-					var thumb := party_row.get_node_or_null("P%d/thumb" % i)
-					if thumb is Control:
-						nodes.append(thumb as Control)
+					var pnode := party_row.get_node_or_null("P%d/portrait" % i)
+					if pnode is Control:
+						nodes.append(pnode as Control)
 	for node in nodes:
 		_set_breathing(node, true)
 	if nodes.is_empty():

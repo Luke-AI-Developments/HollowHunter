@@ -433,7 +433,7 @@ func enemy_bar_flash(id: String) -> void:
 
 
 ## Task 7: the Control a floating number / shake / flash anchors to for combat
-## id `id` -- the enemy column's portrait, else the party card's thumb, else
+## id `id` -- the enemy column's portrait, else the party card's portrait, else
 ## $Stage as a safe fallback so callers never get null.
 func anchor_for(id: String) -> Control:
 	for i in _battle.enemies.size():
@@ -443,7 +443,7 @@ func anchor_for(id: String) -> Control:
 				return pic as Control
 	for i in _battle.party.size():
 		if String(_battle.party[i]["id"]) == id:
-			var thumb := _party_row.get_node_or_null("P%d/thumb" % i)
-			if thumb is Control:
-				return thumb as Control
+			var pnode := _party_row.get_node_or_null("P%d/portrait" % i)
+			if pnode is Control:
+				return pnode as Control
 	return _stage as Control
