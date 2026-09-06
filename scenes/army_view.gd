@@ -67,6 +67,7 @@ func _ready() -> void:
 	party_tab.close_requested.connect(func() -> void: visible = false)
 	party_tab.toggle_requested.connect(_on_squad_toggle_requested)
 	party_tab.auto_equip_requested.connect(_on_squad_auto_equip_requested)
+	party_tab.suggest_requested.connect(_on_squad_suggest_requested)
 	party_tab.sort_changed.connect(_on_party_sort_changed)
 
 
@@ -341,7 +342,13 @@ func _refresh_squad() -> void:
 	if pruned.size() != _state.active_party_ids.size():
 		_state.active_party_ids = pruned
 		_after_mutation()
-	party_tab.refresh(sorted_army, _state.active_party_ids)
+	# §17 forced role composition: the picker's role-status line reads the same
+	# resolved party the gate-launch guard checks (main.gd._party_role_comp_ok).
+	var party := SquadBuilder.resolve_party(
+		_state.army, _monsters, _state.level, _state.active_party_ids, _equipment, _state.inventory
+	)
+	var role_status := SquadBuilder.party_role_status(party, _state.subclass)
+	party_tab.refresh(sorted_army, _state.active_party_ids, role_status)
 
 
 func _on_party_sort_changed(mode: String) -> void:
@@ -361,6 +368,20 @@ func _on_squad_toggle_requested(instance_id: String) -> void:
 func _on_squad_auto_equip_requested() -> void:
 	# auto_equip_squad skips unknown ids, so a 0/1/2-member party is a safe no-op.
 	_state.auto_equip_squad(_state.active_party_ids, _equipment, _monsters)
+	_after_mutation()
+	_refresh_squad()
+
+
+## §17 forced role composition: opt-in "Suggest Party" -- replace the manual
+## pick with a strong, role-valid comp from the owned army, then persist +
+## refresh exactly like a manual field/unfield does. suggest_valid_party
+## returns a best-effort pick on a degenerate army; the gate-launch guard
+## still re-checks validity itself, so a not-quite-valid suggestion here is
+## surfaced by the role-status line rather than blocking the button.
+func _on_squad_suggest_requested() -> void:
+	_state.active_party_ids = SquadBuilder.suggest_valid_party(
+		_state.army, _monsters, _state.level, _state.subclass, _equipment, _state.inventory
+	)
 	_after_mutation()
 	_refresh_squad()
 

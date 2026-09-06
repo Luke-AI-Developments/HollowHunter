@@ -622,6 +622,14 @@ offset_bottom = 140.0
 theme_override_font_sizes/font_size = 18
 text = "Auto-Equip Party"
 
+[node name="SuggestButton" type="Button" parent="GameUI/ArmyPanel/SquadTab"]
+offset_left = 720.0
+offset_top = 90.0
+offset_right = 940.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 18
+text = "Suggest Party"
+
 [node name="InfoLabel" type="Label" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 40.0
 offset_top = 160.0
@@ -629,9 +637,16 @@ offset_right = 1040.0
 offset_bottom = 210.0
 text = "Party: 0/3 fielded --"
 
+[node name="RoleStatusLabel" type="Label" parent="GameUI/ArmyPanel/SquadTab"]
+offset_left = 40.0
+offset_top = 210.0
+offset_right = 1040.0
+offset_bottom = 255.0
+text = "Tank ✗   Support ✗   Attacker ✗"
+
 [node name="RowsScroll" type="ScrollContainer" parent="GameUI/ArmyPanel/SquadTab"]
 offset_left = 20.0
-offset_top = 220.0
+offset_top = 265.0
 offset_right = 1060.0
 offset_bottom = 2410.0
 

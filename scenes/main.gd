@@ -654,6 +654,29 @@ func _army_synergy_bonus(chosen: Array) -> float:
 	return CombatMath.army_synergy_bonus(bench_power)
 
 
+## Forced role composition (§17): a fight may only launch if the fielded
+## party -- plus the hunter's own subclass role -- covers tank + support +
+## attacker. The requirement only bites once the whole owned army CAN
+## satisfy it (SquadBuilder.role_requirement_active over the enriched army,
+## which is where `clazz` lives -- state.army rows don't carry it). Returns
+## true (launch allowed) whenever the requirement is inactive or the comp is
+## valid; otherwise toasts the first missing role and returns false.
+func _party_role_comp_ok() -> bool:
+	var army_enriched := SquadBuilder.enrich_army(
+		state.army, _monsters, state.level, _equipment, state.inventory
+	)
+	if not SquadBuilder.role_requirement_active(army_enriched):
+		return true
+	var party := SquadBuilder.resolve_party(
+		state.army, _monsters, state.level, state.active_party_ids, _equipment, state.inventory
+	)
+	var rs := SquadBuilder.party_role_status(party, state.subclass)
+	if rs["valid"]:
+		return true
+	system_toast.show_toast("Party needs a %s." % String(rs["missing"][0]))
+	return false
+
+
 ## Phase 3/step 5: launches the real turn-based fight (§16) for any
 ## already-spawned gate dict (map gate, ticket gate, or break gate --
 ## same shape either way). Rewards apply once BattlePanel's
@@ -665,6 +688,9 @@ func _start_gate_battle(
 	gate: Dictionary, prefix: String = "", is_break: bool = false, gate_index: int = -1
 ) -> void:
 	_hide_marker_card()
+	## §17 forced role composition: no fight if the party can't cover every role.
+	if not _party_role_comp_ok():
+		return
 	## §9.1: a gate is a single independent Battle -- each gate fight starts
 	## with a clean casualty slate (the populate in _on_battle_finished's gate
 	## branch is then inert, kept only for symmetry with a future trash->boss
@@ -715,6 +741,9 @@ func _start_gate_battle(
 ## real monster. Army Synergy applies here, unlike gates.
 func _start_nadir_battle() -> void:
 	_hide_marker_card()
+	## §17 forced role composition: no fight if the party can't cover every role.
+	if not _party_role_comp_ok():
+		return
 	var floor_n := state.nadir_current_floor()
 	_pending_nadir_floor = floor_n
 	_pending_nadir_is_boss = Nadir.is_boss_floor(floor_n)

@@ -12,12 +12,21 @@ extends Node2D
 
 signal toggle_requested(instance_id: String)
 signal auto_equip_requested  ## equips gear onto the currently-fielded party
+signal suggest_requested  ## §17 forced roles: fill a valid role comp from the owned army
 signal sort_changed(mode: String)
 signal close_requested
+
+## §17 forced role composition role-status line glyphs + colours (v0):
+## a covered role reads green with a check, a missing one amber with a cross.
+const ROLE_OK_GLYPH := "✓"
+const ROLE_MISSING_GLYPH := "✗"
+const ROLE_OK_COLOR := Color("5fd6a4")  ## v0 green
+const ROLE_MISSING_COLOR := Color("ffcf5c")  ## v0 amber
 
 var _sort_mode: String = "power"
 
 @onready var info_label: Label = $InfoLabel
+@onready var role_status_label: Label = $RoleStatusLabel
 @onready var sort_button: Button = $SortButton
 @onready var rows_container: VBoxContainer = $RowsScroll/Rows
 
@@ -28,6 +37,7 @@ func _ready() -> void:
 	($RowsScroll as ScrollContainer).scroll_deadzone = 12
 	$CloseButton.pressed.connect(func() -> void: close_requested.emit())
 	$AutoEquipSquadButton.pressed.connect(func() -> void: auto_equip_requested.emit())
+	$SuggestButton.pressed.connect(func() -> void: suggest_requested.emit())
 	$SortButton.pressed.connect(_on_sort_pressed)
 
 
@@ -43,10 +53,12 @@ func _on_sort_pressed() -> void:
 
 ## `sorted_army` is the whole owned army (SquadBuilder.enrich_army then
 ## SquadBuilder.sort_shadows), `active_party_ids` is the player's manual
-## pick (HunterState, in pick order). Rebuilds every row from scratch --
-## the list changes rarely enough (claim/level/fuse/convert) that
-## rebuild-on-refresh is simpler and cheap.
-func refresh(sorted_army: Array, active_party_ids: Array) -> void:
+## pick (HunterState, in pick order). `role_status` is
+## SquadBuilder.party_role_status(resolve_party(...), subclass) -- computed
+## by army_view.gd, which owns state -- and drives the role-status line.
+## Rebuilds every row from scratch -- the list changes rarely enough
+## (claim/level/fuse/convert) that rebuild-on-refresh is simpler and cheap.
+func refresh(sorted_army: Array, active_party_ids: Array, role_status: Dictionary) -> void:
 	for c in rows_container.get_children():
 		rows_container.remove_child(c)
 		c.queue_free()
@@ -94,6 +106,31 @@ func refresh(sorted_army: Array, active_party_ids: Array) -> void:
 			", ".join(_fielded_names(sorted_army, active_party_ids)),
 		]
 	)
+	_refresh_role_status(role_status)
+
+
+## §17 forced role composition: "Tank <glyph>  Support <glyph>  Attacker
+## <glyph>" from `role_status` ({"covered": Array, "missing": Array,
+## "valid": bool}). Whole line is green while the comp is valid, amber the
+## moment a role is missing.
+func _refresh_role_status(role_status: Dictionary) -> void:
+	var covered: Array = role_status.get("covered", [])
+	role_status_label.text = (
+		"Tank %s   Support %s   Attacker %s"
+		% [
+			_role_glyph(covered, "tank"),
+			_role_glyph(covered, "support"),
+			_role_glyph(covered, "attacker"),
+		]
+	)
+	var ok := bool(role_status.get("valid", false))
+	role_status_label.add_theme_color_override(
+		"font_color", ROLE_OK_COLOR if ok else ROLE_MISSING_COLOR
+	)
+
+
+func _role_glyph(covered: Array, role: String) -> String:
+	return ROLE_OK_GLYPH if covered.has(role) else ROLE_MISSING_GLYPH
 
 
 ## Maps each id in `active_party_ids` (pick order) to its display_name from
