@@ -40,6 +40,16 @@ const CLASS_PROFILES := {
 	"SUPPORT": {"STR": 0.20, "AGI": 0.10, "VIT": 0.25, "END": 0.15, "SEN": 0.30},
 }
 
+# --- Class -> party role (forced role composition): tank / support / attacker ---
+const CLASS_ROLE := {
+	"GUARDIAN": "tank",
+	"SUPPORT": "support",
+	"WARRIOR": "attacker",
+	"ASSASSIN": "attacker",
+	"MAGE": "attacker",
+}
+const PARTY_ROLES := ["tank", "support", "attacker"]
+
 # --- Hunter rank thresholds: min level for that rank's assessment (§28/§29) ---
 const RANK_LEVEL := {"D": 5, "C": 12, "B": 20, "A": 30, "S": 40}
 
@@ -88,6 +98,12 @@ const ESSENCE_PER_SCRAPPED_ITEM := {
 # carrying the trait, applied by trait_essence_multiplier() below. ---
 const SCAVENGER_ESSENCE_BONUS := 0.10
 const SOULBOUND_ESSENCE_BONUS := 0.20
+
+
+# --- Class -> party role lookup (forced role composition). Case-insensitive;
+# an unknown class falls back to "attacker". ---
+static func role_for_class(clazz: String) -> String:
+	return CLASS_ROLE.get(clazz.to_upper(), "attacker")
 
 
 # --- Progression (§3): linear curve ---

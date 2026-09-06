@@ -158,6 +158,36 @@ static func resolve_party(
 	return chosen
 
 
+## Forced role composition: which party roles (tank/support/attacker) the
+## fielded party covers, given the hunter's subclass. `party` entries need a
+## `clazz` string key (the enrich_army shape). Returns
+## {"covered": Array, "missing": Array, "valid": bool} -- valid when nothing
+## is missing.
+static func party_role_status(party: Array, hunter_subclass: String) -> Dictionary:
+	var covered := {}
+	covered[GameLogic.role_for_class(hunter_subclass)] = true
+	for m: Dictionary in party:
+		covered[GameLogic.role_for_class(String(m.get("clazz", "")))] = true
+	var missing: Array[String] = []
+	for r in GameLogic.PARTY_ROLES:
+		if not covered.has(r):
+			missing.append(r)
+	return {"covered": covered.keys(), "missing": missing, "valid": missing.is_empty()}
+
+
+## Forced role composition only kicks in once the player's whole army can
+## actually satisfy it -- i.e. holds at least one shadow of every PARTY_ROLES
+## role. `army` entries read `clazz` the same way as party_role_status.
+static func role_requirement_active(army: Array) -> bool:
+	var have := {}
+	for s: Dictionary in army:
+		have[GameLogic.role_for_class(String(s.get("clazz", "")))] = true
+	for r in GameLogic.PARTY_ROLES:
+		if not have.has(r):
+			return false
+	return true
+
+
 ## §17 "mass-convert weak shadows": the `count` weakest (lowest power) owned
 ## shadows that are neither locked nor currently fielded. Returns instance_ids,
 ## weakest-first. (Was: excluded an auto-optimised squad -- that concept is
