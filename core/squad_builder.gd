@@ -175,6 +175,48 @@ static func party_role_status(party: Array, hunter_subclass: String) -> Dictiona
 	return {"covered": covered.keys(), "missing": missing, "valid": missing.is_empty()}
 
 
+## Forced role composition (opt-in "Suggest Party" helper): picks a valid,
+## strong party from what the player owns. First fills each party role the
+## hunter's subclass does NOT already cover with the highest-power owned
+## shadow of that role, then power-fills the remaining slots. Returns
+## instance_ids in pick order (role-picks first, then power-fill),
+## <= GameLogic.PARTY_SIZE. Empty army -> empty array.
+static func suggest_valid_party(
+	army: Array,
+	monsters: Array,
+	hunter_level: int,
+	hunter_subclass: String,
+	equipment: Dictionary = {},
+	inventory: Array = []
+) -> Array:
+	var enriched := sort_shadows(
+		enrich_army(army, monsters, hunter_level, equipment, inventory), "power"
+	)
+	var needed := {}
+	for r in GameLogic.PARTY_ROLES:
+		needed[r] = true
+	needed.erase(GameLogic.role_for_class(hunter_subclass))
+	var picked: Array = []
+	var used := {}
+	for r: String in needed.keys():
+		for e: Dictionary in enriched:
+			var id: String = e["instance_id"]
+			if used.has(id):
+				continue
+			if GameLogic.role_for_class(String(e.get("clazz", ""))) == r:
+				picked.append(id)
+				used[id] = true
+				break
+	for e: Dictionary in enriched:
+		if picked.size() >= GameLogic.PARTY_SIZE:
+			break
+		var id: String = e["instance_id"]
+		if not used.has(id):
+			picked.append(id)
+			used[id] = true
+	return picked
+
+
 ## Forced role composition only kicks in once the player's whole army can
 ## actually satisfy it -- i.e. holds at least one shadow of every PARTY_ROLES
 ## role. `army` entries read `clazz` the same way as party_role_status.

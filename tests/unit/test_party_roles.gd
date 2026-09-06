@@ -1,5 +1,15 @@
 extends GutTest
 
+var monsters: Array
+
+
+func before_all() -> void:
+	monsters = Content.load_monsters()
+
+
+static func _shadow(instance_id: String, monster_id: String, level: int = 1) -> Dictionary:
+	return {"instance_id": instance_id, "monster_id": monster_id, "grade": "E", "level": level}
+
 
 func test_role_for_class_maps_all_five_plus_unknown() -> void:
 	assert_eq(GameLogic.role_for_class("GUARDIAN"), "tank")
@@ -39,3 +49,46 @@ func test_role_requirement_inactive_until_army_has_all_roles() -> void:
 			[{"clazz": "GUARDIAN"}, {"clazz": "SUPPORT"}, {"clazz": "MAGE"}]
 		)
 	)
+
+
+func test_suggest_valid_party_produces_a_valid_role_comp() -> void:
+	# GUARDIAN hunter already covers tank. Army has two SUPPORT shadows of
+	# different power (same monster, different level) plus attackers and a
+	# strong GUARDIAN. The suggestion must pick the STRONGER support and end
+	# up role-valid.
+	var army := [
+		_shadow("guard1", "mon_sepulcher_knight", 5),  # GUARDIAN, base 2300
+		_shadow("supp_hi", "mon_snarlpack", 20),  # SUPPORT, base 1350
+		_shadow("supp_lo", "mon_snarlpack", 1),  # SUPPORT, weaker twin
+		_shadow("atk1", "mon_cindermaw_drake", 1),  # MAGE (attacker), base 2700
+		_shadow("atk2", "mon_tuskrend", 1),  # WARRIOR (attacker), base 350
+	]
+	var ids := SquadBuilder.suggest_valid_party(army, monsters, 10, "GUARDIAN")
+	assert_true(ids.size() <= 3, "never fields more than PARTY_SIZE")
+	var party := SquadBuilder.resolve_party(army, monsters, 10, ids)
+	assert_true(SquadBuilder.party_role_status(party, "GUARDIAN")["valid"], "comp is role-valid")
+	assert_true(ids.has("supp_hi"), "picks the strongest SUPPORT for the support role")
+	assert_false(ids.has("supp_lo"), "never picks the weaker SUPPORT twin")
+
+
+func test_suggest_valid_party_uses_hunter_coverage_to_power_fill() -> void:
+	# The only tank in the army is weak. A GUARDIAN hunter covers tank, so the
+	# suggestion skips the weak tank and power-fills with a stronger attacker.
+	var army := [
+		_shadow("weak_tank", "mon_carapax", 1),  # GUARDIAN, base 500 -- only tank
+		_shadow("supp1", "mon_snarlpack", 1),  # SUPPORT, base 1350
+		_shadow("atk_big", "mon_cindermaw_drake", 1),  # MAGE, base 2700
+		_shadow("atk_mid", "mon_emberling", 1),  # ASSASSIN, base 1250
+	]
+	var ids := SquadBuilder.suggest_valid_party(army, monsters, 10, "GUARDIAN")
+	assert_eq(ids.size(), 3)
+	assert_false(ids.has("weak_tank"), "hunter covers tank -> weak tank not forced in")
+	assert_true(ids.has("supp1"))
+	assert_true(ids.has("atk_big"))
+	assert_true(ids.has("atk_mid"), "third slot power-filled with the stronger attacker")
+	var party := SquadBuilder.resolve_party(army, monsters, 10, ids)
+	assert_true(SquadBuilder.party_role_status(party, "GUARDIAN")["valid"])
+
+
+func test_suggest_valid_party_empty_army_is_empty() -> void:
+	assert_eq(SquadBuilder.suggest_valid_party([], monsters, 10, "MAGE"), [])
