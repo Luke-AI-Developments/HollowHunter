@@ -233,6 +233,11 @@ func _build_enemy_nodes() -> void:
 		arena.remove_child(c)
 		c.queue_free()
 	_ensure_cave_backdrop()
+	# Task 5: enemies stand ON the cave floor line. `_ensure_cave_backdrop` just
+	# ran so "CaveBackdrop" exists; the guard is belt-and-braces. `floor_y()` is
+	# in CaveBackdrop-local == arena-local space (the backdrop fills the arena).
+	var backdrop := arena.get_node_or_null("CaveBackdrop")
+	var floor_y: float = backdrop.floor_y() if backdrop != null else arena.size.y  ## v0 fallback
 	var indices := _visible_enemy_indices()
 	var n := indices.size()
 	# Task 4 overlap layout. `centre_x` is the middle of the 1040-wide arena; the
@@ -293,10 +298,25 @@ func _build_enemy_nodes() -> void:
 			col.scale = Vector2(0.9, 0.9)  ## v0: outer grunt reads smaller / further back
 			col.modulate = Color(0.72, 0.72, 0.8)  ## v0: ...and dimmer
 
+		# Task 5: bottom-align the PORTRAIT's base to the cave floor line so every
+		# monster stands on the ground -- a 600-tall boss column rises higher than
+		# a 360-tall grunt, both "standing". `pics` starts at col-local y 96 and is
+		# `col_w` tall, so the portrait's bottom edge is col-local y `96 + col_w`.
+		# A Control scales about `pivot_offset`, so a child at local y `p` lands at
+		# parent y `position.y + piv + (p - piv) * scale.y`. Solving that == floor_y:
+		#   position.y = floor_y - piv - (portrait_bottom - piv) * scale.y
+		# For an unscaled column (piv 0, scale 1) this is just floor_y -
+		# portrait_bottom; for the depth>=2 grunt (piv col_w/2, scale 0.9) it folds
+		# in the shrink so its SCALED feet still land on the line (Task 4 review F2).
+		var portrait_bottom := 96.0 + col_w  ## v0: pics y-offset (96) + its height (col_w)
+		var piv_y := col.pivot_offset.y
+		col.position.y = floor_y - piv_y - (portrait_bottom - piv_y) * col.scale.y
+
 		# Header block sits ABOVE the portrait (all offsets v0, sub-project C
 		# retunes): cap h 26, hpbar y 28 h 14, brkbar y 46 h 8, pips y 58 h 34,
 		# telegraph at the header's top-right. Portrait block starts at y 96;
-		# plat h 24; ring 3px bleed.
+		# plat (ground shadow) h 32 / ~60% width, flush with the portrait base;
+		# ring 3px bleed. Task 5 then grounds the whole column on the cave floor.
 		var cap := Label.new()
 		cap.name = "cap"
 		cap.position = Vector2(hdr_x, 0)
@@ -338,12 +358,18 @@ func _build_enemy_nodes() -> void:
 		pics.size = Vector2(col_w, col_w)
 		col.add_child(pics)
 
+		# Task 5: `plat` is the monster's ground shadow -- a soft dark slab centred
+		# under the portrait, its own bottom edge flush with the portrait base (==
+		# the cave floor line once the column is grounded above). Narrower than the
+		# column so it reads as a footprint, not a full-width bar.
 		var plat := ColorRect.new()
 		plat.name = "plat"
 		plat.color = Color(0, 0, 0, 0.5)  ## v0
 		plat.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		plat.position = Vector2(0, col_w - 24)  ## v0
-		plat.size = Vector2(col_w, 24)  ## v0
+		var plat_w := col_w * 0.6  ## v0: shadow ~60% of the column width
+		var plat_h := 32.0  ## v0
+		plat.position = Vector2((col_w - plat_w) / 2.0, col_w - plat_h)  ## v0
+		plat.size = Vector2(plat_w, plat_h)  ## v0
 		pics.add_child(plat)
 
 		var pic := TextureRect.new()

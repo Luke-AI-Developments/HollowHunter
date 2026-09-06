@@ -36,6 +36,16 @@ func set_band_size(band_size: Vector2) -> void:
 	queue_redraw()
 
 
+## Visual round 2 / task 5: the y of the TOP edge of the bottom cave-floor
+## silhouette drawn in `_draw` -- its highest point is `size.y - bot_h`, and
+## `_draw` sets `bot_h := size.y * 0.1`. Enemy columns bottom-align their
+## portrait base to this line so monsters stand ON the cave floor instead of
+## floating. Returned in CaveBackdrop-local space, which equals Arena-local
+## space since the backdrop is sized to fill the Arena band.
+func floor_y() -> float:
+	return size.y - size.y * 0.1  ## v0: mirrors _draw's bot_h fraction
+
+
 func _draw() -> void:
 	if _gradient_tex == null:
 		return
