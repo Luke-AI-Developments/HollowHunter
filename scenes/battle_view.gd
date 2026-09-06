@@ -639,7 +639,7 @@ func _refresh_party_slots() -> void:
 ## (turn_queue can grow past 7 via spawns), each a `C<i>` with a `ring` bg +
 ## `pic` portrait, a static `"NOW"` Label before chip 0. `_refresh_turn_order`
 ## then only re-fills texture / ring colour / visibility. Ring tint: party
-## cyan vs enemy red via `_is_enemy_id`. 3px ring bleed / separation are v0.
+## cyan vs enemy red via `_enemy_by_id`. 3px ring bleed / separation are v0.
 func _build_turn_chip_nodes() -> void:
 	for c in turn_strip.get_children():
 		turn_strip.remove_child(c)
@@ -682,22 +682,26 @@ func _refresh_turn_order() -> void:
 			continue
 		chip.visible = true
 		var id := String(q[i])
-		var is_enemy := _is_enemy_id(id)
+		var enemy := _enemy_by_id(id)
+		var is_enemy := not enemy.is_empty()
 		var ring: ColorRect = chip.get_node("ring")
 		ring.color = Color(0.85, 0.3, 0.3, 0.9) if is_enemy else Color(0.498, 0.941, 1, 0.9)  ## v0
 		var pic: TextureRect = chip.get_node("pic")
-		pic.texture = ArtPaths.monster_portrait(id) if is_enemy else _party_portraits.get(id, null)
+		var por_id := String(enemy.get("portrait_id", id))
+		pic.texture = (
+			ArtPaths.monster_portrait(por_id) if is_enemy else _party_portraits.get(id, null)
+		)
 		if is_enemy or id == "player":
 			pic.material = ArtPaths.portrait_material()
 		else:
 			pic.material = ArtPaths.shadow_material()
 
 
-func _is_enemy_id(id: String) -> bool:
+func _enemy_by_id(id: String) -> Dictionary:
 	for e: Dictionary in _battle.enemies:
 		if String(e["id"]) == id:
-			return true
-	return false
+			return e
+	return {}
 
 
 ## Task 6: the rolling ticker's three stacked fading Labels (oldest L0 -> newest
