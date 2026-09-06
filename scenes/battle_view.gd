@@ -164,11 +164,17 @@ func _refresh_all() -> void:
 	_fx.play_new_events(_last_consumed)
 
 
-## Task 2: the enemy arena band -- one `Control` column per enemy named
-## `E<i>` (index-matched to `_battle.enemies`, so targeting stays by index),
-## a horizontally-centred strip across the 1040-wide arena (boss 300 wide,
-## grunts 180). Column stack: caption / HP / break capsule (boss) / portrait
-## block / status pips. Targeting/focus/defeat feedback tints `pic.modulate`
+## Task 2 + Task 4: the enemy arena band -- one `Control` column per enemy
+## named `E<i>` (index-matched to `_battle.enemies`, so targeting stays by
+## index). Task 4 doubled the columns (boss 600 wide, grunts 360) and replaced
+## the side-by-side strip with an OVERLAP layout: the boss (or `enemies[0]` when
+## nothing is `is_boss`) sits centred in the 1040-wide arena and is added LAST so
+## it draws in front; grunts fan left/right of centre by a fixed step and are
+## added deepest-first so nearer grunts overlap farther ones (the outer/rank-2
+## grunt in a 4-enemy fight is scaled + dimmed for depth). Per-column stack: a
+## header block (caption / HP / break capsule / status pips) ABOVE the portrait
+## so a behind-enemy's readouts aren't hidden by the enemy in front, then the
+## portrait block. Targeting/focus/defeat feedback tints `pic.modulate`
 ## (see `_refresh_enemy_slots`). All colours/sizes are v0 (sub-project C).
 ## `_battle.enemies` grows unbounded (dead adds are never removed), so this caps
 ## the visible columns to MAX_ENEMY_SLOTS: boss always (by `is_boss`), then living
@@ -229,33 +235,72 @@ func _build_enemy_nodes() -> void:
 	_ensure_cave_backdrop()
 	var indices := _visible_enemy_indices()
 	var n := indices.size()
-	var gap := 20.0  ## v0
-	var widths: Array[float] = []
-	var total := 0.0
-	for idx in indices:
-		var w := 300.0 if _battle.enemies[idx].get("is_boss") else 180.0  ## v0
-		widths.append(w)
-		total += w
-	total += gap * maxi(n - 1, 0)
-	var x := (1040.0 - total) / 2.0
+	# Task 4 overlap layout. `centre_x` is the middle of the 1040-wide arena; the
+	# boss (or the first visible enemy when nothing is `is_boss`) is placed there
+	# and added LAST so it draws in front. Grunts fan left/right of centre by a
+	# fixed step (rank 1 = adjacent, rank 2 = the outer 4th enemy) and are added
+	# deepest-first so they stack behind. `centre_by_slot` / `depth_by_slot` are
+	# keyed by the visible-slot index `k`.
+	var centre_x := 1040.0 / 2.0  ## v0
+	var overlap_step := 220.0  ## v0: x fan between the boss and an adjacent grunt
+	var overlap_step_far := 340.0  ## v0: rank-2 grunt sits wider but stays on-screen
+	var boss_slot := -1
 	for k in n:
+		if bool(_battle.enemies[indices[k]].get("is_boss", false)):
+			boss_slot = k
+			break
+	if boss_slot == -1 and n > 0:
+		boss_slot = 0
+	var centre_by_slot := {}
+	var depth_by_slot := {}
+	if boss_slot != -1:
+		centre_by_slot[boss_slot] = centre_x
+		depth_by_slot[boss_slot] = 0
+	var grunt_i := 0
+	for k in n:
+		if k == boss_slot:
+			continue
+		var rank := grunt_i / 2 + 1  ## v0: 1, 1, 2 for up to three grunts
+		var side := -1.0 if grunt_i % 2 == 0 else 1.0
+		var step: float = overlap_step if rank == 1 else overlap_step_far
+		centre_by_slot[k] = centre_x + side * step
+		depth_by_slot[k] = rank
+		grunt_i += 1
+	var add_order: Array[int] = []
+	for k in n:
+		if k != boss_slot and int(depth_by_slot[k]) >= 2:
+			add_order.append(k)
+	for k in n:
+		if k != boss_slot and int(depth_by_slot[k]) < 2:
+			add_order.append(k)
+	if boss_slot != -1:
+		add_order.append(boss_slot)
+
+	for k in add_order:
 		var i := indices[k]
 		var e: Dictionary = _battle.enemies[i]
-		var col_w: float = widths[k]
+		var is_boss := bool(e.get("is_boss", false))
+		var col_w := 600.0 if is_boss else 360.0  ## v0: 2x the round-1 widths (300 / 180)
+		var depth := int(depth_by_slot[k])
+		var hdr_w := 300.0  ## v0: header narrower than the column so a fanned grunt shows it
+		var hdr_x := (col_w - hdr_w) / 2.0
 		var col := Control.new()
 		col.name = "E%d" % i
-		col.position = Vector2(x, 0)
+		col.position = Vector2(float(centre_by_slot[k]) - col_w / 2.0, 0)
 		col.custom_minimum_size = Vector2(col_w, 0)
-		x += col_w + gap
+		if depth >= 2:
+			col.pivot_offset = Vector2(col_w / 2.0, col_w / 2.0)  ## v0
+			col.scale = Vector2(0.9, 0.9)  ## v0: outer grunt reads smaller / further back
+			col.modulate = Color(0.72, 0.72, 0.8)  ## v0: ...and dimmer
 
-		# All internal stack offsets / insets / heights below are v0 layout
-		# hypotheses (sub-project C retunes): cap h 26, hpbar y 30, brkbar y 48,
-		# pics y 62, the 10px side inset, plat h 24, telegraph offset (40, 2),
-		# pips y-gap 8 and h 44.
+		# Header block sits ABOVE the portrait (all offsets v0, sub-project C
+		# retunes): cap h 26, hpbar y 28 h 14, brkbar y 46 h 8, pips y 58 h 34,
+		# telegraph at the header's top-right. Portrait block starts at y 96;
+		# plat h 24; ring 3px bleed.
 		var cap := Label.new()
 		cap.name = "cap"
-		cap.position = Vector2(0, 0)
-		cap.size = Vector2(col_w, 26)  ## v0
+		cap.position = Vector2(hdr_x, 0)
+		cap.size = Vector2(hdr_w, 26)  ## v0
 		cap.clip_text = true
 		cap.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -264,23 +309,31 @@ func _build_enemy_nodes() -> void:
 		var hpbar := StatBar.new()
 		hpbar.name = "hpbar"
 		hpbar.set_palette("hp")
-		hpbar.position = Vector2(10, 30)  ## v0
-		hpbar.custom_minimum_size = Vector2(col_w - 20, 14)  ## v0
-		hpbar.size = Vector2(col_w - 20, 14)  ## v0
+		hpbar.position = Vector2(hdr_x + 8, 28)  ## v0
+		hpbar.custom_minimum_size = Vector2(hdr_w - 16, 14)  ## v0
+		hpbar.size = Vector2(hdr_w - 16, 14)  ## v0
 		col.add_child(hpbar)
 
 		var brkbar := StatBar.new()
 		brkbar.name = "brkbar"
 		brkbar.set_palette("break")
-		brkbar.position = Vector2(10, 48)  ## v0
-		brkbar.custom_minimum_size = Vector2(col_w - 20, 8)  ## v0
-		brkbar.size = Vector2(col_w - 20, 8)  ## v0
+		brkbar.position = Vector2(hdr_x + 8, 46)  ## v0
+		brkbar.custom_minimum_size = Vector2(hdr_w - 16, 8)  ## v0
+		brkbar.size = Vector2(hdr_w - 16, 8)  ## v0
 		brkbar.visible = bool(e.get("is_boss")) and e.has("break_max")
 		col.add_child(brkbar)
 
+		var pips := Label.new()
+		pips.name = "pips"
+		pips.position = Vector2(hdr_x, 58)  ## v0
+		pips.size = Vector2(hdr_w, 34)  ## v0
+		pips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		pips.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(pips)
+
 		var pics := Control.new()
 		pics.name = "pics"
-		pics.position = Vector2(0, 62)  ## v0
+		pics.position = Vector2(0, 96)  ## v0
 		pics.custom_minimum_size = Vector2(col_w, col_w)
 		pics.size = Vector2(col_w, col_w)
 		col.add_child(pics)
@@ -321,17 +374,9 @@ func _build_enemy_nodes() -> void:
 		telegraph.text = "⚠"
 		telegraph.add_theme_color_override("font_color", Color(1, 0.66, 0.3))  ## v0
 		telegraph.add_theme_font_size_override("font_size", 32)  ## v0
-		telegraph.position = Vector2(col_w - 40, 2)  ## v0
+		telegraph.position = Vector2(hdr_x + hdr_w - 30, 0)  ## v0: header top-right
 		telegraph.visible = false
-		pics.add_child(telegraph)
-
-		var pips := Label.new()
-		pips.name = "pips"
-		pips.position = Vector2(0, 62 + col_w + 8)  ## v0
-		pips.size = Vector2(col_w, 44)  ## v0
-		pips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		pips.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(pips)
+		col.add_child(telegraph)
 
 		arena.add_child(col)
 
@@ -373,7 +418,7 @@ func _refresh_enemy_slots() -> void:
 		else:
 			_set_breathing(pic, false)
 			pic.modulate = Color.WHITE
-		var tele: Label = col.get_node("pics/telegraph")
+		var tele: Label = col.get_node("telegraph")
 		tele.visible = alive and _battle.is_boss_next_hit_big(String(e["id"]))
 		var pips: Label = col.get_node("pips")
 		pips.text = _enemy_pips(e)
