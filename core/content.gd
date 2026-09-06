@@ -86,7 +86,16 @@ static func load_moves(path: String = "res://content/moves.json") -> Array:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if data == null or not data.has("moves"):
 		return []
-	return data["moves"]
+	var moves: Array = data["moves"]
+	for m: Dictionary in moves:
+		var vfx: Variant = m.get("vfx")
+		if vfx is Dictionary:
+			var c: Variant = vfx.get("color")
+			if c is Array and c.size() >= 3:
+				vfx["color"] = Color(c[0], c[1], c[2])
+			else:
+				vfx.erase("color")
+	return moves
 
 
 static func move_by_id(moves: Array, id: String) -> Dictionary:
