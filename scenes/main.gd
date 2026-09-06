@@ -73,6 +73,7 @@ var _hunter_return_pending: bool = false  ## §9.1: hunter was KO'd last sub-bat
 @onready var continue_button: Button = $SubclassPicker/ContinueButton
 @onready var game_ui: Node2D = $GameUI
 @onready var label: Label = $GameUI/Label
+@onready var overtrain_pill: Label = $GameUI/OvertrainPill
 @onready var hud_frame: NinePatchRect = $GameUI/HudFrame
 @onready var map_view: MapView = $GameUI/MapView
 @onready var marker_card: Panel = $GameUI/MarkerCard
@@ -1276,6 +1277,7 @@ func _refresh_label() -> void:
 			state.personal_power(_equipment),
 		]
 	)
+	overtrain_pill.visible = state.overtrained
 
 
 func _on_hunter_gear_button_pressed() -> void:
