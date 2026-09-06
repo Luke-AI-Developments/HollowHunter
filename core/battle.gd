@@ -252,6 +252,10 @@ static func make_ally_combatant(
 ## `is_multiphase`, and `phase` (1 or 2, flipped by _check_phase_transition
 ## at 50% HP -- spec §3.5). A non-boss always keeps `kit == ""` /
 ## `is_multiphase == false`.
+## `portrait_id` (v0, additive) is the id the battle screen resolves the
+## enemy's art from -- defaults to `id`. Callers pass a real monster id
+## here when `id` itself is a synthetic key that has no art: Nadir boss
+## floors (id "nadir_floor_N") and spawned adds (id "<boss>_add_N").
 static func make_enemy_combatant(
 	id: String,
 	base_power: float,
@@ -262,11 +266,13 @@ static func make_enemy_combatant(
 	role: String = "bruiser",
 	atk_type: String = "physical",
 	kit: String = "",
-	is_multiphase: bool = false
+	is_multiphase: bool = false,
+	portrait_id: String = ""
 ) -> Dictionary:
 	var combat := CombatMath.enemy_stats(base_power, "boss" if is_boss else role)
 	var c := {
 		"id": id,
+		"portrait_id": portrait_id if portrait_id != "" else id,
 		"name": display_name if display_name != "" else id,
 		"class": "",
 		"level": 1,
@@ -737,6 +743,8 @@ func spawn_add(boss: Dictionary) -> Dictionary:
 		return {}
 	var n := int(boss.get("_add_count", 0)) + 1
 	boss["_add_count"] = n
+	# Inherit the boss's portrait_id so a Brood Spawn shows the Broodmother's
+	# art rather than a blank platform (the add's own id has no monster art).
 	var add := Battle.make_enemy_combatant(
 		"%s_add_%d" % [String(boss["id"]), n],
 		float(boss.get("base_power", 0.0)) * float(kit["spawn_power_frac"]),
@@ -745,7 +753,10 @@ func spawn_add(boss: Dictionary) -> Dictionary:
 		String(boss.get("family", "")),
 		false,
 		"skirmisher",
-		"physical"
+		"physical",
+		"",
+		false,
+		String(boss.get("portrait_id", boss["id"]))
 	)
 	enemies.append(add)
 	turn_queue.append(add["id"])

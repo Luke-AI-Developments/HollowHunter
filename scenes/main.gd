@@ -752,6 +752,10 @@ func _start_nadir_battle() -> void:
 	)
 	var enemy_name := "Floor %d Sentinel" % floor_n  # invented v0 placeholder name --
 	## non-boss Nadir floors have no monster in the source to name them after
+	# TODO(art): non-boss Nadir floors have no monster/portrait -- needs assets via
+	# tools/art_pipeline/ (see 2026-09-06-battle-screen-visual-round-2-design.md B4
+	# art half). `_pending_nadir_boss_id` stays "" here, so the enemy keeps a bare
+	# platform rect until that art exists.
 	var enemy_family := ""
 	var role := "bruiser"  # non-boss Nadir floors have no monster def -> code defaults
 	var atk_type := "physical"
@@ -774,7 +778,8 @@ func _start_nadir_battle() -> void:
 			role,
 			atk_type,
 			nadir_kit,
-			_pending_nadir_is_boss
+			_pending_nadir_is_boss,
+			_pending_nadir_boss_id
 		)
 	]
 	var battle_party := _build_battle_party(true)

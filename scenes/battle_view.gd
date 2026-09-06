@@ -430,7 +430,7 @@ func _refresh_enemy_slots() -> void:
 		if brkbar.visible:
 			brkbar.set_values(_battle.break_fraction(String(e["id"])), 1.0)
 		var pic: TextureRect = col.get_node("pics/pic")
-		pic.texture = ArtPaths.monster_portrait(String(e["id"]))
+		pic.texture = ArtPaths.monster_portrait(String(e.get("portrait_id", e["id"])))
 		var focused := String(e["id"]) == _battle.focus_target_id
 		if not alive:
 			_set_breathing(pic, false)
