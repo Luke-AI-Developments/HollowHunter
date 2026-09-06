@@ -192,8 +192,10 @@ static func shadow_power(
 # alternative literal enemy-style HP/ATK-only reading): BLEND, not
 # replace -- keep stats_from's STR/AGI/VIT/END/SEN split (so a shadow's
 # class identity/flavor -- crit, speed, DEF -- survives), and scale the
-# result by how much stronger/weaker than a same-level trained hunter
-# this shadow's species is, using shadow_power's OWN existing
+# result up by how much stronger than a same-level trained hunter this
+# shadow's species is (grade is upside only -- the multiplier floors at
+# 1.0, so a fielded shadow never derives below its own class/level
+# baseline; see B1), using shadow_power's OWN existing
 # SHADOW_BASE_SCALE/SHADOW_LEVEL_SCALE constants (no new numbers
 # invented) as the ratio's numerator, and personal_power's own STAT_
 # WEIGHT/LEVEL_WEIGHT as its denominator (both formulas were already
@@ -219,7 +221,12 @@ static func shadow_combat_stats(
 	if baseline <= 0:
 		return raw
 	var grade_scale := shadow_power(base_power, shadow_level, 0)
-	var multiplier := float(grade_scale) / float(baseline)
+	# Grade is upside only: a shadow you have chosen to field is never derived
+	# BELOW the stats_from(level, class) baseline the hunter itself uses. Without
+	# this floor, every low-grade shadow (grade_scale < baseline -- all E/D-grade
+	# shadows, at every level) collapses to single-digit PATK/MATK, landing under
+	# enemy DEF so every hit floors to 1 damage in CombatMath.resolve_damage (B1).
+	var multiplier := maxf(1.0, float(grade_scale) / float(baseline))
 	var scaled := {}
 	for stat in raw.keys():
 		var v := (

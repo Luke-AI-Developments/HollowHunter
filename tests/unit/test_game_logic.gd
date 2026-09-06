@@ -299,3 +299,39 @@ func test_trait_essence_multiplier_stacks_duplicates_and_ignores_others() -> voi
 	assert_almost_eq(
 		GameLogic.trait_essence_multiplier(["sturdy", "executioner", "soulbound"]), 1.20, 0.0001
 	)
+
+
+# --- B1 regression: a fielded shadow of ANY class must derive real PATK/MATK ---
+# The full party-assembly pipeline (shadow_combat_stats -> Battle.make_ally_
+# combatant -> CombatMath.combat_stats). A low-grade shadow (base_power ~120,
+# the E-rank floor) previously scaled every stat by grade_scale/baseline < 1,
+# collapsing PATK/MATK to single digits -- below enemy DEF, so every hit
+# floored to 1 damage. Grade is upside only now: a fielded shadow is never
+# weaker than a bare same-level hunter of its class.
+func test_shadow_combat_stats_pipeline_never_derives_below_class_baseline() -> void:
+	var level := 5
+	var e_rank_base_power := 120  # Grubmaw-tier, the weakest content grade
+	for clazz: String in ["WARRIOR", "GUARDIAN", "ASSASSIN", "MAGE", "SUPPORT"]:
+		var baseline_combat := CombatMath.combat_stats(GameLogic.stats_from(level, clazz))
+		var shadow_stats := GameLogic.shadow_combat_stats(e_rank_base_power, level, clazz)
+		var combatant := Battle.make_ally_combatant("s_%s" % clazz, clazz, level, shadow_stats)
+		assert_gte(
+			float(combatant["patk"]),
+			float(baseline_combat["PATK"]),
+			"%s shadow PATK must not derive below the class/level baseline" % clazz
+		)
+		assert_gte(
+			float(combatant["matk"]),
+			float(baseline_combat["MATK"]),
+			"%s shadow MATK must not derive below the class/level baseline" % clazz
+		)
+
+
+func test_shadow_combat_stats_multiplier_floors_at_one_for_low_grade() -> void:
+	# base_power 120 at level 5: grade_scale (~90) < baseline (~725), so the
+	# raw ratio is ~0.12 -- the floor pins it to 1.0 and stats == stats_from.
+	var low_grade := GameLogic.shadow_combat_stats(120, 5, "WARRIOR")
+	assert_eq(low_grade, GameLogic.stats_from(5, "WARRIOR"))
+	# A high-grade shadow is still scaled UP well past the baseline.
+	var high_grade := GameLogic.shadow_combat_stats(5000, 5, "WARRIOR")
+	assert_gt(int(high_grade["STR"]), int(GameLogic.stats_from(5, "WARRIOR")["STR"]))
