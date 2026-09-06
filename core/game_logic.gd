@@ -28,6 +28,8 @@ const CLEAR_K := 3  # swinginess of the clear check
 const DAILY_EXP_SOFT_CAP := 600  # full rate up to here (~a solid matched workout day)
 const DAILY_EXP_TAPER_RATE := 0.3  # EXP above the cap counts at 30% instead of 100%
 const REST_BONUS_MULT := 1.15  # +15% on a day that follows a genuine gap in banked EXP
+const OVERTRAIN_DAYS := 6  ## v0: consecutive workout days (no rest) that trip Diminishing Returns
+const OVERTRAIN_EXP_MULT := 0.5  ## v0: EXP multiplier while the status is active
 
 # --- Class stat profiles (§16): share of stat points per class ---
 const CLASS_PROFILES := {
@@ -112,6 +114,15 @@ static func daily_exp(
 	if rest_bonus:
 		capped *= REST_BONUS_MULT
 	return int(round(capped))
+
+
+## Diminishing Returns (overtraining): halves all EXP while `overtrained`.
+static func overtrain_exp_mult(overtrained: bool) -> float:
+	return OVERTRAIN_EXP_MULT if overtrained else 1.0
+
+
+static func scaled_exp(amount: int, overtrained: bool) -> int:
+	return int(round(amount * overtrain_exp_mult(overtrained)))
 
 
 # --- Stats derived from level x class (§3/§16) ---
