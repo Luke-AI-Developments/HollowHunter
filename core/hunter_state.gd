@@ -54,6 +54,8 @@ var stronghold_last_collected: int  ## Unix seconds of the last Stronghold colle
 var current_streak: int  ## Phase 2/P5 step 1: consecutive days with daily EXP applied (§21).
 ## Updated via DailyExp.next_streak() using the OLD last_exp_date, right before
 ## mark_exp_applied(today) overwrites it -- see scenes/main.gd's daily-EXP flow.
+var consecutive_workout_days: int  ## Diminishing Returns: workout days in a row, no rest
+var overtrained: bool  ## Diminishing Returns status: EXP halved until a rest day
 var hunter_rank: String  ## Phase 2/P6 step 1: EARNED rank (E-S, §28) -- starts "E", only
 ## advances by clearing that rank's Trial (RankAssessment). Deliberately separate from
 ## GameLogic.rank_for_level(level), which is just the highest rank whose LEVEL threshold has
@@ -122,6 +124,8 @@ static func new_default(
 	s.stronghold_facilities = _default_facilities()
 	s.stronghold_last_collected = 0
 	s.current_streak = 0
+	s.consecutive_workout_days = 0
+	s.overtrained = false
 	s.hunter_rank = "E"
 	s.last_gate_break_offer = 0
 	s.active_party_ids = []
@@ -728,8 +732,9 @@ func personal_power(equipment: Dictionary) -> int:
 func add_exp(amount: int) -> int:
 	if amount <= 0:
 		return 0
-	total_exp += amount
-	exp_into_level += amount
+	var scaled := GameLogic.scaled_exp(amount, overtrained)
+	total_exp += scaled
+	exp_into_level += scaled
 	var levels_gained := 0
 	while exp_into_level >= GameLogic.exp_to_next(level):
 		exp_into_level -= GameLogic.exp_to_next(level)
@@ -855,6 +860,8 @@ func to_dict() -> Dictionary:
 		"stronghold_facilities": stronghold_facilities,
 		"stronghold_last_collected": stronghold_last_collected,
 		"current_streak": current_streak,
+		"consecutive_workout_days": consecutive_workout_days,
+		"overtrained": overtrained,
 		"hunter_rank": hunter_rank,
 		"last_gate_break_offer": last_gate_break_offer,
 		"active_party_ids": active_party_ids,
@@ -888,6 +895,8 @@ static func from_dict(d: Dictionary) -> HunterState:
 	s.stronghold_facilities = d.get("stronghold_facilities", _default_facilities())
 	s.stronghold_last_collected = int(d.get("stronghold_last_collected", 0))
 	s.current_streak = int(d.get("current_streak", 0))
+	s.consecutive_workout_days = int(d.get("consecutive_workout_days", 0))
+	s.overtrained = bool(d.get("overtrained", false))
 	s.hunter_rank = String(d.get("hunter_rank", "E"))
 	s.last_gate_break_offer = int(d.get("last_gate_break_offer", 0))
 	s.active_party_ids = d.get("active_party_ids", [])
