@@ -76,6 +76,10 @@ func refresh(sorted_army: Array, active_party_ids: Array) -> void:
 
 		var toggle := Button.new()
 		toggle.text = "Fielded [x]" if fielded else "Field"
+		# Touch: PASS (not the Button default STOP) so a drag begun on this
+		# button still reaches RowsScroll instead of being swallowed -- the row
+		# label is already MOUSE_FILTER_IGNORE, this closes the last dead strip.
+		toggle.mouse_filter = Control.MOUSE_FILTER_PASS
 		toggle.disabled = party_full and not fielded
 		toggle.pressed.connect(func() -> void: toggle_requested.emit(instance_id))
 		row.add_child(toggle)

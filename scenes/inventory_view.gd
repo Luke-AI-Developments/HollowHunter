@@ -252,6 +252,11 @@ func _refresh_grid() -> void:
 		var cell := Button.new()
 		cell.custom_minimum_size = Vector2(520, 220)
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Touch: PASS (not the Button default STOP) so the initial press also
+		# reaches GridScroll and it can enter drag-to-scroll -- otherwise the
+		# cells cover the whole viewport and the grid can't be flicked on device.
+		# scroll_deadzone (set in _ready) still routes a stationary tap here.
+		cell.mouse_filter = Control.MOUSE_FILTER_PASS
 		cell.icon = ArtPaths.equipment_icon(item["equipment_def_id"])
 		cell.expand_icon = true
 		var lock_mark := " [L]" if item["locked"] else ""

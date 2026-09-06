@@ -189,6 +189,12 @@ func _make_shadow_card(e: Dictionary, fielded: bool, big: bool) -> Control:
 	var card := Button.new()
 	card.custom_minimum_size = CARD_BIG if big else CARD_SMALL
 	card.clip_contents = true
+	# Touch: a Button defaults to MOUSE_FILTER_STOP, which swallows the initial
+	# press so the parent BenchScroll never enters its drag-to-scroll state --
+	# the bench then can't be flicked on device. PASS lets the press through to
+	# the ScrollContainer too; scroll_deadzone (set in _ready) still routes a
+	# near-stationary tap to this Button.
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
 	card.pressed.connect(_on_shadow_row_pressed.bind(e["instance_id"]))
 
 	var box := VBoxContainer.new()
