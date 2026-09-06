@@ -154,3 +154,49 @@ static func rest_bonus_applies(today: String, last_exp_date: String) -> bool:
 	if last_exp_date == "" or last_exp_date == today:
 		return false
 	return last_exp_date != _date_minus_one_day(today)
+
+
+## Diminishing Returns day-transition. `had_workout_today` = today's workouts
+## array was non-empty. `today` / `last_exp_date` are "YYYY-MM-DD" device-local,
+## `last_exp_date` is the value BEFORE this grant. `prev_*` are the current
+## HunterState fields. A genuine date gap since the last grant counts as a rest
+## day (## v0 approximation, same as rest_bonus_applies -- "no EXP banked
+## yesterday" conflates rest with "didn't open the app").
+static func next_overtrain_state(
+	had_workout_today: bool,
+	today: String,
+	last_exp_date: String,
+	prev_days: int,
+	prev_overtrained: bool
+) -> Dictionary:
+	var gap_rest := (
+		last_exp_date != ""
+		and last_exp_date != today
+		and last_exp_date != _date_minus_one_day(today)
+	)
+	var days := prev_days
+	var overtrained := prev_overtrained
+	var just_triggered := false
+	var just_cleared := false
+
+	if gap_rest or not had_workout_today:
+		if overtrained:
+			overtrained = false
+			just_cleared = true
+		days = 0
+
+	if had_workout_today:
+		if not gap_rest and last_exp_date == _date_minus_one_day(today):
+			days += 1
+		else:
+			days = 1
+		if days >= GameLogic.OVERTRAIN_DAYS and not overtrained:
+			overtrained = true
+			just_triggered = true
+
+	return {
+		"days": days,
+		"overtrained": overtrained,
+		"just_triggered": just_triggered,
+		"just_cleared": just_cleared,
+	}

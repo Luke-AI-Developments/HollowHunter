@@ -474,15 +474,29 @@ func _maybe_apply_daily_exp() -> void:
 	# last_exp_date, same "before mark_exp_applied() overwrites it"
 	# requirement as next_streak() below.
 	var rest_bonus := DailyExp.rest_bonus_applies(today, state.last_exp_date)
+	var today_utc := Time.get_date_string_from_system(true)
 	var exp := DailyExp.exp_for_today(
-		_steps,
-		_workouts_json,
-		state.subclass,
-		0,
-		rest_bonus,
-		today,
-		Time.get_date_string_from_system(true)
+		_steps, _workouts_json, state.subclass, 0, rest_bonus, today, today_utc
 	)
+	# Diminishing Returns: consecutive-workout-day counter -> overtrained flag.
+	# Read from the OLD last_exp_date (same "before mark_exp_applied() overwrites
+	# it" requirement as next_streak / rest_bonus_applies) and applied BEFORE
+	# add_exp() so today's own grant is already halved when it just triggered.
+	var day_workouts := DailyExp.workouts_for_day(
+		DailyExp.parse_workouts(_workouts_json), today, today_utc
+	)
+	var had_workout := not day_workouts.is_empty()
+	var os := DailyExp.next_overtrain_state(
+		had_workout, today, state.last_exp_date, state.consecutive_workout_days, state.overtrained
+	)
+	state.consecutive_workout_days = os["days"]
+	state.overtrained = os["overtrained"]
+	if os["just_triggered"]:
+		system_toast.show_toast(
+			"Overtraining -- Diminishing Returns active. EXP halved until you rest a day."
+		)
+	if os["just_cleared"]:
+		system_toast.show_toast("Recovered -- full EXP restored.")
 	var levels_gained := state.add_exp(exp)
 	# Code-review fix: next_streak() is a pure "is this the next calendar
 	# day" check -- it doesn't know about exp, so a 0-steps/0-workouts day
