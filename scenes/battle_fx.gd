@@ -261,73 +261,86 @@ func _anchor_centre_for(id: String) -> Vector2:
 	return _anchor_centre(a)
 
 
-## Run-local index of events[idx] within its consecutive non-empty
-## actor_id + move_id run (0 for a lone event / no move_id). slash AoE -- Cleave
-## logs one `damage` event per living enemy -- reads this * 0.06s as its
-## _fx_slash `delay` so the crescents sweep down the line.
+## Indices into `events` of the "move events" -- those carrying BOTH a non-empty
+## actor_id and a non-empty move_id. Everything else (break_fill / break / phase /
+## spawn / ultimate / raw ticks) is a cosmetic or non-move event that core/
+## battle.gd::_land_hit can interleave between a boss's and an add's damage
+## events, and MUST NOT split an AoE run (review fix 1).
+func _move_event_indices(events: Array) -> Array:
+	var out: Array = []
+	for i in events.size():
+		var ev: Dictionary = events[i]
+		if String(ev.get("actor_id", "")) != "" and String(ev.get("move_id", "")) != "":
+			out.append(i)
+	return out
+
+
+## Run-local index of events[idx] among the *move events* sharing its non-empty
+## actor_id + move_id (counting only move events, so an interleaved break / phase
+## event adds no gap -- review fix 1). 0 for a lone event / non-move event. slash
+## AoE -- Cleave logs one `damage` event per living enemy -- reads this * 0.06s
+## as its _fx_slash `delay` so the crescents sweep down the line.
 func _run_offset(events: Array, idx: int) -> int:
 	var aid := String(events[idx].get("actor_id", ""))
 	var mid := String(events[idx].get("move_id", ""))
 	if aid == "" or mid == "":
 		return 0
 	var off := 0
-	var p := idx - 1
-	while (
-		p >= 0
-		and String(events[p].get("actor_id", "")) == aid
-		and String(events[p].get("move_id", "")) == mid
-	):
-		off += 1
-		p -= 1
+	for j in idx:
+		if (
+			String(events[j].get("actor_id", "")) == aid
+			and String(events[j].get("move_id", "")) == mid
+		):
+			off += 1
 	return off
 
 
-## Battle VFX Families AoE pass (spec "AoE handling"): walk `events` once. A run
-## of >= 2 consecutive entries sharing a non-empty actor_id + move_id whose
-## family resolves to "nova" is collapsed into ONE _fx_nova (see _emit_one_nova),
-## and every index in the run is added to the returned skip-set so the main loop
-## `continue`s past it. slash runs are NOT coalesced -- they stagger via
-## _run_offset; pulse `all_allies` runs are left entirely to the main loop.
+## Battle VFX Families AoE pass (spec "AoE handling" + review fix 1): group the
+## batch's move events (via _move_event_indices, so interleaved actor-less
+## cosmetic events don't split a run) into maximal runs sharing actor_id +
+## move_id. A run of >= 2 whose family resolves to "nova" collapses into ONE
+## _fx_nova (see _emit_one_nova); its damage-event indices go in the returned
+## skip-set so the main loop `continue`s past them (the cosmetic events are left
+## in for the main loop to render). slash runs are NOT coalesced -- they stagger
+## via _run_offset; pulse `all_allies` runs are left entirely to the main loop.
 func _emit_nova_runs(events: Array) -> Dictionary:
 	var skip := {}
-	var i := 0
-	while i < events.size():
-		var aid := String(events[i].get("actor_id", ""))
-		var mid := String(events[i].get("move_id", ""))
-		var j := i + 1
+	var moves: Array = _move_event_indices(events)
+	var a := 0
+	while a < moves.size():
+		var first: Dictionary = events[moves[a]]
+		var aid := String(first.get("actor_id", ""))
+		var mid := String(first.get("move_id", ""))
+		var b := a + 1
 		while (
-			j < events.size()
-			and String(events[j].get("actor_id", "")) == aid
-			and String(events[j].get("move_id", "")) == mid
+			b < moves.size()
+			and String(events[moves[b]].get("actor_id", "")) == aid
+			and String(events[moves[b]].get("move_id", "")) == mid
 		):
-			j += 1
-		var nova := (
-			j - i >= 2
-			and aid != ""
-			and mid != ""
-			and String(_move_vfx_for_event(events[i]).get("family", "")) == "nova"
-		)
-		if nova:
-			_emit_one_nova(events, i, j)
-			for k in range(i, j):
-				skip[k] = true
-		i = j
+			b += 1
+		if b - a >= 2 and String(_move_vfx_for_event(first).get("family", "")) == "nova":
+			var run: Array = moves.slice(a, b)
+			_emit_one_nova(events, run)
+			for idx in run:
+				skip[idx] = true
+		a = b
 	return skip
 
 
-## Emit the single coalesced _fx_nova for the events[start, end) nova run: centre
-## = average of each entry's target-anchor centre (an approximation of the
+## Emit the single coalesced _fx_nova for a nova run given as explicit `idxs` into
+## `events` (review fix 1: the run's damage events may be non-adjacent). centre =
+## average of each entry's target-anchor centre (an approximation of the
 ## living-enemy-line centre; good enough for v0), one {anchor, on_arrive} per
 ## entry with on_arrive bound to that entry's own _hit_fx so each hit fires the
 ## frame the ring passes it.
-func _emit_one_nova(events: Array, start: int, end: int) -> void:
-	var fam := _move_vfx_for_event(events[start])
+func _emit_one_nova(events: Array, idxs: Array) -> void:
+	var fam := _move_vfx_for_event(events[idxs[0]])
 	var col: Color = fam["color"]
 	var sc := float(fam["scale"])
 	var hits: Array = []
 	var sum := Vector2.ZERO
-	for k in range(start, end):
-		var ev: Dictionary = events[k]
+	for idx in idxs:
+		var ev: Dictionary = events[idx]
 		var tgt := String(ev.get("target_id", ""))
 		var d := int(ev.get("damage", 0))
 		var cr := bool(ev.get("crit", false))
@@ -338,7 +351,7 @@ func _emit_one_nova(events: Array, start: int, end: int) -> void:
 				"on_arrive": func() -> void: _hit_fx(tgt, d, cr, false),
 			}
 		)
-	_fx_nova(col, sc, sum / float(end - start), hits)
+	_fx_nova(col, sc, sum / float(idxs.size()), hits)
 
 
 ## Task 7: replay this tick's freshly-consumed _battle.log slice (Task 6's
