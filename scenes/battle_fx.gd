@@ -12,20 +12,16 @@ extends RefCounted
 ## party_row trio: _screen_tint / _red_vignette paint $Vignette, which is a
 ## sibling of $Stage, not a child, so it can't be derived from `stage`.
 
-## Battle VFX Polish §3: move_type -> (style, colour). "bolt" travels
-## caster->target before the impact fx fire; "pulse" appears directly on the
-## target with no travel (a heal/buff flying at an ally like a weapon reads
-## wrong). Every colour here is a new v0 choice.
-const MOVE_VFX := {
-	"physical": {"style": "bolt", "color": Color(0.9, 0.9, 0.85)},  ## v0: pale steel
-	"magic": {"style": "bolt", "color": Color(0.4, 0.85, 1.0)},  ## v0: cyan
-	"heal": {"style": "pulse", "color": Color(0.5, 0.95, 0.6)},  ## v0: green
-	"buff": {"style": "pulse", "color": Color(1.0, 0.85, 0.4)},  ## v0: gold
-	"cleanse": {"style": "pulse", "color": Color(0.9, 0.95, 1.0)},  ## v0: pale white
-	"revive": {"style": "pulse", "color": Color(1.0, 0.85, 0.4)},  ## v0: gold
+## Battle VFX Families (design 2026-09-05): per-family v0 default colour for the
+## missing-block fallback in _fallback_family and the Task-4 atk_type / tick
+## stubs -- used only when a move carries no authored `vfx` block (or none at
+## all, for enemy hits / passive ticks). Authored moves override every value.
+const _FAMILY_DEFAULT_COLOR := {
+	"slash": Color(0.91, 0.91, 0.87),  ## v0: pale steel
+	"fireball": Color(0.55, 0.75, 1.0),  ## v0: cyan-blue
+	"nova": Color(0.62, 0.85, 1.0),  ## v0: ice-blue
+	"pulse": Color(0.55, 0.95, 0.7),  ## v0: green
 }
-const _BOLT_FLIGHT_TIME := 0.35  ## v0
-const _PULSE_TIME := 0.4  ## v0
 
 var _stage: Control
 var _arena: Control
@@ -111,42 +107,67 @@ func _pop_number(anchor: Control, text: String, col: Color, big: bool) -> void:
 	)
 
 
-## Battle VFX Polish §3: pure move_type -> VFX style. Unknown/absent types fall
-## to physical's style ("bolt") -- same fallback _move_vfx_for_event uses, so the
-## helper and the production path can't disagree (final review M2).
-static func _vfx_style_for_move_type(move_type: String) -> String:
-	return String(MOVE_VFX.get(move_type, MOVE_VFX["physical"]).get("style", "bolt"))
-
-
-## Battle VFX Polish §3: resolve the {style, color} an event renders with.
-## Player moves carry `move_id`; Ultimates / raw enemy hits carry `atk_type`;
-## passive heals/ticks (poison_tick, regen_tick, lifesteal, devour_heal,
-## leech_heal) carry neither -- poison -> physical bolt, heals -> green pulse.
-## Style via _vfx_style_for_move_type so this path + the pure helper agree (M2).
+## Battle VFX Families (design 2026-09-05): resolve an event to the family it
+## renders with -- {family: String, color: Color, scale: float}. Player moves
+## carry `move_id` -> the move's authored `vfx` block, else a move_type /
+## target_type fallback (_fallback_family). Ultimates / raw enemy hits carry
+## `atk_type` (_atk_type_family -- Task 4). Passive ticks carry neither and go by
+## `ev.type` (_tick_family -- Task 4). Supersedes the VFX-polish MOVE_VFX /
+## _vfx_style_for_move_type path (both deleted).
 func _move_vfx_for_event(ev: Dictionary) -> Dictionary:
 	var move_id := String(ev.get("move_id", ""))
-	var move_type := ""
 	if move_id != "":
-		move_type = String(Content.move_by_id(_moves, move_id).get("move_type", ""))
-	if move_type == "":
-		move_type = String(ev.get("atk_type", ""))
-	if move_type == "":
-		match String(ev.get("type", "")):
-			"poison_tick":
-				move_type = "physical"
-			"regen_tick", "lifesteal", "devour_heal", "leech_heal":
-				move_type = "heal"
-			_:
-				move_type = "physical"
-	var entry: Dictionary = MOVE_VFX.get(move_type, MOVE_VFX["physical"])
-	return {"style": _vfx_style_for_move_type(move_type), "color": entry["color"]}
+		var move: Dictionary = Content.move_by_id(_moves, move_id)
+		var v: Dictionary = move.get("vfx", {})
+		if v.has("family") and v.get("color") is Color and float(v.get("scale", 0.0)) > 0.0:
+			return {
+				"family": String(v["family"]),
+				"color": v["color"],
+				"scale": float(v["scale"]),
+			}
+		return _fallback_family(move)
+	if String(ev.get("atk_type", "")) != "":
+		return _atk_type_family(ev)
+	return _tick_family(ev)
 
 
-## Battle VFX Polish §3 / VFX Families: 10 pooled Controls under $Stage. Each was
-## originally a "bolt" or "pulse" (see _play_move_vfx); the families layer reuses
-## the same nodes as a slash / fireball / burst / nova / pulse -- only the "family"
-## meta + the params the tween writes differ per use, dispatched in _draw_vfx_node.
-## Pooled + round-robin, mirroring _num_pool/_num_next exactly.
+## Missing / partial `vfx` block (spec "Missing-block fallback"): derive the
+## family from the move's move_type + target_type -- physical -> slash; magic +
+## single_enemy -> fireball; magic + all_enemies -> nova; heal / buff / cleanse /
+## revive / taunt / debuff -> pulse; anything else -> slash. Per-family v0 default
+## colour, scale 1.0.
+func _fallback_family(move: Dictionary) -> Dictionary:
+	var mt := String(move.get("move_type", ""))
+	var tt := String(move.get("target_type", ""))
+	var fam := "slash"  ## v0: default for anything unmapped
+	if mt == "magic" and tt == "single_enemy":
+		fam = "fireball"
+	elif mt == "magic" and tt == "all_enemies":
+		fam = "nova"
+	elif mt in ["heal", "buff", "cleanse", "revive", "taunt", "debuff"]:
+		fam = "pulse"
+	return {"family": fam, "color": _FAMILY_DEFAULT_COLOR[fam], "scale": 1.0}
+
+
+## Task 4 stub: enemy attacks / Ultimate `damage` events carry `atk_type` but no
+## `move_id`. Task 4: enemy/Ultimate colour + big_hit/Ultimate scale.
+func _atk_type_family(ev: Dictionary) -> Dictionary:
+	var fam := "fireball" if String(ev.get("atk_type", "")) == "magic" else "slash"
+	return {"family": fam, "color": _FAMILY_DEFAULT_COLOR[fam], "scale": 1.0}  ## v0
+
+
+## Task 4 stub: passive ticks carry neither move_id nor atk_type -- go by ev.type.
+## Task 4: no_number flag on poison_tick.
+func _tick_family(ev: Dictionary) -> Dictionary:
+	if String(ev.get("type", "")) == "poison_tick":
+		return {"family": "pulse", "color": Color(0.5, 0.85, 0.4), "scale": 0.7}  ## v0
+	return {"family": "pulse", "color": Color(0.5, 0.88, 0.6), "scale": 0.8}  ## v0
+
+
+## Battle VFX Families: 10 pooled Controls under $Stage, drawn by _draw_vfx_node
+## dispatching on each node's `family` meta as a slash / fireball / burst / nova /
+## pulse -- only that meta + the params the tween writes differ per use. Pooled +
+## round-robin, mirroring _num_pool/_num_next exactly.
 func build_vfx_pool() -> void:
 	for old in _vfx_pool:
 		if is_instance_valid(old):
@@ -175,7 +196,7 @@ func build_vfx_pool() -> void:
 ## Shared _draw() for every pooled VFX node -- branches on the "family" meta the
 ## caller set. All geometry is node-local around `c` (the node centre); the tween
 ## drives the animated params (radius, sweep, ring width, alpha) through metas and
-## a queue_redraw(). "circle" is the legacy bolt/pulse disc + the nova flash disc.
+## a queue_redraw(). "circle" is the filled disc -- the nova flash-disc branch.
 func _draw_vfx_node(node: Control) -> void:
 	var c: Vector2 = node.size * 0.5
 	var col: Color = node.get_meta("draw_color", Color.WHITE)
@@ -197,70 +218,127 @@ func _draw_vfx_node(node: Control) -> void:
 			node.draw_circle(c, radius, col)  ## v0: centred in the 24x24 node
 
 
-## Battle VFX Polish §3: fires a "bolt" (travels actor_id's anchor -> target_id's
-## anchor) or a "pulse" (appears in place on target_id's anchor) using the
-## given style/colour, then calls on_arrive when the animation completes --
-## the caller binds on_arrive to the existing _hit_fx/_heal_fx call so the
-## damage number / shake / flash / tint only fire once the VFX visually
-## lands. Purely cosmetic timing: core/battle.gd already resolved the whole
-## turn synchronously before this ever runs.
-func _play_move_vfx(
-	style: String, col: Color, actor_id: String, target_id: String, on_arrive: Callable
+## Battle VFX Families: dispatch a resolved {family, color, scale} to its family
+## routine, binding `on_arrive` (a _hit_fx / _heal_fx closure -- the SAME args the
+## retired _play_move_vfx bound) to that family's impact moment. `delay` staggers
+## a slash-AoE run down the enemy line (ignored by every other family -- pulse
+## `all_allies` stays evenly spaced by the pool round-robin, per spec). Unknown
+## family -> slash as a safe fallback. Purely cosmetic timing: core/battle.gd
+## already resolved the whole turn synchronously before this runs.
+func _play_move_family(
+	fam: Dictionary, actor_id: String, target_id: String, on_arrive: Callable, delay: float = 0.0
 ) -> void:
-	var target_anchor := anchor_for(target_id)
-	if _vfx_pool.is_empty() or target_anchor == null:
-		on_arrive.call()
-		return
-	var stage: Control = _stage
-	var node := _vfx_pool[_vfx_next]
-	_vfx_next = (_vfx_next + 1) % _vfx_pool.size()
-	node.set_meta("family", "circle")  ## v0: pool shared with _fx_* -- reset dispatch key
-	node.set_meta("draw_color", col)
-	var target_pos := (
-		target_anchor.get_global_position()
-		+ target_anchor.size * 0.5
-		- stage.get_global_position()
-		- node.size * 0.5
-	)
-	node.visible = true
-	node.modulate = Color(1, 1, 1, 1)
-	node.scale = Vector2.ONE
-	if style == "bolt":
-		var actor_anchor := anchor_for(actor_id)
-		var start_pos := target_pos
-		if actor_anchor != null:
-			start_pos = (
-				actor_anchor.get_global_position()
-				+ actor_anchor.size * 0.5
-				- stage.get_global_position()
-				- node.size * 0.5
+	## Task 5: _vfx_pending increment hooks here
+	var famname := String(fam["family"])
+	var col: Color = fam["color"]
+	var sc := float(fam["scale"])
+	match famname:
+		"slash":
+			_fx_slash(col, sc, anchor_for(target_id), on_arrive, delay)
+		"fireball":
+			_fx_fireball(col, sc, anchor_for(actor_id), anchor_for(target_id), on_arrive)
+		"nova":
+			_fx_nova(
+				col,
+				sc,
+				_anchor_centre_for(target_id),
+				[{"anchor": anchor_for(target_id), "on_arrive": on_arrive}]
 			)
-		node.position = start_pos
-		node.queue_redraw()
-		var t := node.create_tween()
-		t.tween_property(node, "position", target_pos, _BOLT_FLIGHT_TIME)
-		t.tween_callback(
-			func() -> void:
-				node.visible = false
-				on_arrive.call()
+		"pulse":
+			_fx_pulse(col, sc, anchor_for(target_id), on_arrive, {})
+		_:
+			_fx_slash(col, sc, anchor_for(target_id), on_arrive, delay)  ## v0: safe fallback
+
+
+## _stage-local centre of the anchor for combat id `id` -- the String-keyed
+## sibling of _anchor_centre(Control). anchor_for's null fallback is _stage
+## itself, so guard that to a usable mid-stage point (nova centring must never
+## key off a bad value).
+func _anchor_centre_for(id: String) -> Vector2:
+	var a := anchor_for(id)
+	if a == _stage:
+		return _stage.size * 0.5
+	return _anchor_centre(a)
+
+
+## Run-local index of events[idx] within its consecutive non-empty
+## actor_id + move_id run (0 for a lone event / no move_id). slash AoE -- Cleave
+## logs one `damage` event per living enemy -- reads this * 0.06s as its
+## _fx_slash `delay` so the crescents sweep down the line.
+func _run_offset(events: Array, idx: int) -> int:
+	var aid := String(events[idx].get("actor_id", ""))
+	var mid := String(events[idx].get("move_id", ""))
+	if aid == "" or mid == "":
+		return 0
+	var off := 0
+	var p := idx - 1
+	while (
+		p >= 0
+		and String(events[p].get("actor_id", "")) == aid
+		and String(events[p].get("move_id", "")) == mid
+	):
+		off += 1
+		p -= 1
+	return off
+
+
+## Battle VFX Families AoE pass (spec "AoE handling"): walk `events` once. A run
+## of >= 2 consecutive entries sharing a non-empty actor_id + move_id whose
+## family resolves to "nova" is collapsed into ONE _fx_nova (see _emit_one_nova),
+## and every index in the run is added to the returned skip-set so the main loop
+## `continue`s past it. slash runs are NOT coalesced -- they stagger via
+## _run_offset; pulse `all_allies` runs are left entirely to the main loop.
+func _emit_nova_runs(events: Array) -> Dictionary:
+	var skip := {}
+	var i := 0
+	while i < events.size():
+		var aid := String(events[i].get("actor_id", ""))
+		var mid := String(events[i].get("move_id", ""))
+		var j := i + 1
+		while (
+			j < events.size()
+			and String(events[j].get("actor_id", "")) == aid
+			and String(events[j].get("move_id", "")) == mid
+		):
+			j += 1
+		var nova := (
+			j - i >= 2
+			and aid != ""
+			and mid != ""
+			and String(_move_vfx_for_event(events[i]).get("family", "")) == "nova"
 		)
-	else:  # "pulse"
-		node.position = target_pos
-		node.scale = Vector2(0.3, 0.3)  ## v0
-		node.modulate.a = 0.0
-		node.queue_redraw()
-		# final review I2: alpha in/out is one delayed sub-sequence INSIDE the parallel
-		# step (not a chained step), so on_arrive chains at ~_PULSE_TIME, not ~0.64s.
-		var t := node.create_tween()
-		t.set_parallel(true)
-		t.tween_property(node, "scale", Vector2(1.4, 1.4), _PULSE_TIME)  ## v0
-		t.tween_property(node, "modulate:a", 1.0, _PULSE_TIME * 0.4)  ## v0
-		t.tween_property(node, "modulate:a", 0.0, _PULSE_TIME * 0.6).set_delay(_PULSE_TIME * 0.4)  ## v0
-		t.chain().tween_callback(
-			func() -> void:
-				node.visible = false
-				on_arrive.call()
+		if nova:
+			_emit_one_nova(events, i, j)
+			for k in range(i, j):
+				skip[k] = true
+		i = j
+	return skip
+
+
+## Emit the single coalesced _fx_nova for the events[start, end) nova run: centre
+## = average of each entry's target-anchor centre (an approximation of the
+## living-enemy-line centre; good enough for v0), one {anchor, on_arrive} per
+## entry with on_arrive bound to that entry's own _hit_fx so each hit fires the
+## frame the ring passes it.
+func _emit_one_nova(events: Array, start: int, end: int) -> void:
+	var fam := _move_vfx_for_event(events[start])
+	var col: Color = fam["color"]
+	var sc := float(fam["scale"])
+	var hits: Array = []
+	var sum := Vector2.ZERO
+	for k in range(start, end):
+		var ev: Dictionary = events[k]
+		var tgt := String(ev.get("target_id", ""))
+		var d := int(ev.get("damage", 0))
+		var cr := bool(ev.get("crit", false))
+		sum += _anchor_centre_for(tgt)
+		hits.append(
+			{
+				"anchor": anchor_for(tgt),
+				"on_arrive": func() -> void: _hit_fx(tgt, d, cr, false),
+			}
 		)
+	_fx_nova(col, sc, sum / float(end - start), hits)
 
 
 ## Task 7: replay this tick's freshly-consumed _battle.log slice (Task 6's
@@ -268,42 +346,42 @@ func _play_move_vfx(
 ## centre banner, red vignette, Ultimate gold tint. Reads nothing back and
 ## changes no pacing; `_:` types are already covered by the ticker.
 func play_new_events(events: Array) -> void:
-	for ev: Dictionary in events:
+	var skip := _emit_nova_runs(events)  ## nova-AoE coalescing: one ring per run
+	for i in events.size():
+		if skip.has(i):
+			continue
+		var ev: Dictionary = events[i]
 		match String(ev.get("type", "")):
 			"damage", "poison_tick":
 				var target_id := String(ev.get("target_id", ""))
 				var dmg := int(ev.get("damage", 0))
 				var crit := bool(ev.get("crit", false))
-				var vfx := _move_vfx_for_event(ev)
-				_play_move_vfx(
-					String(vfx["style"]),
-					vfx["color"],
+				var fam := _move_vfx_for_event(ev)
+				_play_move_family(
+					fam,
 					String(ev.get("actor_id", "")),
 					target_id,
-					func() -> void: _hit_fx(target_id, dmg, crit, false)
+					func() -> void: _hit_fx(target_id, dmg, crit, false),
+					_run_offset(events, i) * 0.06  ## v0: slash-AoE stagger down the line
 				)
 			"enemy_attack":
 				var target_id := String(ev.get("target_id", ""))
 				var dmg := int(ev.get("damage", 0))
 				var big := bool(ev.get("big_hit", false))
-				var vfx := _move_vfx_for_event(ev)
-				_play_move_vfx(
-					String(vfx["style"]),
-					vfx["color"],
+				var fam := _move_vfx_for_event(ev)
+				_play_move_family(
+					fam,
 					String(ev.get("actor_id", "")),
 					target_id,
-					func() -> void: _hit_fx(target_id, dmg, big, big)
+					func() -> void: _hit_fx(target_id, dmg, big, big),
+					_run_offset(events, i) * 0.06  ## v0
 				)
 			"heal", "regen_tick", "devour_heal", "leech_heal", "lifesteal":
 				var who := String(ev.get("target_id", ev.get("actor_id", "")))
 				var amt := int(ev.get("amount", 0))
-				var vfx := _move_vfx_for_event(ev)
-				_play_move_vfx(
-					String(vfx["style"]),
-					vfx["color"],
-					String(ev.get("actor_id", who)),
-					who,
-					func() -> void: _heal_fx(who, amt)
+				var fam := _move_vfx_for_event(ev)
+				_play_move_family(
+					fam, String(ev.get("actor_id", who)), who, func() -> void: _heal_fx(who, amt)
 				)
 			"break":
 				_banner_fx("BREAK!", Color(1, 0.7, 0.3))  ## v0: amber
@@ -481,14 +559,14 @@ func anchor_for(id: String) -> Control:
 ## that is families task 3.
 
 
-## Centre of `anchor` in _stage-local coords -- the idiom _play_move_vfx /
-## _pop_number use (the caller still subtracts node.size*0.5 to place a node).
+## Centre of `anchor` in _stage-local coords -- the idiom _pop_number /
+## _anchor_centre_for use (the caller still subtracts node.size*0.5 to place a node).
 func _anchor_centre(anchor: Control) -> Vector2:
 	return anchor.get_global_position() + anchor.size * 0.5 - _stage.get_global_position()
 
 
 ## Return a pooled node to a clean rest state before a family reuses it (mirrors
-## the visible/scale/modulate/position resets _play_move_vfx does inline).
+## the visible/scale/modulate/position resets the _fx_* routines expect).
 func _reset_vfx_node(node: Control) -> void:
 	node.visible = false
 	node.scale = Vector2.ONE
@@ -556,7 +634,7 @@ func _draw_slash(node: Control, c: Vector2, col: Color) -> void:
 	g2.a = col.a * 0.2  ## v0: ghost 2 alpha
 	node.draw_arc(c, radius, a0 - 0.55, a1 - 0.55, 24, g2, width, true)  ## v0: -0.55 rad ghost
 	node.draw_arc(c, radius, a0 - 0.28, a1 - 0.28, 24, g1, width, true)  ## v0: -0.28 rad ghost
-	node.draw_arc(c, radius, a0, a1, 28, col, width, true)
+	node.draw_arc(c, radius, a0, a1, 28, col, width, true)  ## v0: 28-seg body arc
 	node.draw_arc(c, radius - width * 0.35, a0, a1, 28, edge, maxf(width * 0.4, 1.0), true)  ## v0
 	if float(node.get_meta("slash_impact", 0.0)) > 0.0:
 		var dir := Vector2(cos(a1), sin(a1))
@@ -734,7 +812,7 @@ func _draw_nova(node: Control, c: Vector2, col: Color) -> void:
 		return
 	var inner := col
 	inner.a = col.a * 0.35  ## v0: faint trail ring
-	node.draw_arc(c, r, 0.0, TAU, 64, col, w, true)
+	node.draw_arc(c, r, 0.0, TAU, 64, col, w, true)  ## v0: 64-seg ring
 	node.draw_arc(c, r * 0.8, 0.0, TAU, 64, inner, maxf(w * 0.5, 1.0), true)  ## v0
 
 
@@ -813,9 +891,9 @@ func _draw_lift_beam(node: Control, c: Vector2, col: Color, k: float) -> void:
 	var a: float = 0.55 * grow * fade  ## v0: peak alpha
 	if a <= 0.0:
 		return
-	var hw := w * 0.5
+	var hw := w * 0.5  ## v0: half-width
 	var top := c.y - h * grow
-	var mid := c.y - h * grow * 0.5
+	var mid := c.y - h * grow * 0.5  ## v0: gradient meets at the mid-line
 	var clear := Color(col.r, col.g, col.b, 0.0)
 	var bright := Color(col.r, col.g, col.b, a)
 	var top_quad := PackedVector2Array(
