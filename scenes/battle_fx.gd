@@ -119,13 +119,21 @@ func _move_vfx_for_event(ev: Dictionary) -> Dictionary:
 	if move_id != "":
 		var move: Dictionary = Content.move_by_id(_moves, move_id)
 		var v: Dictionary = move.get("vfx", {})
+		var out: Dictionary
 		if v.has("family") and v.get("color") is Color and float(v.get("scale", 0.0)) > 0.0:
-			return {
+			out = {
 				"family": String(v["family"]),
 				"color": v["color"],
 				"scale": float(v["scale"]),
 			}
-		return _fallback_family(move)
+		else:
+			out = _fallback_family(move)
+		## v0: Weaken-style debuff pulse shows no +N; Reconstitute adds the lift beam.
+		if String(move.get("move_type", "")) == "debuff":
+			out["no_number"] = true
+		if String(move.get("target_type", "")) == "downed_ally":
+			out["lift"] = true
+		return out
 	if String(ev.get("atk_type", "")) != "":
 		return _atk_type_family(ev)
 	return _tick_family(ev)
@@ -146,22 +154,43 @@ func _fallback_family(move: Dictionary) -> Dictionary:
 		fam = "nova"
 	elif mt in ["heal", "buff", "cleanse", "revive", "taunt", "debuff"]:
 		fam = "pulse"
-	return {"family": fam, "color": _FAMILY_DEFAULT_COLOR[fam], "scale": 1.0}
+	var out := {"family": fam, "color": _FAMILY_DEFAULT_COLOR[fam], "scale": 1.0}
+	if mt == "debuff":
+		out["no_number"] = true  ## v0: Weaken debuff shows no +N
+	if tt == "downed_ally":
+		out["lift"] = true  ## v0: Reconstitute lift beam
+	return out
 
 
-## Task 4 stub: enemy attacks / Ultimate `damage` events carry `atk_type` but no
-## `move_id`. Task 4: enemy/Ultimate colour + big_hit/Ultimate scale.
+## Enemy attacks and Ultimate-attributed `damage` events carry `atk_type` but no
+## `move_id`. magic -> fireball / violet; physical (or anything else) -> slash /
+## dull red-bone. scale: an Ultimate `damage` (distinguished by `type == "damage"`
+## -- a player-move `damage` never reaches here, it took the `move_id` branch;
+## `enemy_attack` events carry `type == "enemy_attack"`) -> 1.5; a plain
+## `enemy_attack` -> 1.4 if telegraphed (`big_hit`) else 1.0. The subclass Ultimate
+## colour is not on the event, so just use the atk_type default (spec note).
 func _atk_type_family(ev: Dictionary) -> Dictionary:
-	var fam := "fireball" if String(ev.get("atk_type", "")) == "magic" else "slash"
-	return {"family": fam, "color": _FAMILY_DEFAULT_COLOR[fam], "scale": 1.0}  ## v0
+	var is_magic := String(ev.get("atk_type", "")) == "magic"
+	var fam := "fireball" if is_magic else "slash"
+	## v0: magic -> violet; physical / other -> dull red / bone
+	var col := Color(0.77, 0.52, 0.9) if is_magic else Color(0.85, 0.55, 0.5)
+	var sc := 1.0  ## v0: plain enemy_attack
+	if String(ev.get("type", "")) == "damage":
+		sc = 1.5  ## v0: Ultimate-attributed damage
+	elif bool(ev.get("big_hit", false)):
+		sc = 1.4  ## v0: telegraphed big hit
+	return {"family": fam, "color": col, "scale": sc}
 
 
-## Task 4 stub: passive ticks carry neither move_id nor atk_type -- go by ev.type.
-## Task 4: no_number flag on poison_tick.
+## Passive ticks carry neither move_id nor atk_type -- go by ev.type. poison_tick
+## is a small green in-place pulse with NO floating "+N" (`no_number`); regen /
+## lifesteal / devour / leech ticks are a slightly larger green pulse WITH the "+N".
 func _tick_family(ev: Dictionary) -> Dictionary:
 	if String(ev.get("type", "")) == "poison_tick":
-		return {"family": "pulse", "color": Color(0.5, 0.85, 0.4), "scale": 0.7}  ## v0
-	return {"family": "pulse", "color": Color(0.5, 0.88, 0.6), "scale": 0.8}  ## v0
+		## v0: green, no +N
+		return {"family": "pulse", "color": Color(0.5, 0.85, 0.4), "scale": 0.7, "no_number": true}
+	## v0: green, with +N
+	return {"family": "pulse", "color": Color(0.5, 0.88, 0.6), "scale": 0.8}
 
 
 ## Battle VFX Families: 10 pooled Controls under $Stage, drawn by _draw_vfx_node
@@ -245,7 +274,12 @@ func _play_move_family(
 				[{"anchor": anchor_for(target_id), "on_arrive": on_arrive}]
 			)
 		"pulse":
-			_fx_pulse(col, sc, anchor_for(target_id), on_arrive, {})
+			var flags := {}
+			if fam.get("no_number", false):
+				flags["no_number"] = true
+			if fam.get("lift", false):
+				flags["lift"] = true
+			_fx_pulse(col, sc, anchor_for(target_id), on_arrive, flags)
 		_:
 			_fx_slash(col, sc, anchor_for(target_id), on_arrive, delay)  ## v0: safe fallback
 
