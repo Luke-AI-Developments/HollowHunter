@@ -400,7 +400,10 @@ func _emit_one_nova(events: Array, idxs: Array) -> void:
 		hits.append(
 			{
 				"anchor": anchor_for(tgt),
-				"on_arrive": func() -> void: _hit_fx(tgt, d, cr, false),
+				## whole-branch review fix: thread no_number through for uniformity
+				## (nova-family events never set it today -- default false is harmless).
+				"on_arrive":
+				func() -> void: _hit_fx(tgt, d, cr, false, bool(fam.get("no_number", false))),
 			}
 		)
 	## Task 5 (bug B2): the coalesced ring bypasses _play_move_family -- count it here,
@@ -430,7 +433,10 @@ func play_new_events(events: Array) -> void:
 					fam,
 					String(ev.get("actor_id", "")),
 					target_id,
-					func() -> void: _hit_fx(target_id, dmg, crit, false),
+					## whole-branch review fix: thread fam's no_number through so a
+					## poison tick suppresses ONLY the "+N" -- shake/flash still fire.
+					func() -> void:
+						_hit_fx(target_id, dmg, crit, false, bool(fam.get("no_number", false))),
 					_run_offset(events, i) * 0.06  ## v0: slash-AoE stagger down the line
 				)
 			"enemy_attack":
@@ -442,7 +448,10 @@ func play_new_events(events: Array) -> void:
 					fam,
 					String(ev.get("actor_id", "")),
 					target_id,
-					func() -> void: _hit_fx(target_id, dmg, big, big),
+					## whole-branch review fix: thread no_number through for uniformity
+					## (enemy_attack's fam never sets it today -- default false is harmless).
+					func() -> void:
+						_hit_fx(target_id, dmg, big, big, bool(fam.get("no_number", false))),
 					_run_offset(events, i) * 0.06  ## v0
 				)
 			"heal", "regen_tick", "devour_heal", "leech_heal", "lifesteal":
@@ -480,14 +489,17 @@ func play_new_events(events: Array) -> void:
 ## Task 7: an incoming hit on `target_id` -- a rising damage number (grey
 ## em-dash if it did nothing, gold + larger on a crit / big hit), a positional
 ## shake, a white flash on the portrait, and, only for a boss BIG HIT (`big`),
-## a red screen pulse.
-func _hit_fx(target_id: String, dmg: int, crit: bool, big: bool) -> void:
+## a red screen pulse. Whole-branch review fix: `no_number` (poison ticks)
+## suppresses ONLY the floating number -- shake / white flash / vignette
+## always fire, matching the pre-families bolt/pulse behaviour.
+func _hit_fx(target_id: String, dmg: int, crit: bool, big: bool, no_number: bool = false) -> void:
 	var anchor := anchor_for(target_id)
 	var loud := crit or big
-	if dmg <= 0:
-		_pop_number(anchor, "—", Color(0.7, 0.7, 0.72), false)  ## v0: grey
-	else:
-		_pop_number(anchor, str(dmg), Color(1, 0.85, 0.35) if crit else Color.WHITE, loud)
+	if not no_number:
+		if dmg <= 0:
+			_pop_number(anchor, "—", Color(0.7, 0.7, 0.72), false)  ## v0: grey
+		else:
+			_pop_number(anchor, str(dmg), Color(1, 0.85, 0.35) if crit else Color.WHITE, loud)
 	_shake(anchor, 10.0 if loud else 6.0)  ## v0
 	_white_flash(anchor)
 	if big:
@@ -903,8 +915,10 @@ func _draw_nova(node: Control, c: Vector2, col: Color) -> void:
 ## pulse -- all support. A ring that grows (r (0.3 + 1.1*ease_out(k)) * 26*scale)
 ## and fades (alpha sin(k*PI)) in place on the target, an inner ring at r*0.62, and
 ## 3 motes rising ~30*scale staggered ~40ms. style_flags.lift -> the Reconstitute
-## vertical gradient beam; style_flags.no_number -> skip on_arrive (Weaken debuff,
-## no "+N"); style_flags.sign ("+"/"-") is reserved. on_arrive fires at ~0.12s.
+## vertical gradient beam; style_flags.sign ("+"/"-") is reserved. on_arrive ALWAYS
+## fires at ~0.12s -- whole-branch review fix: any "+N" suppression (poison ticks)
+## is the on_arrive closure's own concern (_hit_fx's no_number param), not
+## _fx_pulse's; this routine never swallows the callback itself.
 func _fx_pulse(
 	col: Color,
 	scale: float,
@@ -912,10 +926,8 @@ func _fx_pulse(
 	on_arrive: Callable,
 	style_flags: Dictionary = {}
 ) -> void:
-	var no_number := bool(style_flags.get("no_number", false))
 	if _vfx_pool.is_empty() or target_anchor == null:
-		if not no_number:
-			on_arrive.call()
+		on_arrive.call()
 		_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: no tween -> no terminal callback
 		return
 	var lift := bool(style_flags.get("lift", false))
@@ -938,8 +950,7 @@ func _fx_pulse(
 	var t := node.create_tween()
 	t.set_parallel(true)
 	t.tween_method(_vfx_set.bind(node, "pulse_k"), 0.0, 1.0, life)
-	if not no_number:
-		t.tween_callback(on_arrive).set_delay(0.12)  ## v0
+	t.tween_callback(on_arrive).set_delay(0.12)  ## v0
 	t.chain().tween_callback(
 		func() -> void:
 			node.visible = false
