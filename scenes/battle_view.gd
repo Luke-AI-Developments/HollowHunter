@@ -1163,6 +1163,17 @@ func _on_skip_pressed() -> void:
 ## occupy the same screen space -- aren't drawn over still-visible combat UI,
 ## then styles the win/loss headline and fades it in over a one-shot tween.
 func _show_results() -> void:
+	# Bug B2: a killing blow leaves _battle.is_over true the same frame BattleFx
+	# starts the family VFX for that hit. Hold the mid-battle bands visible until
+	# the fireball / slash / nova + its impact number have played (BattleFx tracks
+	# them in _vfx_pending), then swap in VICTORY!/DEFEAT. One await here covers all
+	# six is_over callers. No BattleView test drives a flow into _show_results, so
+	# the frame delay this adds breaks nothing (grep tests/ 2026-09-08).
+	if _fx != null:
+		var waited := 0.0
+		while _fx.vfx_pending() > 0 and waited < 1.2:  ## v0: hard safety cap
+			await get_tree().create_timer(0.05).timeout  ## v0: poll step
+			waited += 0.05
 	arena.visible = false
 	turn_strip.visible = false
 	$Stage.visible = false

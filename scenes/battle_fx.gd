@@ -38,6 +38,14 @@ var _shake_tweens: Dictionary = {}  ## final review I2: Control -> live shake Tw
 ## overlapping shake on the same node kills the old one instead of stranding it mid-offset
 var _vfx_pool: Array[Control] = []  ## Battle VFX Polish §3: pooled bolt/pulse nodes under $Stage
 var _vfx_next: int = 0  ## round-robin cursor into _vfx_pool, mirrors _num_pool/_num_next
+## Task 5 (bug B2): count of family VFX whose visible motion + on_arrive impact fx
+## are still in flight. Incremented ONCE per _fx_* invocation -- in _play_move_family
+## (every dispatch arm calls exactly one terminal _fx_*) and in _emit_one_nova (the
+## coalesced multi-target ring, which bypasses _play_move_family); decremented in each
+## family's terminal tween_callback and defensively on every anchor-less early-out.
+## BattleView._show_results() awaits this hitting 0 (or a 1.2s cap) before it swaps
+## the mid-battle bands for VICTORY!/DEFEAT, so the killing-blow animation is seen.
+var _vfx_pending: int = 0
 
 
 func _init(stage: Control, arena: Control, party_row: Control, vignette: ColorRect) -> void:
@@ -55,6 +63,13 @@ func begin_fight(battle: Battle, moves: Array, rebuild_enemies: Callable) -> voi
 	_battle = battle
 	_moves = moves
 	_rebuild_enemies = rebuild_enemies
+	_vfx_pending = 0  ## Task 5: a fresh fight never inherits a torn-down fight's stuck count
+
+
+## Task 5 (bug B2): outstanding in-flight family VFX. BattleView._show_results()
+## polls this and holds the results screen until it returns to 0 (or its 1.2s cap).
+func vfx_pending() -> int:
+	return _vfx_pending
 
 
 ## Task 7: eight reusable floating-number Labels under $Stage, hidden until
@@ -257,7 +272,10 @@ func _draw_vfx_node(node: Control) -> void:
 func _play_move_family(
 	fam: Dictionary, actor_id: String, target_id: String, on_arrive: Callable, delay: float = 0.0
 ) -> void:
-	## Task 5: _vfx_pending increment hooks here
+	## Task 5 (bug B2): one increment per dispatch -- every arm below (incl. the `_:`
+	## fallback) calls exactly one terminal _fx_*; that routine's terminal callback (or
+	## its anchor-less early-out) owns the matching decrement.
+	_vfx_pending += 1
 	var famname := String(fam["family"])
 	var col: Color = fam["color"]
 	var sc := float(fam["scale"])
@@ -385,6 +403,10 @@ func _emit_one_nova(events: Array, idxs: Array) -> void:
 				"on_arrive": func() -> void: _hit_fx(tgt, d, cr, false),
 			}
 		)
+	## Task 5 (bug B2): the coalesced ring bypasses _play_move_family -- count it here,
+	## once per _fx_nova call (one ring = one terminal decrement in _nova_finish),
+	## matching the "once per _fx_* invocation" rule.
+	_vfx_pending += 1
 	_fx_nova(col, sc, sum / float(idxs.size()), hits)
 
 
@@ -643,6 +665,7 @@ func _fx_slash(
 ) -> void:
 	if _vfx_pool.is_empty() or target_anchor == null:
 		on_arrive.call()
+		_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: no tween -> no terminal callback
 		return
 	var node := _vfx_pool[_vfx_next]
 	_vfx_next = (_vfx_next + 1) % _vfx_pool.size()
@@ -664,7 +687,11 @@ func _fx_slash(
 	t.tween_callback(on_arrive).set_delay(delay + 0.16)  ## v0
 	t.tween_callback(_slash_impact.bind(node, false)).set_delay(delay + 0.34)  ## v0
 	t.tween_property(node, "modulate:a", 0.0, 0.4).set_delay(delay + 0.18)  ## v0
-	t.chain().tween_callback(func() -> void: node.visible = false)
+	t.chain().tween_callback(
+		func() -> void:
+			node.visible = false
+			_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: slash terminal
+	)
 
 
 func _draw_slash(node: Control, c: Vector2, col: Color) -> void:
@@ -700,6 +727,7 @@ func _fx_fireball(
 ) -> void:
 	if _vfx_pool.is_empty() or to_anchor == null:
 		on_arrive.call()
+		_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: no tween -> no terminal callback
 		return
 	var node := _vfx_pool[_vfx_next]
 	_vfx_next = (_vfx_next + 1) % _vfx_pool.size()
@@ -720,6 +748,12 @@ func _fx_fireball(
 	var t := node.create_tween()
 	t.tween_method(_fireball_step.bind(node, p0, pc, p1), 0.0, 1.0, 0.32)  ## v0
 	t.tween_callback(_fireball_arrive.bind(node, col, scale, p1, on_arrive))
+	## Task 5: _fireball_arrive runs on_arrive itself, so the terminal decrement is a
+	## trailing callback held ~0.2s (the _fx_burst ring's life) past arrival -- keeps
+	## the results hold up through the burst, mirroring slash/nova/pulse's post-arrive
+	## terminal.
+	t.tween_interval(0.2)  ## v0: _fx_burst ring life
+	t.tween_callback(func() -> void: _vfx_pending = max(_vfx_pending - 1, 0))
 
 
 func _fireball_step(t: float, node: Control, p0: Vector2, pc: Vector2, p1: Vector2) -> void:
@@ -787,10 +821,12 @@ func _fx_burst(col: Color, scale: float, centre: Vector2) -> void:
 ## never reaches still fire on the terminal callback so the game can't stall.
 func _fx_nova(col: Color, scale: float, centre: Vector2, hits: Array) -> void:
 	if hits.is_empty():
+		_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: caller pre-incremented
 		return
 	if _vfx_pool.size() < 2:
 		for h: Dictionary in hits:
 			(h.get("on_arrive") as Callable).call()
+		_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: no tween -> no _nova_finish
 		return
 	var disc := _vfx_pool[_vfx_next]
 	_vfx_next = (_vfx_next + 1) % _vfx_pool.size()
@@ -850,6 +886,7 @@ func _nova_finish(ring: Control, hits: Array, fired: Array) -> void:
 		if not bool(fired[i]):
 			fired[i] = true
 			(hits[i].get("on_arrive") as Callable).call()
+	_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: nova terminal (one ring, N hits -> one)
 
 
 func _draw_nova(node: Control, c: Vector2, col: Color) -> void:
@@ -879,6 +916,7 @@ func _fx_pulse(
 	if _vfx_pool.is_empty() or target_anchor == null:
 		if not no_number:
 			on_arrive.call()
+		_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: no tween -> no terminal callback
 		return
 	var lift := bool(style_flags.get("lift", false))
 	var node := _vfx_pool[_vfx_next]
@@ -902,7 +940,11 @@ func _fx_pulse(
 	t.tween_method(_vfx_set.bind(node, "pulse_k"), 0.0, 1.0, life)
 	if not no_number:
 		t.tween_callback(on_arrive).set_delay(0.12)  ## v0
-	t.chain().tween_callback(func() -> void: node.visible = false)
+	t.chain().tween_callback(
+		func() -> void:
+			node.visible = false
+			_vfx_pending = max(_vfx_pending - 1, 0)  ## Task 5: pulse terminal
+	)
 
 
 func _draw_pulse(node: Control, c: Vector2, col: Color) -> void:
