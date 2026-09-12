@@ -673,7 +673,9 @@ func _party_role_comp_ok() -> bool:
 	var rs := SquadBuilder.party_role_status(party, state.subclass)
 	if rs["valid"]:
 		return true
-	system_toast.show_toast("Party needs a %s." % String(rs["missing"][0]))
+	var role := String(rs["missing"][0])
+	var article := "an" if role.begins_with("a") else "a"  ## v0: only "attacker" needs "an"
+	system_toast.show_toast("Party needs %s %s." % [article, role])
 	return false
 
 
