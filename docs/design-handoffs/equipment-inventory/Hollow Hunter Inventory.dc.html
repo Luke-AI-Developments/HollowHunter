@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#03070d; color:#dff6ff; font-family:'Chakra Petch',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#22d3ee; text-decoration:none; }
+  a:hover { color:#7ff0ff; }
+  ::-webkit-scrollbar { width:0; height:0; }
+  @keyframes legPulse { 0%,100% { opacity:.45 } 50% { opacity:.9 } }
+  @keyframes scan { 0% { transform:translateY(-100%) } 100% { transform:translateY(900%) } }
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(120% 80% at 50% 0%,#071019 0%,#03070d 60%)">
+  <div style="position:relative;width:390px;height:844px;display:flex;flex-direction:column;background:#03070d;border:1px solid #16283a;overflow:hidden;box-shadow:0 0 80px rgba(34,211,238,.06)">
+
+    <div style="position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(127,240,255,.028) 0px,rgba(127,240,255,.028) 1px,transparent 1px,transparent 3px);z-index:40"></div>
+
+    <!-- TOP BAND — information only -->
+    <div style="padding:16px 16px 12px;border-bottom:1px solid #16283a;background:linear-gradient(180deg,rgba(13,24,38,.9),rgba(3,7,13,0))">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div style="font-size:24px;font-weight:700;letter-spacing:.14em;color:#7ff0ff;line-height:1;text-shadow:0 0 18px rgba(127,240,255,.28)">EQUIPMENT</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.24em;color:#7f97a8">ESSENCE</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:9px;height:9px;background:#7ff0ff;transform:rotate(45deg);box-shadow:0 0 10px rgba(127,240,255,.7)"></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#dff6ff;letter-spacing:.02em">12,480</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1;height:4px;background:#0a1420;border:1px solid #16283a;position:relative;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,#16283a,#7f97a8)"></div>
+          <div style="position:absolute;left:83%;top:0;bottom:0;right:0;background:repeating-linear-gradient(135deg,#f0b429 0,#f0b429 2px,transparent 2px,transparent 5px)"></div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:#f0b429">128<span style="color:#7f97a8">/120</span></div>
+      </div>
+      <div style="margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;color:#f0b429;opacity:.85">▲ STORAGE CAPACITY EXCEEDED — ESSENCE −15%</div>
+    </div>
+
+    <!-- TABS -->
+    <div style="display:flex;border-bottom:1px solid #16283a;background:#03070d">
+      <div onClick="{{ showItems }}" style="{{ tabItemsStyle }}">ITEMS <span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:.6">128</span></div>
+      <div onClick="{{ showSets }}" style="{{ tabSetsStyle }}">SETS <span style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:.6">11</span></div>
+    </div>
+
+    <!-- FILTER / SORT BAR (pinned) -->
+    <sc-if value="{{ isItems }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:10px 0 9px;border-bottom:1px solid #16283a;background:linear-gradient(180deg,#070e17,#03070d)">
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:0 16px">
+        <sc-for list="{{ classPills }}" as="p" hint-placeholder-count="6">
+          <div onClick="{{ p.onClick }}" style="{{ p.style }}">{{ p.label }}</div>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:0 16px;margin-top:6px;align-items:stretch">
+        <sc-for list="{{ facetChips }}" as="c" hint-placeholder-count="4">
+          <div style="{{ c.style }}">{{ c.label }}<span style="color:#7f97a8;margin-left:3px">▾</span></div>
+        </sc-for>
+        <div onClick="{{ cycleSort }}" style="display:flex;align-items:center;justify-content:center;gap:3px;padding:5px 2px;border:1px solid rgba(34,211,238,.45);background:rgba(34,211,238,.08);color:#22d3ee;font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.04em;cursor:pointer;min-width:0;clip-path:polygon(0 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%)">⇅ {{ sortLabel }}</div>
+      </div>
+    </div>
+
+    <!-- GRID -->
+    <div style="flex:1;overflow-y:auto;padding:12px 14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.18em;color:#7f97a8">
+        <span>UNEQUIPPED CACHE · 20 SHOWN</span>
+        <span style="color:#f0b429">3 LOCKED</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="20">
+          <div onClick="{{ it.onClick }}" style="{{ it.outerStyle }}">
+            <div style="{{ it.innerStyle }}">
+              <div style="{{ it.glowStyle }}"></div>
+              <div style="{{ it.hatchStyle }}"></div>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:6px 3px 9px">
+                <div style="{{ it.iconStyle }}"></div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:6.5px;line-height:1.25;letter-spacing:.04em;text-align:center;color:#dff6ff;opacity:.82;text-wrap:pretty">{{ it.name }}</div>
+              </div>
+              <div style="{{ it.cornerA }}"></div>
+              <div style="{{ it.cornerB }}"></div>
+              <div style="position:absolute;left:0;right:0;bottom:0;display:flex;gap:1px;padding:0 2px 2px">
+                <sc-for list="{{ it.pips }}" as="pip" hint-placeholder-count="5">
+                  <div style="{{ pip.style }}"></div>
+                </sc-for>
+              </div>
+              <div style="{{ it.powerStyle }}">{{ it.power }}</div>
+              <div style="{{ it.eqStyle }}">EQ</div>
+              <div style="{{ it.lockStyle }}">
+                <div style="width:5px;height:5px;border:1px solid #f0b429;border-bottom:none;border-radius:3px 3px 0 0;margin-bottom:-1px"></div>
+                <div style="width:8px;height:5px;background:#f0b429"></div>
+              </div>
+              <div style="{{ it.selStyle }}"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="height:8px"></div>
+    </div>
+
+    <!-- THUMB ZONE -->
+    <div style="border-top:1px solid #16283a;background:linear-gradient(180deg,rgba(10,20,32,.96),rgba(3,7,13,.99));backdrop-filter:blur(6px);padding:12px 16px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div onClick="{{ toggleSelectMode }}" style="{{ selectModeStyle }}">◈ MULTI-SELECT {{ selectModeWord }}</div>
+        <div onClick="{{ clearSel }}" style="padding:7px 10px;border:1px solid #16283a;color:#7f97a8;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;cursor:pointer">CLEAR</div>
+      </div>
+
+      <div style="margin-top:11px;border:1px solid #16283a;background:rgba(13,24,38,.7);padding:11px 12px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;color:#7f97a8">SCRAP QUEUE</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:#dff6ff">{{ selCount }} SELECTED</div>
+        </div>
+        <div style="height:1px;background:#16283a;margin:9px 0"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.18em;color:#7f97a8">ESSENCE YIELD</div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <div style="width:8px;height:8px;background:#7ff0ff;transform:rotate(45deg);box-shadow:0 0 8px rgba(127,240,255,.6)"></div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;color:#7ff0ff;line-height:1">+{{ yieldText }}</div>
+            </div>
+          </div>
+          <div style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:8px;line-height:1.7;color:#7f97a8">
+            <div>BASE {{ baseText }}</div>
+            <div style="color:#f0b429">CAP PENALTY −15%</div>
+          </div>
+        </div>
+      </div>
+
+      <div onClick="{{ noop }}" style="{{ scrapBtnStyle }}">SCRAP SELECTED</div>
+      <div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.1em;color:#7f97a8">
+        <span style="color:#22d3ee">EQ</span> EQUIPPED &nbsp;·&nbsp; <span style="color:#f0b429">▮</span> LOCKED &nbsp;— CANNOT BE SCRAPPED
+      </div>
+      <div style="margin:14px auto 0;width:120px;height:3px;background:#16283a"></div>
+    </div>
+    </sc-if>
+
+    <!-- SETS TAB -->
+    <sc-if value="{{ isSets }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow-y:auto;padding:14px 16px 24px;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ sets }}" as="s" hint-placeholder-count="5">
+        <div style="border:1px solid #16283a;background:linear-gradient(160deg,rgba(13,24,38,.85),rgba(3,7,13,.85));padding:12px 13px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+            <div style="font-size:14px;font-weight:600;letter-spacing:.06em;color:#dff6ff">{{ s.name }}</div>
+            <div style="{{ s.countStyle }}">{{ s.count }}</div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:3px">
+            <sc-for list="{{ s.slots }}" as="sl" hint-placeholder-count="4">
+              <div style="{{ sl.style }}"></div>
+            </sc-for>
+          </div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+            <sc-for list="{{ s.bonuses }}" as="b" hint-placeholder-count="2">
+              <div style="display:flex;gap:9px;align-items:flex-start">
+                <div style="{{ b.tierStyle }}">{{ b.tier }}</div>
+                <div style="{{ b.textStyle }}">{{ b.text }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <div style="margin:6px auto 0;width:120px;height:3px;background:#16283a"></div>
+    </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900}}">
+const RAR = [
+  { n:'COMMON',    t:'#64757f', glow:0    },
+  { n:'UNCOMMON',  t:'#7fa88c', glow:0.14 },
+  { n:'RARE',      t:'#4d86d8', glow:0.26 },
+  { n:'EPIC',      t:'#9a6ad8', glow:0.40 },
+  { n:'LEGENDARY', t:'#ffb545', glow:0.58 }
+];
+const GLOW = { ember:'#ff7a3c', gold:'#ffc85c', crimson:'#ff4d5e', silver:'#9fc6e0', arcane:'#6f8cff', none:null };
+const SHAPE = {
+  weapon:  'polygon(50% 0,62% 26%,58% 100%,42% 100%,38% 26%)',
+  armor:   'polygon(18% 8%,82% 8%,94% 30%,78% 100%,22% 100%,6% 30%)',
+  shield:  'polygon(12% 6%,88% 6%,88% 55%,50% 100%,12% 55%)',
+  accessory:'polygon(50% 2%,86% 50%,50% 98%,14% 50%)'
+};
+const ITEMS = [
+  ['Warcleaver','Warrior','weapon',2,412,'ember','',false,''],
+  ['Gravebite Greataxe','Warrior','weapon',3,688,'crimson','Vorne the Ashbound',false,'Bonemarch Warplate'],
+  ['Ironbrow Helm','Warrior','armor',1,210,'silver','',false,'Bonemarch Warplate'],
+  ['Ashplate Cuirass','Warrior','armor',2,455,'ember','',false,'Bonemarch Warplate'],
+  ['Juggernaut Plate','Guardian','armor',4,940,'gold','',true,'Immovable Creed'],
+  ['Bulwark Shield','Guardian','shield',0,120,'none','',false,''],
+  ['Aegis Wall','Guardian','shield',3,702,'silver','Mareth Iron-Vow',false,'Immovable Creed'],
+  ['Immovable Plate','Guardian','armor',2,498,'silver','',false,'Immovable Creed'],
+  ['Shadowfang Dagger','Assassin','weapon',3,664,'arcane','',false,'Umbral Pact'],
+  ['Twin Fangs','Assassin','weapon',2,431,'crimson','',false,''],
+  ['Phantom Leathers','Assassin','armor',1,244,'arcane','',false,'Umbral Pact'],
+  ["Umbral Pendant",'Assassin','accessory',4,905,'arcane','Nyx of the Ninth',false,'Umbral Pact'],
+  ['Blightwood Wand','Mage','weapon',0,98,'none','',false,''],
+  ['Cindercore Staff','Mage','weapon',3,671,'ember','',false,'Cinder Archon'],
+  ['Archon Vestments','Mage','armor',2,470,'arcane','',false,'Cinder Archon'],
+  ["Oracle's Eye",'Mage','accessory',2,505,'arcane','',true,''],
+  ['Rally Totem','Support','weapon',1,232,'gold','',false,'Hierophant Rite'],
+  ['Bonemarch Banner','Support','accessory',3,690,'gold','',true,'Bonemarch Warplate'],
+  ['Hierophant Vestments','Support','armor',4,928,'gold','',false,'Hierophant Rite'],
+  ['Aegis of the Host','Support','shield',2,512,'silver','',false,'Hierophant Rite']
+];
+const SORTS = ['NEWEST','POWER','RARITY','SLOT'];
+const CLIP = 'polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px))';
+
+class Component extends DCLogic {
+  state = { tab:'items', cls:'ALL', sort:0, selectMode:true, sel:{ 0:true, 9:true, 12:true, 16:true } };
+
+  pill(label, active, onClick) {
+    return { label, onClick, style:{
+      padding:'5px 2px', cursor:'pointer', textAlign:'center', minWidth:0,
+      fontFamily:"'JetBrains Mono',monospace", fontSize:'7.5px', letterSpacing:'.04em',
+      clipPath:'polygon(0 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%)',
+      border: active ? '1px solid #22d3ee' : '1px solid #16283a',
+      background: active ? 'rgba(34,211,238,.14)' : 'rgba(13,24,38,.5)',
+      color: active ? '#22d3ee' : '#7f97a8',
+      boxShadow: active ? '0 0 14px rgba(34,211,238,.18) inset' : 'none'
+    }};
+  }
+
+  buildItem(row, i) {
+    const [name, cls, slot, rar, power, glowKey, equippedBy, locked] = row;
+    const R = RAR[rar], g = GLOW[glowKey];
+    const eq = !!equippedBy;
+    const sel = !!this.state.sel[i] && !eq && !locked;
+    const frame = eq ? 'rgba(34,211,238,.75)' : sel ? '#22d3ee' : locked ? 'rgba(240,180,41,.5)'
+      : rar >= 2 ? R.t : rar === 1 ? 'rgba(127,168,140,.5)' : '#16283a';
+    return {
+      name, power, onClick: () => this.setState(s => ({ sel: { ...s.sel, [i]: !s.sel[i] } })),
+      outerStyle: { position:'relative', aspectRatio:'0.84', background:frame, clipPath:CLIP, cursor:'pointer',
+        filter: rar === 4 ? 'drop-shadow(0 0 10px rgba(255,181,69,.28))' : eq ? 'drop-shadow(0 0 8px rgba(34,211,238,.22))' : 'none' },
+      innerStyle: { position:'absolute', inset:'1px', clipPath:CLIP, background:'linear-gradient(165deg,#0d1826 0%,#070e17 60%,#050a11 100%)', overflow:'hidden' },
+      glowStyle: g ? { position:'absolute', inset:0, background:`radial-gradient(58% 46% at 50% 40%, ${g} 0%, transparent 70%)`, opacity:R.glow, mixBlendMode:'screen' } : { display:'none' },
+      hatchStyle: locked ? { position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(240,180,41,.09) 0,rgba(240,180,41,.09) 1px,transparent 1px,transparent 6px)' } : { display:'none' },
+      iconStyle: { width:'34px', height:'34px', clipPath:SHAPE[slot],
+        background: g ? `linear-gradient(160deg,#2a3a4a 0%,#13202e 45%,${g} 120%)` : 'linear-gradient(160deg,#243140 0%,#121c27 100%)',
+        boxShadow: g ? `0 0 ${6 + rar * 4}px ${g}` : 'none', opacity: locked ? 0.6 : 1 },
+      cornerA: rar >= 2 ? { position:'absolute', top:'3px', left:'3px', width:'9px', height:'9px', borderTop:`1px solid ${R.t}`, borderLeft:`1px solid ${R.t}`, opacity: rar === 4 ? 1 : .8, animation: rar === 4 ? 'legPulse 2.6s ease-in-out infinite' : 'none' } : { display:'none' },
+      cornerB: rar >= 3 ? { position:'absolute', bottom:'7px', right:'3px', width:'9px', height:'9px', borderBottom:`1px solid ${R.t}`, borderRight:`1px solid ${R.t}`, opacity:.8 } : { display:'none' },
+      pips: [0,1,2,3,4].map(k => ({ style:{ flex:1, height:'3px', background: k <= rar ? R.t : 'rgba(22,40,58,.9)', opacity: k <= rar ? (rar === 0 ? .55 : .95) : 1 } })),
+      powerStyle: { position:'absolute', top:'4px', right:'5px', fontFamily:"'JetBrains Mono',monospace", fontSize:'7px', letterSpacing:'.04em', color: rar >= 3 ? R.t : '#7f97a8' },
+      eqStyle: eq ? { position:'absolute', left:0, top:'22px', padding:'2px 4px 2px 3px', background:'#22d3ee', color:'#03070d', fontFamily:"'JetBrains Mono',monospace", fontSize:'7px', fontWeight:700, letterSpacing:'.1em', clipPath:'polygon(0 0,100% 0,calc(100% - 4px) 100%,0 100%)' } : { display:'none' },
+      lockStyle: locked ? { position:'absolute', left:'5px', top:'5px', display:'flex', flexDirection:'column', alignItems:'center' } : { display:'none' },
+      selStyle: sel ? { position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(34,211,238,.1),rgba(34,211,238,.22))', boxShadow:'inset 0 0 0 1px rgba(34,211,238,.5)' } : { display:'none' }
+    };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const tab = (active) => ({ flex:1, textAlign:'center', padding:'11px 0 9px', cursor:'pointer',
+      fontSize:'12px', fontWeight:600, letterSpacing:'.22em',
+      color: active ? '#22d3ee' : '#7f97a8',
+      borderBottom: active ? '2px solid #22d3ee' : '2px solid transparent',
+      background: active ? 'linear-gradient(180deg,rgba(34,211,238,0),rgba(34,211,238,.1))' : 'none' });
+
+    const visible = ITEMS.map((r, i) => ({ r, i })).filter(({ r }) => st.cls === 'ALL' || r[1].toUpperCase() === st.cls);
+    const items = visible.map(({ r, i }) => this.buildItem(r, i));
+
+    const chosen = visible.filter(({ r, i }) => st.sel[i] && !r[6] && !r[7]);
+    const base = chosen.reduce((a, { r }) => a + Math.round(r[4] * 0.9 + RAR[r[3]].glow * 400), 0);
+    const net = Math.round(base * 0.85);
+    const fmt = n => n.toLocaleString('en-US');
+
+    const chip = (label) => ({ label, style:{ display:'flex', alignItems:'center', justifyContent:'center', padding:'5px 2px', minWidth:0, border:'1px solid #16283a', background:'rgba(13,24,38,.5)', color:'#dff6ff', fontFamily:"'JetBrains Mono',monospace", fontSize:'7.5px', letterSpacing:'.02em', cursor:'pointer' } });
+
+    const setData = [
+      ['Bonemarch Warplate', 3, 4, [['2', '+8% Physical Power'], ['4', 'Killing blows restore 4% Vigour — 6s cooldown']]],
+      ['Immovable Creed', 3, 4, [['2', '+12% Block Threshold'], ['4', 'Guard break grants a 3s Aegis shell']]],
+      ['Umbral Pact', 3, 4, [['2', '+10% Crit from stealth'], ['4', 'First strike after a dodge cannot be resisted']]],
+      ['Cinder Archon', 2, 5, [['2', '+9% Burn duration'], ['4', 'Overcast leaves a cinder field'], ['5', 'Ignition chains to 2 nearby foes']]],
+      ['Hierophant Rite', 3, 3, [['2', '+14% Rally radius'], ['3', 'Allies in radius gain 6% damage reduction']]]
+    ];
+    const sets = setData.map(([name, owned, total, bonuses]) => ({
+      name, count: owned + '/' + total,
+      countStyle: { fontFamily:"'JetBrains Mono',monospace", fontSize:'13px', fontWeight:700, letterSpacing:'.06em', color: owned === total ? '#7ff0ff' : owned >= total - 1 ? '#22d3ee' : '#7f97a8' },
+      slots: Array.from({ length: total }, (_, k) => ({ style:{ flex:1, height:'5px', background: k < owned ? '#22d3ee' : '#0d1826', border:'1px solid ' + (k < owned ? 'rgba(34,211,238,.6)' : '#16283a'), boxShadow: k < owned ? '0 0 8px rgba(34,211,238,.35)' : 'none' } })),
+      bonuses: bonuses.map(([tier, text]) => {
+        const on = owned >= Number(tier);
+        return {
+          tier: tier + 'PC',
+          tierStyle: { flex:'none', width:'30px', textAlign:'center', padding:'2px 0', fontFamily:"'JetBrains Mono',monospace", fontSize:'8px', letterSpacing:'.06em', border:'1px solid ' + (on ? 'rgba(34,211,238,.5)' : '#16283a'), color: on ? '#22d3ee' : '#7f97a8', background: on ? 'rgba(34,211,238,.1)' : 'transparent' },
+          text, textStyle: { fontSize:'11px', lineHeight:1.4, color: on ? '#dff6ff' : '#7f97a8', textWrap:'pretty' }
+        };
+      })
+    }));
+
+    return {
+      isItems: st.tab === 'items', isSets: st.tab === 'sets',
+      showItems: () => this.setState({ tab:'items' }), showSets: () => this.setState({ tab:'sets' }),
+      tabItemsStyle: tab(st.tab === 'items'), tabSetsStyle: tab(st.tab === 'sets'),
+      classPills: ['ALL','WARRIOR','GUARDIAN','ASSASSIN','MAGE','SUPPORT'].map(c => this.pill(c, st.cls === c, () => this.setState({ cls:c }))),
+      facetChips: [chip('SLOT'), chip('RARITY'), chip('SET'), chip('EQUIP')],
+      sortLabel: SORTS[st.sort], cycleSort: () => this.setState(s => ({ sort:(s.sort + 1) % SORTS.length })),
+      items, sets,
+      selCount: String(chosen.length).padStart(2, '0'),
+      yieldText: fmt(net), baseText: fmt(base),
+      selectModeWord: st.selectMode ? 'ON' : 'OFF',
+      selectModeStyle: { flex:1, padding:'9px 11px', cursor:'pointer', fontFamily:"'JetBrains Mono',monospace", fontSize:'10px', letterSpacing:'.14em',
+        clipPath:'polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))',
+        border: st.selectMode ? '1px solid #22d3ee' : '1px solid #16283a',
+        background: st.selectMode ? 'rgba(34,211,238,.12)' : 'rgba(13,24,38,.6)',
+        color: st.selectMode ? '#22d3ee' : '#7f97a8' },
+      toggleSelectMode: () => this.setState(s => ({ selectMode: !s.selectMode })),
+      clearSel: () => this.setState({ sel:{} }),
+      noop: () => {},
+      scrapBtnStyle: { marginTop:'11px', padding:'15px 0', textAlign:'center', cursor: chosen.length ? 'pointer' : 'default',
+        fontSize:'14px', fontWeight:700, letterSpacing:'.24em',
+        clipPath:'polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))',
+        border: chosen.length ? '1px solid #22d3ee' : '1px solid #16283a',
+        background: chosen.length ? 'linear-gradient(180deg,rgba(34,211,238,.22),rgba(34,211,238,.08))' : 'rgba(13,24,38,.5)',
+        color: chosen.length ? '#7ff0ff' : '#7f97a8',
+        boxShadow: chosen.length ? '0 0 26px rgba(34,211,238,.18)' : 'none' }
+    };
+  }
+}
+</script>
+</body>
+</html>
