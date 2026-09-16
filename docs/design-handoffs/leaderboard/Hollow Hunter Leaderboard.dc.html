@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #03070d; }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  a { color: #22d3ee; text-decoration: none; }
+  a:hover { color: #7ff0ff; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes hh-pulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+</style>
+</helmet>
+
+<div style="display:flex;align-items:flex-start;gap:38px;padding:34px;background:#03070d;font-family:'Chakra Petch',system-ui,sans-serif;">
+
+  <!-- ============ 1 · POPULATED BOARD ============ -->
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#22d3ee;">01</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#7f97a8;">POPULATED REGISTER</div>
+    </div>
+
+    <div style="position:relative;width:390px;height:844px;overflow:hidden;background:#03070d;color:#dff6ff;display:flex;flex-direction:column;border:1px solid #16283a;">
+      <div style="position:absolute;inset:0;background:radial-gradient(120% 55% at 50% -12%, rgba(34,211,238,.08), transparent 62%);pointer-events:none;"></div>
+
+      <!-- TOP BAND · information only -->
+      <div style="position:relative;flex:none;padding:14px 14px 11px;border-bottom:1px solid #16283a;background:linear-gradient(180deg,#0a1420,#03070d);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <div style="width:8px;height:8px;border:1px solid #22d3ee;transform:rotate(45deg);"></div>
+              <div style="font-size:17px;font-weight:700;letter-spacing:.22em;color:#7ff0ff;">REGISTER</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.16em;color:#7f97a8;">{{ bandSubtitle }}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.18em;color:#7f97a8;">YOUR STANDING</div>
+            <div style="display:flex;align-items:baseline;gap:4px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#7ff0ff;line-height:1;">{{ standingPos }}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7f97a8;">{{ standingOf }}</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#7f97a8;">{{ standingMove }}</div>
+          </div>
+        </div>
+        <div style="margin-top:11px;display:flex;align-items:center;gap:7px;">
+          <div style="flex:none;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.16em;color:#7f97a8;">TIER BAND</div>
+          <div style="flex:1;display:flex;gap:3px;">
+            <sc-for list="{{ tierBand }}" as="t" hint-placeholder-count="6">
+              <div style="{{ t.style }}">{{ t.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUMN RULE -->
+      <div style="flex:none;display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid #16283a;background:#0a1420;">
+        <div style="width:26px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.16em;color:#7f97a8;">POS</div>
+        <div style="flex:1;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.16em;color:#7f97a8;">HUNTER</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.16em;color:#7f97a8;">{{ scoreHead }}</div>
+      </div>
+
+      <!-- RANKED LIST -->
+      <div style="position:relative;flex:1;min-height:0;overflow-y:auto;">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="20">
+          <div style="{{ r.wrap }}">
+            <sc-if value="{{ r.group }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:8px;padding:11px 14px 6px;background:#0a1420;border-bottom:1px solid #16283a;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.2em;color:#7ff0ff;">{{ r.groupLabel }}</div>
+                <div style="flex:1;height:1px;background:#16283a;"></div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;color:#7f97a8;">{{ r.groupMeta }}</div>
+              </div>
+            </sc-if>
+            <div style="{{ r.row }}">
+              <div style="{{ r.posWrap }}">
+                <div style="{{ r.pos }}">{{ r.position }}</div>
+              </div>
+              <div style="{{ r.badge }}">{{ r.tier }}</div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+                <div style="{{ r.name }}">{{ r.playerName }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#7f97a8;">{{ r.sub }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+                <div style="{{ r.score }}">{{ r.scoreValue }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;color:#7f97a8;">{{ r.scoreUnit }}</div>
+              </div>
+              <sc-if value="{{ r.isYou }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;top:0;left:0;bottom:0;width:2px;background:#22d3ee;"></div>
+                <div style="position:absolute;top:0;right:0;width:0;height:0;border-top:14px solid #22d3ee;border-left:14px solid transparent;"></div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+        <div style="padding:13px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.2em;color:#7f97a8;opacity:.5;">{{ listFoot }}</div>
+      </div>
+
+      <!-- PINNED SELF ROW -->
+      <div style="flex:none;position:relative;border-top:1px solid #22d3ee;background:rgba(13,24,38,.97);padding:9px 14px;display:flex;align-items:center;gap:10px;">
+        <div style="position:absolute;top:0;left:0;bottom:0;width:2px;background:#22d3ee;"></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#7ff0ff;width:26px;">{{ standingPos }}</div>
+        <div style="width:22px;height:26px;display:flex;align-items:center;justify-content:center;border:1px solid #22d3ee;clip-path:polygon(0 0,100% 0,100% 66%,50% 100%,0 66%);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#22d3ee;background:#03070d;">A</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="font-size:13px;font-weight:600;letter-spacing:.06em;color:#dff6ff;">ASH-NINE</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.16em;color:#03070d;background:#22d3ee;padding:1px 4px;">YOU</div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#7f97a8;margin-top:2px;">{{ selfGap }}</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#7ff0ff;">{{ selfScore }}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;color:#7f97a8;">{{ selfScoreUnit }}</div>
+      </div>
+
+      <!-- THUMB ZONE -->
+      <div style="flex:none;border-top:1px solid #16283a;background:linear-gradient(180deg,#0a1420,#0a1420);padding:11px 14px 12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.2em;color:#7f97a8;">BOARD</div>
+          <div style="flex:1;height:1px;background:#16283a;"></div>
+        </div>
+        <div style="display:flex;gap:7px;margin-bottom:10px;">
+          <sc-for list="{{ boards }}" as="b" hint-placeholder-count="2">
+            <div onClick="{{ b.onTap }}" style="{{ b.style }}">
+              <div style="{{ b.labelStyle }}">{{ b.label }}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#7f97a8;margin-top:3px;">{{ b.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.2em;color:#7f97a8;">SCOPE</div>
+          <div style="flex:1;height:1px;background:#16283a;"></div>
+        </div>
+        <div style="display:flex;border:1px solid #16283a;margin-bottom:10px;">
+          <sc-for list="{{ scopes }}" as="s" hint-placeholder-count="3">
+            <div onClick="{{ s.onTap }}" style="{{ s.style }}">{{ s.label }}</div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:7px;">
+          <div onClick="{{ jumpToSelf }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #22d3ee;background:rgba(34,211,238,.08);padding:12px;">
+            <div style="width:7px;height:7px;border:1px solid #22d3ee;transform:rotate(45deg);"></div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:.18em;color:#7ff0ff;">JUMP TO ME</div>
+          </div>
+          <div onClick="{{ noop }}" style="flex:none;padding:12px 14px;border:1px solid #16283a;background:#0d1826;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:#7f97a8;">SHARE</div>
+        </div>
+        <div style="margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:#7f97a8;line-height:1.55;">GAME STATS ONLY · LEVEL, POWER, FLOOR. NO HEALTH DATA LEAVES THIS DEVICE.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2 · NOT SIGNED IN / BACKEND DOWN ============ -->
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#22d3ee;">02</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#7f97a8;">REGISTER UNREACHABLE</div>
+    </div>
+    <div style="position:relative;width:390px;height:844px;overflow:hidden;background:#03070d;color:#dff6ff;display:flex;flex-direction:column;border:1px solid #16283a;">
+      <div style="position:absolute;inset:0;background:radial-gradient(120% 55% at 50% -12%, rgba(34,211,238,.05), transparent 62%);pointer-events:none;"></div>
+      <div style="position:relative;flex:none;padding:14px 14px 11px;border-bottom:1px solid #16283a;background:linear-gradient(180deg,#0a1420,#03070d);">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div style="width:8px;height:8px;border:1px solid #7f97a8;transform:rotate(45deg);"></div>
+          <div style="font-size:17px;font-weight:700;letter-spacing:.22em;color:#7f97a8;">REGISTER</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.16em;color:#7f97a8;margin-top:3px;">STANDING UNAVAILABLE OFFLINE</div>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:26px;gap:0;">
+        <div style="position:relative;width:100%;border:1px solid #16283a;background:rgba(10,20,32,.7);padding:26px 20px;">
+          <div style="position:absolute;top:-1px;left:-1px;width:13px;height:13px;border-top:1px solid #7f97a8;border-left:1px solid #7f97a8;"></div>
+          <div style="position:absolute;top:-1px;right:-1px;width:13px;height:13px;border-top:1px solid #7f97a8;border-right:1px solid #7f97a8;"></div>
+          <div style="position:absolute;bottom:-1px;left:-1px;width:13px;height:13px;border-bottom:1px solid #7f97a8;border-left:1px solid #7f97a8;"></div>
+          <div style="position:absolute;bottom:-1px;right:-1px;width:13px;height:13px;border-bottom:1px solid #7f97a8;border-right:1px solid #7f97a8;"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;">
+            <div style="width:40px;height:46px;display:flex;align-items:center;justify-content:center;border:1px solid #7f97a8;clip-path:polygon(0 0,100% 0,100% 66%,50% 100%,0 66%);background:#0a1420;">
+              <div style="width:14px;height:1px;background:#7f97a8;"></div>
+            </div>
+            <div style="font-size:15px;font-weight:700;letter-spacing:.16em;color:#dff6ff;">NO LINK TO THE REGISTER</div>
+            <div style="font-size:12px;line-height:1.6;color:#7f97a8;text-wrap:pretty;max-width:250px;">Rankings are kept by the hunter association, not on your device. Sign in — or reconnect — and your standing appears exactly as it was.</div>
+            <div style="width:100%;border-top:1px solid #16283a;padding-top:13px;display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:5px;height:5px;background:#22d3ee;transform:rotate(45deg);"></div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.06em;color:#dff6ff;text-align:left;">Your hunt continues offline — nothing is lost.</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:5px;height:5px;background:#7f97a8;transform:rotate(45deg);"></div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.06em;color:#7f97a8;text-align:left;">Power and floor sync on next connection.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:8px;border:1px solid #f0b429;background:rgba(240,180,41,.06);padding:8px 10px;width:100%;">
+          <div style="width:6px;height:6px;background:#f0b429;transform:rotate(45deg);flex:none;"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.06em;color:#f0b429;line-height:1.45;">LAST SYNCED 14 SEP · 09:12 — STANDING SHOWN THEN: 10 / 411</div>
+        </div>
+      </div>
+
+      <div style="flex:none;border-top:1px solid #16283a;background:linear-gradient(180deg,#0a1420,#0a1420);padding:12px 14px 14px;">
+        <div onClick="{{ noop }}" style="display:flex;align-items:center;justify-content:center;gap:9px;border:1px solid #22d3ee;background:rgba(34,211,238,.08);padding:13px;margin-bottom:8px;">
+          <div style="width:8px;height:8px;border:1px solid #22d3ee;transform:rotate(45deg);"></div>
+          <div style="font-size:13px;font-weight:700;letter-spacing:.2em;color:#7ff0ff;">SIGN IN</div>
+        </div>
+        <div style="display:flex;gap:7px;">
+          <div onClick="{{ noop }}" style="flex:1;text-align:center;padding:12px;border:1px solid #16283a;background:#0d1826;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:#7f97a8;">RETRY LINK</div>
+          <div onClick="{{ noop }}" style="flex:1;text-align:center;padding:12px;border:1px solid #16283a;background:#0d1826;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:#7f97a8;">PLAY OFFLINE</div>
+        </div>
+        <div style="margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:#7f97a8;line-height:1.55;">SIGNING IN SHARES LEVEL, POWER AND FLOOR ONLY.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 3 · FRIENDS · EMPTY ============ -->
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#22d3ee;">03</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:#7f97a8;">FRIENDS · NO ALLIES YET</div>
+    </div>
+    <div style="position:relative;width:390px;height:844px;overflow:hidden;background:#03070d;color:#dff6ff;display:flex;flex-direction:column;border:1px solid #16283a;">
+      <div style="position:absolute;inset:0;background:radial-gradient(120% 55% at 50% -12%, rgba(34,211,238,.08), transparent 62%);pointer-events:none;"></div>
+
+      <div style="position:relative;flex:none;padding:14px 14px 11px;border-bottom:1px solid #16283a;background:linear-gradient(180deg,#0a1420,#03070d);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <div style="width:8px;height:8px;border:1px solid #22d3ee;transform:rotate(45deg);"></div>
+              <div style="font-size:17px;font-weight:700;letter-spacing:.22em;color:#7ff0ff;">REGISTER</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.16em;color:#7f97a8;">TOTAL POWER · FRIENDS · A-RANK</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.18em;color:#7f97a8;">YOUR STANDING</div>
+            <div style="display:flex;align-items:baseline;gap:4px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#7ff0ff;line-height:1;">01</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7f97a8;">/ 1</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#7f97a8;">UNCONTESTED</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:14px;">
+        <!-- the player's own row, alone but real -->
+        <div style="position:relative;border:1px solid #22d3ee;background:rgba(13,24,38,.95);padding:11px 13px;display:flex;align-items:center;gap:10px;">
+          <div style="position:absolute;top:0;left:0;bottom:0;width:2px;background:#22d3ee;"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#7ff0ff;width:26px;">01</div>
+          <div style="width:22px;height:26px;display:flex;align-items:center;justify-content:center;border:1px solid #22d3ee;clip-path:polygon(0 0,100% 0,100% 66%,50% 100%,0 66%);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#22d3ee;background:#03070d;">A</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="font-size:13px;font-weight:600;letter-spacing:.06em;color:#dff6ff;">ASH-NINE</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.16em;color:#03070d;background:#22d3ee;padding:1px 4px;">YOU</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#7f97a8;margin-top:2px;">LV 61 · NADIR FLOOR 74</div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#7ff0ff;">21,480</div>
+        </div>
+
+        <!-- ghost slots: the shape of the board once allies exist -->
+        <div style="margin-top:9px;display:flex;flex-direction:column;gap:6px;">
+          <sc-for list="{{ ghosts }}" as="g" hint-placeholder-count="4">
+            <div style="position:relative;border:1px dashed #16283a;background:rgba(10,20,32,.35);padding:11px 13px;display:flex;align-items:center;gap:10px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#16283a;width:26px;">{{ g.pos }}</div>
+              <div style="width:22px;height:26px;border:1px dashed #16283a;clip-path:polygon(0 0,100% 0,100% 66%,50% 100%,0 66%);"></div>
+              <div style="flex:1;height:7px;background:repeating-linear-gradient(90deg,#0d1826 0 7px,transparent 7px 12px);max-width:{{ g.w }};"></div>
+              <div style="width:52px;height:7px;background:#0d1826;"></div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:auto;padding-top:16px;">
+          <div style="position:relative;border:1px solid #16283a;border-left:2px solid #22d3ee;background:rgba(10,20,32,.8);padding:16px 15px;">
+            <div style="font-size:14px;font-weight:700;letter-spacing:.14em;color:#7ff0ff;">A REGISTER OF ONE</div>
+            <div style="margin-top:8px;font-size:12px;line-height:1.6;color:#dff6ff;text-wrap:pretty;">You hold first place among your allies because there are none. Add a hunter by code and both of you appear here — power and floor only, nothing else.</div>
+            <div style="margin-top:12px;display:flex;align-items:center;gap:9px;border:1px solid #16283a;background:#0a1420;padding:9px 11px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.16em;color:#7f97a8;">YOUR CODE</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;letter-spacing:.14em;color:#dff6ff;">H9-4KQ-207</div>
+              <div onClick="{{ noop }}" style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;color:#22d3ee;border-bottom:1px solid #22d3ee;">COPY</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:none;border-top:1px solid #16283a;background:linear-gradient(180deg,#0a1420,#0a1420);padding:11px 14px 13px;">
+        <div style="display:flex;border:1px solid #16283a;margin-bottom:10px;">
+          <sc-for list="{{ scopesFriends }}" as="s" hint-placeholder-count="3">
+            <div onClick="{{ s.onTap }}" style="{{ s.style }}">{{ s.label }}</div>
+          </sc-for>
+        </div>
+        <div onClick="{{ noop }}" style="display:flex;align-items:center;justify-content:center;gap:9px;border:1px solid #22d3ee;background:rgba(34,211,238,.08);padding:13px;margin-bottom:8px;">
+          <div style="width:8px;height:8px;border:1px solid #22d3ee;transform:rotate(45deg);"></div>
+          <div style="font-size:13px;font-weight:700;letter-spacing:.2em;color:#7ff0ff;">ADD A HUNTER</div>
+        </div>
+        <div onClick="{{ noop }}" style="text-align:center;padding:11px;border:1px solid #16283a;background:#0d1826;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:#7f97a8;">VIEW REGIONAL BOARD INSTEAD</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1330,&quot;height&quot;:940}}">
+const MONO = "'JetBrains Mono',monospace";
+
+const ROWS = [
+  { p: 1,  n: 'SEVENFOLD',    t: 'S', v: 28940, lv: 78, fl: 96 },
+  { p: 2,  n: 'HOLLOWRITE',   t: 'S', v: 27410, lv: 76, fl: 93 },
+  { p: 3,  n: 'CINDER-VOW',   t: 'S', v: 26180, lv: 75, fl: 91 },
+  { p: 4,  n: 'KESTREL-TWO',  t: 'A', v: 24020, lv: 69, fl: 88 },
+  { p: 5,  n: 'GRAVELIGHT',   t: 'A', v: 23150, lv: 67, fl: 84 },
+  { p: 6,  n: 'VEIL-SIX',     t: 'A', v: 22660, lv: 64, fl: 81 },
+  { p: 7,  n: 'ASH-NINE',     t: 'A', v: 21480, lv: 61, fl: 74, you: true },
+  { p: 8,  n: 'NULLMARCH',    t: 'A', v: 21120, lv: 60, fl: 77 },
+  { p: 9,  n: 'OSSUARY-ONE',  t: 'A', v: 20890, lv: 60, fl: 72 },
+  { p: 10, n: 'PALE COMPASS', t: 'A', v: 20340, lv: 59, fl: 70 },
+  { p: 11, n: 'IRONBROW',     t: 'A', v: 19980, lv: 58, fl: 69 },
+  { p: 12, n: 'SALT-AND-ASH', t: 'A', v: 19610, lv: 57, fl: 66 },
+  { p: 13, n: 'THIRD LANTERN',t: 'B', v: 18470, lv: 55, fl: 63 },
+  { p: 14, n: 'DUSKWARDEN',   t: 'B', v: 18010, lv: 54, fl: 61 },
+  { p: 15, n: 'MARROWKEEP',   t: 'B', v: 17640, lv: 53, fl: 58 },
+  { p: 16, n: 'QUIET-ELEVEN', t: 'B', v: 17280, lv: 52, fl: 57 },
+  { p: 17, n: 'BRIAR-NULL',   t: 'B', v: 16930, lv: 51, fl: 54 },
+  { p: 18, n: 'STORMGLASS',   t: 'B', v: 16510, lv: 50, fl: 52 },
+  { p: 19, n: 'LAST TALLY',   t: 'B', v: 16080, lv: 49, fl: 49 },
+  { p: 20, n: 'EMBER-FOUR',   t: 'B', v: 15740, lv: 48, fl: 47 },
+];
+
+const GROUPS = {
+  1:  { label: 'S-RANK · APEX',        meta: '12 LISTED' },
+  4:  { label: 'A-RANK · YOUR BAND',   meta: '418 LISTED' },
+  13: { label: 'B-RANK · ASCENDING',   meta: '2,104 LISTED' },
+};
+
+class Component extends DCLogic {
+  state = { board: 'power', scope: 'Regional' };
+
+  chipStyle(active, extra) {
+    return `flex:1;text-align:center;padding:9px 6px;font-family:${MONO};font-size:9px;letter-spacing:.14em;` +
+      (active
+        ? 'background:rgba(34,211,238,.12);color:#7ff0ff;box-shadow:inset 0 -2px 0 #22d3ee;'
+        : 'background:#0a1420;color:#7f97a8;') + (extra || '');
+  }
+
+  scopeList(current) {
+    return ['Friends', 'Regional', 'Global'].map((label, i) => ({
+      label: label.toUpperCase(),
+      onTap: () => this.setState({ scope: label }),
+      style: this.chipStyle(label === current, i < 2 ? 'border-right:1px solid #16283a;' : ''),
+    }));
+  }
+
+  renderVals() {
+    const isPower = this.state.board === 'power';
+    const fmt = n => n.toLocaleString('en-US');
+
+    const rows = ROWS.map(r => {
+      const g = GROUPS[r.p];
+      const you = !!r.you;
+      const podium = r.p <= 3;
+      return {
+        group: !!g,
+        groupLabel: g ? g.label : '',
+        groupMeta: g ? g.meta : '',
+        wrap: 'position:relative;',
+        row: 'position:relative;display:flex;align-items:center;gap:10px;padding:' +
+          (you ? '11px 14px;' : '9px 14px;') +
+          'border-bottom:1px solid ' + (you ? '#22d3ee' : '#16283a') + ';' +
+          'background:' + (you ? 'rgba(34,211,238,.09)' : (r.p % 2 ? '#03070d' : '#0a1420')) + ';',
+        posWrap: 'width:26px;display:flex;align-items:center;',
+        pos: `font-family:${MONO};font-weight:700;` +
+          (you ? 'font-size:15px;color:#7ff0ff;'
+               : podium ? 'font-size:14px;color:#dff6ff;'
+                        : 'font-size:13px;color:#7f97a8;'),
+        position: String(r.p).padStart(2, '0'),
+        tier: r.t,
+        badge: 'flex:none;width:22px;height:26px;display:flex;align-items:center;justify-content:center;' +
+          'clip-path:polygon(0 0,100% 0,100% 66%,50% 100%,0 66%);background:#03070d;' +
+          `font-family:${MONO};font-size:11px;font-weight:700;` +
+          (you ? 'border:1px solid #22d3ee;color:#22d3ee;'
+               : 'border:1px solid #7f97a8;color:#dff6ff;'),
+        name: 'font-size:' + (you ? '13px' : '12.5px') + ';font-weight:600;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (you ? '#dff6ff' : podium ? '#dff6ff' : '#dff6ff') + ';',
+        playerName: you ? r.n + '  · YOU' : r.n,
+        sub: isPower ? 'LV ' + r.lv : 'LV ' + r.lv + ' · ' + fmt(r.v) + ' PWR',
+        score: `font-family:${MONO};font-weight:700;font-size:` + (you ? '15px' : '13px') + ';color:' + (you ? '#7ff0ff' : '#dff6ff') + ';',
+        scoreValue: isPower ? fmt(r.v) : String(r.fl),
+        scoreUnit: isPower ? 'PWR' : 'FLOOR',
+        isYou: you,
+      };
+    });
+
+    const tierBand = ['E', 'D', 'C', 'B', 'A', 'S'].map(t => {
+      const active = t === 'A';
+      return {
+        label: t,
+        style: `flex:1;text-align:center;padding:3px 0;font-family:${MONO};font-size:8px;font-weight:700;letter-spacing:.1em;` +
+          (active ? 'color:#03070d;background:#22d3ee;' : 'color:#7f97a8;background:#0a1420;border:1px solid #16283a;'),
+      };
+    });
+
+    const me = ROWS.find(r => r.you);
+    const above = ROWS.find(r => r.p === me.p - 1);
+    const sc = {
+      Friends:  { pos: 1,    total: 1,     move: 'UNCONTESTED',             band: 'FRIENDS' },
+      Regional: { pos: me.p, total: 418,   move: '▲ 3 SINCE LAST ASCENT',   band: 'REGIONAL' },
+      Global:   { pos: 2142, total: 40318, move: '▲ 118 SINCE LAST ASCENT', band: 'GLOBAL' },
+    }[this.state.scope];
+    const gapText = isPower
+      ? fmt(above.v - me.v) + ' BEHIND RANK ' + String(above.p).padStart(2, '0')
+      : (above.fl - me.fl) + ' FLOORS BEHIND RANK ' + String(above.p).padStart(2, '0');
+
+    const boards = [
+      { key: 'power', label: 'TOTAL POWER', sub: 'ALL GEAR + LEVEL' },
+      { key: 'nadir', label: 'NADIR FLOOR', sub: 'DEEPEST DESCENT' },
+    ].map(b => {
+      const active = b.key === this.state.board;
+      return {
+        label: b.label, sub: b.sub,
+        onTap: () => this.setState({ board: b.key }),
+        style: 'flex:1;padding:9px 10px;text-align:left;' +
+          (active ? 'border:1px solid #22d3ee;background:rgba(34,211,238,.08);' : 'border:1px solid #16283a;background:#0d1826;'),
+        labelStyle: 'font-size:12px;font-weight:700;letter-spacing:.1em;color:' + (active ? '#7ff0ff' : '#7f97a8') + ';',
+      };
+    });
+
+    return {
+      rows, tierBand, boards,
+      scoreHead: isPower ? 'TOTAL POWER' : 'NADIR FLOOR',
+      bandSubtitle: (isPower ? 'TOTAL POWER' : 'NADIR FLOOR') + ' · ' + sc.band + ' · A-RANK',
+      standingPos: String(sc.pos).padStart(2, '0'),
+      standingOf: '/ ' + fmt(sc.total),
+      standingMove: sc.move,
+      listFoot: '— A-RANK BAND ENDS · ' + fmt(sc.total) + ' LISTED —',
+      selfGap: 'LV ' + me.lv + ' · ' + (sc.total > 1 ? gapText : 'NO RIVALS LISTED'),
+      selfScore: isPower ? fmt(me.v) : String(me.fl),
+      selfScoreUnit: isPower ? 'PWR' : 'FLOOR',
+      scopes: this.scopeList(this.state.scope),
+      scopesFriends: this.scopeList('Friends'),
+      ghosts: [
+        { pos: '02', w: '120px' },
+        { pos: '03', w: '96px' },
+        { pos: '04', w: '134px' },
+        { pos: '05', w: '104px' },
+      ],
+      jumpToSelf: () => {},
+      noop: () => {},
+    };
+  }
+}
+</script>
+</body>
+</html>
